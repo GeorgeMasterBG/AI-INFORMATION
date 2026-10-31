@@ -33,7 +33,7 @@ button,input{font-family:inherit}
 .action-btns{display:flex;flex-direction:column;gap:8px;margin:12px 15px;}
 .action-btns button{padding:13px;border:2px solid;font-weight:bold;width:100%;border-radius:10px;cursor:pointer;}
 .bot-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
-#splash{position:fixed;inset:0;z-index:100000;background:var(--bg,#0a0f0c);display:flex;align-items:center;justify-content:center;overflow:hidden;animation:spOut .55s ease 2.3s forwards}
+html.splashing,html.splashing body{overflow:hidden!important;height:100%}#splash{touch-action:none;overscroll-behavior:none;position:fixed;inset:0;z-index:100000;background:var(--bg,#0a0f0c);display:flex;align-items:center;justify-content:center;overflow:hidden;animation:spOut .55s ease 2.3s forwards}
 #splash .sp-glow{position:absolute;width:62vmin;height:62vmin;border-radius:50%;background:radial-gradient(circle,var(--accent,#00ff88) 0%,color-mix(in srgb,var(--accent,#00ff88) 45%,transparent) 38%,transparent 70%);filter:blur(34px);opacity:0;transform:scale(.45);animation:spGlow .95s ease-in-out 1.35s forwards}
 #splash img{position:relative;width:clamp(96px,26vmin,170px);height:auto;border-radius:26%;opacity:0;transform:scale(.86);animation:spIn .55s cubic-bezier(.2,.8,.2,1) .05s forwards,spBlur .95s ease-in 1.35s forwards}
 @keyframes spIn{to{opacity:1;transform:scale(1)}}
@@ -624,7 +624,7 @@ if(!n||/^\s*$/.test(n))n='all';if(r.media.mediaText!==n)r.media.mediaText=n;});}
 try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
 })();</script>
 <div id="splash" aria-hidden="true"><div class="sp-glow"></div><img src="icon-192.png" alt="" width="170" height="170" decoding="async"></div>
-<script>(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.AI_RMQ&&AI_RMQ())){d.remove();return;}function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
+<script>(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.AI_RMQ&&AI_RMQ())){d.remove();return;}document.documentElement.classList.add('splashing');function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;document.documentElement.classList.remove('splashing');}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
 <section class="bot-only" id="about-for-bots" aria-label="Plain-text description of this site for search engines and AI assistants">
 <h1>AI INFORMATION - complete description of this website</h1>
 <p>Most of this site is JavaScript that runs in the visitor's browser, so a bot that does not run JavaScript cannot see it. This hidden-from-view HTML section is a plain-text description of everything the site does. It changes nothing in how the site works: the visible page and all other files are unchanged. It is not shown on screen and has no scripts, forms or links of its own.</p>
@@ -647,7 +647,7 @@ try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
 <h2>Operator</h2>
 <p>The site is run by Георги Бойков Василев (Georgi Boykov Vasilev, known as George), a private person living in Bulgaria. Contact: ai.information.support@gmail.com. Bulgarian law applies, without taking away the mandatory consumer-protection rules of the visitor's country.</p>
 <h2>Honest notes and laws</h2>
-<p>Translations come from Google Translate (MyMemory as backup) and are machine translations. There is no way to pay on the site. The site may break a rule or law by mistake, without the owner knowing; if told, the owner will look and fix it. All the files the site works with are public on GitHub (github.com/GeorgeMasterBG/AI-INFORMATION). Some code was written with AI help, which does not mean those parts use AI while visitors use the site. Devices whose operating system is not Android or iOS may show broken animations or icons, and a very old browser, or a very new and unknown one, can cause problems in normal use. The site is not legal, medical or financial advice and gives no verdicts on what is true. This HTML description is the tool by which bots, search engines and AI assistants can review the site, because they cannot run its JavaScript.</p>
+<p>Translations come from Google Translate (MyMemory as backup) and are machine translations. There is no way to pay on the site. The site may break a rule or law by mistake, without the owner knowing; if told, the owner will look and fix it. All the files the site works with are public on GitHub (github.com/GeorgeMasterBG/AI-INFORMATION). Some code was written with AI help, which does not mean those parts use AI while visitors use the site. Devices whose operating system is not Android or iOS may show broken animations or icons, and a very old browser, or a very new and unknown one, can cause problems in normal use. Parts of the site that need the server (AI features, Language, link checks, news) may pause briefly from time to time. The site is not legal, medical or financial advice and gives no verdicts on what is true. This HTML description is the tool by which bots, search engines and AI assistants can review the site, because they cannot run its JavaScript.</p>
 </section>
 <script>try{if(localStorage.getItem('ai_info_theme')==='light'){document.body.classList.add('light-theme');document.documentElement.style.colorScheme='light';}}catch(e){}</script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="lgRefract" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feImage href="data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27400%27 height=%27100%27 preserveAspectRatio=%27none%27%3E%3Cdefs%3E%3ClinearGradient id=%27r%27 x1=%270%27 x2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23c80000%27/%3E%3Cstop offset=%27.12%27 stop-color=%27%23800000%27/%3E%3Cstop offset=%27.88%27 stop-color=%27%23800000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23400000%27/%3E%3C/linearGradient%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%270%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%2300c800%27/%3E%3Cstop offset=%27.25%27 stop-color=%27%23008000%27/%3E%3Cstop offset=%27.75%27 stop-color=%27%23008000%27/%3E%3Cstop offset=%271%27 stop-color=%27%23004000%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%27400%27 height=%27100%27 fill=%27black%27/%3E%3Crect width=%27400%27 height=%27100%27 fill=%27url(%23r)%27/%3E%3Crect width=%27400%27 height=%27100%27 fill=%27url(%23g)%27 style=%27mix-blend-mode:screen%27/%3E%3C/svg%3E" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="m"/><feDisplacementMap in="SourceGraphic" in2="m" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
@@ -701,6 +701,7 @@ var store={
 get:function(k){if(Object.prototype.hasOwnProperty.call(MEM,k))return MEM[k];try{return localStorage.getItem(k);}catch(e){return null;}},
 set:function(k,v){if(storeAllowed(k)){try{localStorage.setItem(k,v);}catch(e){}delete MEM[k];}else{MEM[k]=String(v);}}
 };
+function netUp(){return window.__netUp!==false;}
 function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function safeUrl(u){return /^https?:\/\//i.test(String(u))?String(u):'#';}
 function hideKeyboard(){
@@ -2223,7 +2224,7 @@ var v=st.versions[st.cur];
 if(opts.render){opts.render(out,v.res,function(){draw();});}else{out.textContent=v.res.answer||'';if(v.res.sources&&v.res.sources.length){var sl=el('div','');sl.style.cssText='margin-top:6px;white-space:normal';v.res.sources.forEach(function(x,i){var a=el('a','','['+(i+1)+'] '+String(x.title).slice(0,50));a.href=safeUrl(x.url);a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='display:inline-block;margin:2px 8px 2px 0;font-size:12px';sl.appendChild(a);});out.appendChild(sl);}}
 if(st.versions.length>1){st.versions.forEach(function(x,i){var b=el('button','std-b',(i+1)+' · '+aiShort(x.model));b.type='button';b.setAttribute('aria-pressed',i===st.cur?'true':'false');b.title=x.model;b.style.cssText='padding:4px 10px;font-size:12px;flex:0 1 auto;min-width:0;white-space:normal;'+(i===st.cur?'outline:2px solid var(--accent)':'');b.onclick=function(){st.cur=i;draw();};vr.appendChild(b);});}
 var ot=el('button','std-b','🔁 Another model');ot.type='button';ot.style.cssText='padding:4px 10px;font-size:12px;margin-right:6px';ot.onclick=function(){var used=st.versions.map(function(x){return x.model;});var nx=AI_ALL.filter(function(m){return used.indexOf(m)<0;})[0]||AI_ALL[0];jset('ai_v9_model',nx);ms.value=nx;run(nx);};vr.appendChild(ot);
-meta.textContent='🤖 AI model ('+aiShort(v.model)+'), run by Cloudflare. It can be wrong: check important things at the sources.'+(st.err?' Last try failed: '+st.err:'');
+meta.textContent='🤖 AI model ('+aiShort(v.model)+'), run by Cloudflare. It can be wrong: check important things at the sources. Server features may pause briefly at times.'+(st.err?' Last try failed: '+st.err:'');
 }
 function run(model){
 if(st.busy)return;
@@ -2373,7 +2374,7 @@ var g=fetch('https://api.gdeltproject.org/api/v2/doc/doc?mode=artlist&format=jso
 return Promise.all([w,h,g]).then(function(){return{results:out,browser:true};});
 }
 var lk=q.toLowerCase().trim(),saved=(jget('ai_v9_live',{})[lk])||null;
-var src=navigator.onLine?xget('search',{q:q},20000).catch(browserSearch):Promise.resolve({results:[]});
+var src=netUp()?xget('search',{q:q},20000).catch(browserSearch):Promise.resolve({results:[]});
 src.then(function(j){
 box.textContent='';
 var rs=(j&&j.results)||[],off=false;
@@ -2381,7 +2382,7 @@ if(rs.length){var all=jget('ai_v9_live',{});all[lk]={t:Math.floor(Date.now()/100
 else if(saved){rs=saved.r;off=true;}
 box.appendChild(el('b','','🌐 Live search results'));
 if(off)box.appendChild(el('div','v9-note','Showing the results saved '+ago(saved.t)+' (no live connection).'));
-if(!rs.length){box.appendChild(el('div','v9-note',navigator.onLine?'No live results found (sources may be unreachable right now). Use the source buttons below.':'You are offline and this search has no saved results yet.'));return;}
+if(!rs.length){box.appendChild(el('div','v9-note',netUp()?'No live results found (sources may be unreachable right now). Use the source buttons below.':'You are offline and this search has no saved results yet.'));return;}
 rs.slice(0,12).forEach(function(r){
 var u=safeUrl(r.url);if(!u)return;
 var d=el('div','');d.style.cssText='margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)';
@@ -3248,6 +3249,9 @@ var chunks=[];for(var c=0;c<miss.length;c+=30)chunks.push(c);
 return Promise.all(chunks.map(function(c){return xpost('translate',{from:from,to:to,texts:miss.slice(c,c+30)},60000).then(function(j){(j.out||[]).forEach(function(v,k){if(v)out[mi[c+k]]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});})).then(function(){return out;});
 }).then(function(out){if(!out.some(Boolean))throw new Error('no translator could be reached (check the internet connection)');return out;});
 }
+function aiLangEngine(code){return function(texts){
+var out=new Array(texts.length),chunks=[];for(var c=0;c<texts.length;c+=30)chunks.push(c);
+return Promise.all(chunks.map(function(c){return xpost('translate',{from:'en',to:code,ai:true,texts:texts.slice(c,c+30)},90000).then(function(j){(j.out||[]).forEach(function(v,k){if(v)out[c+k]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});})).then(function(){if(!out.some(Boolean))throw new Error('the AI model could not translate (check that Workers AI is on)');return out;});};}
 function serverEngine(code){return function(texts){return anyTr(texts,'en',code);};}
 function combine(local,remote){
 if(!local)return remote;
@@ -3316,8 +3320,8 @@ function pass0(n){if(n.nodeType===3){var l=[];collect(n,l);if(!l.length)return P
 function setLang(code,quiet){
 if(code==='en'){watch(false);revert();cur='en';store.set('ai_ui_lang','en');setDir('en');cache={};updBtn();if(!quiet)toast('Language: English');return Promise.resolve(true);}
 lastErr='';
-return (Promise.resolve(cur!=='en'?(watch(false),revert()):0)).then(function(){loadCache(code);cur=code;return chromeEngine(code);}).then(function(ce){
-engine=combine(ce,serverEngine(code));
+return (Promise.resolve(cur!=='en'?(watch(false),revert()):0)).then(function(){loadCache(code);cur=code;return null;}).then(function(ce){
+engine=aiLangEngine(code);
 if(!quiet)toast('Translating to '+name(code,true)+'…','var(--accent)');
 watch(false);
 return pass(document.body);
@@ -3794,7 +3798,7 @@ sec(b,'5. Features that contact other services',[
 ['Search and source checks: your search words go to our server, which asks public sources (for example Wikipedia and Wikimedia, DuckDuckGo instant answers, Hacker News, GDELT news). In Standard Mode your browser can also ask other free sources directly with your search words: other Wikimedia projects (Wikibooks, Wikisource, Wikinews, Wiktionary, Wikiversity, Wikivoyage, Wikiquote, Wikispecies, Wikidata and other language editions of Wikipedia), Internet Archive, Open Library, Project Gutenberg, Google Books, Library of Congress, Crossref, OpenAlex, Europe PMC, DOAJ, Semantic Scholar, INSPIRE, Zenodo, DataCite, Stack Exchange sites, GitHub, npm, Spaceflight News, GBIF, iNaturalist, Cleveland Museum of Art, MusicBrainz, OpenStreetMap (Nominatim), REST Countries, TheMealDB, Open Food Facts, Openverse, NASA and the Art Institute of Chicago. Their own privacy policies apply to those requests.',
  'Feed and videos: our server collects public posts and free-licensed videos from sources such as Wikipedia, Hacker News, Lobsters, DEV, Mastodon, Lemmy, Stack Exchange, news RSS feeds (BBC, NPR, DW, Al Jazeera, NASA and others), Wikimedia Commons, the Internet Archive, NASA and PeerTube servers (and Pexels / Pixabay if the operator added a key). Your browser then loads pictures and videos directly from those hosts, so they see your IP address.',
  'Weather: the weather chip at the top loads by itself for an approximate place (found from your network by Cloudflare) or for the city you chose. The coordinates go to Open-Meteo. When you press “My location” your browser asks you for permission first. If it cannot give a location, an approximate one may be looked up from your IP address with ipwho.is.',
- 'Translator and Language: the text to translate goes to the Google web translator (translate.googleapis.com) and, if that fails, to MyMemory (api.mymemory.translated.net). If you translate a website, its address goes to the text reader r.jina.ai, which fetches the page text. Chrome’s built-in translator, if you use it, works on your device.',
+ 'Language: the visible texts of the site go to an AI model on Cloudflare Workers AI, which translates them; nothing else is sent. Translator: the text to translate goes to the Google web translator (translate.googleapis.com) and, if that fails, to MyMemory (api.mymemory.translated.net). If you translate a website, its address goes to the text reader r.jina.ai, which fetches the page text.',
  'Dictionary: the word goes to our server and then to Wiktionary.',
  'AI Summary in Standard Search (the “✨ AI Summary” bubble): after a search the summary is written automatically, unless you turn that off in the bubble or you chose an age group under 18. Your search words and the titles, snippets and links of the results on screen go to our server and to Cloudflare Workers AI, which writes the summary. With automatic summary off, nothing is sent until you press the bubble.',
  'AI Chat and AI Tip: your message goes to our server and is processed by Cloudflare Workers AI (an open model such as Google Gemma or Meta Llama), together with public web results. Cloudflare runs the model; the site does not keep the conversation on its server. Do not type personal data into the chat.',
@@ -4233,7 +4237,7 @@ mw(h('wikivoyage.org'),'Wikivoyage',q,p),mw(h('wikiquote.org'),'Wikiquote',q,p),
 iaRaw(q,p),olRaw(q,p),crRaw(q,p),oaRaw(q,p),pmcRaw(q,p),seRaw(q,p),
 J('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=10&page='+p+'&query='+E(q)).then(function(j){return(j.hits||[]).filter(function(x){return x.title;}).map(function(x){return{title:x.title,url:x.url||('https://news.ycombinator.com/item?id='+x.objectID),source:'Hacker News',text:(x.points||0)+' points · '+(x.num_comments||0)+' comments',t:x.created_at_i||0};});}).catch(function(){return[];}));
 MORE.forEach(function(f){jobs.push(f(q,p));});
-if(p===0){jobs.push(gdeltRaw(q));if(navigator.onLine)jobs.push(xget('search',{q:q},20000).then(function(j){return j.results||[];}).catch(function(){return[];}));}
+if(p===0){jobs.push(gdeltRaw(q));if(netUp())jobs.push(xget('search',{q:q},20000).then(function(j){return j.results||[];}).catch(function(){return[];}));}
 jobs=jobs.map(function(j){return j.then(function(a){if(cb)cb(a);return a;});});
 return Promise.all(jobs).then(inter);
 }
@@ -4426,7 +4430,7 @@ function suggest(){
 var v=inp.value.trim();clr.style.display=inp.value?'block':'none';
 clearTimeout(sugT);
 if(!v){var rec=jget('ai_v9_recent',[]).slice(0,6);showSug(rec);return;}
-if(v.length<2||!navigator.onLine){hideSug();return;}
+if(v.length<2||!netUp()){hideSug();return;}
 sugT=setTimeout(function(){var me=++sugSeq,l=/[Ѐ-ӿ]/.test(v)?'bg':'en';
 fetch('https://'+l+'.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=6&search='+encodeURIComponent(v)).then(function(r){return r.json();}).then(function(j){if(me!==sugSeq||document.activeElement!==inp)return;showSug((j[1]||[]).filter(function(x){return typeof x==='string';}));}).catch(function(){});},220);
 }
@@ -4558,7 +4562,7 @@ list.forEach(function(i){var x=i.x,c=el('div','v9-card');var l=el('a','','['+i.n
 box.appendChild(el('div','v9-note','Sources: '+((d.sources||[]).join(', ')||'-')+'. Headlines are quoted from these sites; this tool does not verify them.'));
 }
 function load(force){
-if(!navigator.onLine){if(saved&&saved.data)render(saved.data,'saved '+ago(saved.at)+', you are offline');else box.textContent='You are offline and no report has been saved yet.';return;}
+if(!netUp()){if(saved&&saved.data)render(saved.data,'saved '+ago(saved.at)+', you are offline');else box.textContent='You are offline and no report has been saved yet.';return;}
 if(saved&&saved.data&&!force)render(saved.data,'saved '+ago(saved.at)+', refreshing…');else{box.textContent='';box.appendChild(el('div','v9-spin'));}
 weeklyFetch().then(function(d){saved={key:key,at:Math.floor(Date.now()/1000),data:d};jset('ai_v9_weekly',saved);render(d,d.fallback?'limited: only Hacker News was reachable':'');logAct('weekly','opened');})
 .catch(function(){if(saved&&saved.data)render(saved.data,'saved '+ago(saved.at)+', could not refresh');else{box.textContent='';box.appendChild(el('div','v9-note','Could not collect the report right now. Try again later.'));}});
@@ -4797,7 +4801,7 @@ vcURL(it.src).then(function(u){
 if(!on){if(u)URL.revokeObjectURL(u);return;}
 if(u){blobU=u;v.src=u;tag.textContent='⚡ cached';}
 else if(LOW()&&!card._forced){busy(false);tag.textContent='📶 low data';var lb=mkBtn('⬇️ Load video (uses data)','pri',function(){card._forced=true;lb.remove();on=false;attach();});lb.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3';wrap.appendChild(lb);}
-else if(!navigator.onLine){busy(false);tag.textContent='📴 not saved offline';}
+else if(!netUp()){busy(false);tag.textContent='📴 not saved offline';}
 else{v.src=it.src;v.preload='metadata';
 card._warm=function(){vcWarm(it.src,function(){tag.textContent='⚡ cached';},opts.front,it.mime);};
 setTimeout(function(){if(on&&v.paused&&!card._wd)card._warm();},1200);}
@@ -5384,8 +5388,14 @@ bar.parentNode.insertBefore(wcd,bar);if(weeklyDue())wcd.style.display='block';
 var ob=el('div');ob.id='offBar';ob.style.cssText='display:none;margin:8px 15px;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1.5px dashed var(--accent2);font-size:13px;line-height:1.5';
 function renderOff(){ob.textContent='';ob.appendChild(el('b','','📴 You are offline. '));ob.appendChild(document.createTextNode('Saved searches, tips, the feed and downloaded videos still work.'));
 var rc=jget('ai_v9_recent',[]).slice(0,6);if(rc.length){var row=el('div','');row.style.cssText='margin-top:8px;display:flex;flex-wrap:wrap;gap:6px';rc.forEach(function(q){var bt=mkBtn('🕘 '+q.slice(0,28),'',function(){var i=$('q');if(i)i.value=q;doSearch();});row.appendChild(bt);});ob.appendChild(row);}}
-function updOff(){if(!navigator.onLine){renderOff();ob.style.display='block';}else ob.style.display='none';}
-window.addEventListener('offline',updOff);window.addEventListener('online',function(){updOff();loadFeed(true);});
+function updOff(){if(window.__netUp===false){renderOff();ob.style.display='block';}else ob.style.display='none';}
+/* the browser's online flag is often wrong, so a small real request decides (twice before it says offline) */
+function netProbe(){var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(e){}},7000);return fetch(location.pathname,{method:'HEAD',cache:'no-store',headers:{'x-ver-check':'1'},signal:c.signal}).then(function(){return true;},function(){return false;}).then(function(v){clearTimeout(t);return v;});}
+var netBusy=false;
+function netCheck(){if(netBusy)return;netBusy=true;netProbe().then(function(v){return v?true:new Promise(function(r){setTimeout(r,1500);}).then(netProbe);}).then(function(v){var was=window.__netUp;window.__netUp=v;updOff();if(v&&was===false)loadFeed(true);}).then(function(){netBusy=false;},function(){netBusy=false;});}
+window.addEventListener('offline',netCheck);window.addEventListener('online',netCheck);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)netCheck();});
+setInterval(function(){if(!document.hidden)netCheck();},15000);setTimeout(netCheck,1500);
 bar.parentNode.insertBefore(ob,bar);updOff();
 var tc=el('div');tc.id='tipCard';tc.onclick=openTip;bar.parentNode.insertBefore(tc,bar.nextSibling);
 var fb=el('div');fb.id='feedBar';fb.style.cssText='margin:12px 15px;background:var(--bg2);border:1.5px solid var(--accent2);border-radius:12px;padding:12px';
