@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="app-build" content="v109">
+<meta charset="UTF-8"><meta name="app-build" content="v112">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="mobile-web-app-capable" content="yes">
@@ -42,6 +42,7 @@ button,input{font-family:inherit}
 @keyframes spOut{to{opacity:0;visibility:hidden}}
 @media (prefers-reduced-motion:reduce){#splash{display:none}}
 .header h1 span:not(.ttl-l){font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;font-variant-numeric:tabular-nums lining-nums;font-kerning:none;font-feature-settings:"kern" 0,"liga" 0;letter-spacing:.08em!important;word-spacing:.15em}
+#v9CmpBody textarea:focus,#v9CmpBody textarea:focus-visible{outline:2px solid var(--accent2);outline-offset:0}
 #summaryBtn{background:#1a4d8a;border-color:var(--accent2);color:#fff;display:none;}
 #shareBtn{background:#0a4d1a;border-color:var(--accent);color:#fff;display:none;}
 #exportBtn{background:#4d1a0a;border-color:#ff8800;color:#fff;display:none;}
@@ -612,8 +613,18 @@ l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manif
 </script>
 </head>
 <body>
+<script>(function(){
+function pref(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
+window.AI_RMQ=function(){var p=pref();if(p==='on')return false;if(p==='off')return true;try{return !!(window.AI_RMQ&&AI_RMQ());}catch(e){return false;}};
+function walk(rules,fn){for(var i=0;i<rules.length;i++){var r=rules[i];if(r.media)fn(r);if(r.cssRules&&r.type!==1)walk(r.cssRules,fn);}}
+window.AI_ANIM_APPLY=function(){var p=pref();for(var k=0;k<document.styleSheets.length;k++){try{walk(document.styleSheets[k].cssRules,function(r){var o=r._aiOrig||(r._aiOrig=r.media.mediaText);if(o.indexOf('prefers-reduced-motion')<0)return;var np=/no-preference/.test(o),n=o;
+if(p==='on'){n=np?o.replace(/\s*and\s*\(\s*prefers-reduced-motion\s*:\s*no-preference\s*\)/i,''):'not all';}
+else if(p==='off'){n=np?'not all':o.replace(/\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/i,'all');}
+if(!n||/^\s*$/.test(n))n='all';if(r.media.mediaText!==n)r.media.mediaText=n;});}catch(e){}}};
+try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
+})();</script>
 <div id="splash" aria-hidden="true"><div class="sp-glow"></div><img src="icon-192.png" alt="" width="170" height="170" decoding="async"></div>
-<script>(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){d.remove();return;}function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
+<script>(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.AI_RMQ&&AI_RMQ())){d.remove();return;}function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
 <section class="bot-only" id="about-for-bots" aria-label="Plain-text description of this site for search engines and AI assistants">
 <h1>AI INFORMATION - complete description of this website</h1>
 <p>Most of this site is JavaScript that runs in the visitor's browser, so a bot that does not run JavaScript cannot see it. This hidden-from-view HTML section is a plain-text description of everything the site does. It changes nothing in how the site works: the visible page and all other files are unchanged. It is not shown on screen and has no scripts, forms or links of its own.</p>
@@ -622,7 +633,7 @@ l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manif
 <h2>Search</h2>
 <p>Classic Mode: type a topic and press VERIFY. The site builds links to about 950 sources (fact-checkers, news agencies, science, health, government, Bulgarian and big-tech sources), shows a Wikipedia excerpt when one exists, lets you filter, share and export a report, and shows an automatic AI Summary right after the search with every model version kept as a numbered version, a model choice and an Another-model button. Standard Search: a web-like search with tabs (all, news, images and more) using public sources such as Wikipedia, Wikimedia Commons, Openverse, NASA, Internet Archive and museums; it also shows an automatic AI Summary bubble of all shown results with all versions. Both summaries read only titles and short descriptions, not whole pages, and can be wrong.</p>
 <h2>AI features</h2>
-<p>A real AI model (Cloudflare Workers AI; models include Gemma 4, Llama 3.1/3.2/4, Granite 4) answers in AI Chat (optional web search, optional picture or text file that only the AI reads and that can never trigger anything else on the site; binary files are only described by hash, type and readable text, never opened or run), AI Tip, and optional AI helpers in: Translator (text and whole website), Dictionary (with country choice), Calculator, Weather (AI Weather Scout: the AI searches the internet for the place you typed), Compare Two Sources, Find Quote Context, Quiz (new questions and explanations), Email Headers, Text Analyzer, URL Scanner, Fake Image Checker, the video finder, the children's adult-content filter, a For-you suggestion box in Standard Search and an optional AI picture background (image model). Every AI helper is optional, starts only when pressed or when its automatic option is on, shows which model answered, and says it can be wrong. The model is chosen automatically or by the visitor from a fixed server-side list of free models; the browser cannot pick a paid model. The free daily AI allowance is limited, so a feature may say the AI is unavailable.</p>
+<p>A real AI model (Cloudflare Workers AI; models include Gemma 4, Llama 3.1/3.2/4, Granite 4, OpenAI GPT-OSS) answers in AI Chat (optional web search, optional picture or text file that only the AI reads and that can never trigger anything else on the site; binary files are only described by hash, type and readable text, never opened or run), AI Tip, and optional AI helpers in: Translator (text and whole website), Dictionary (with country choice), Calculator, Weather (AI Weather Scout: the AI searches the internet for the place you typed), Compare Two Sources, Find Quote Context, Quiz (new questions and explanations), Email Headers, Text Analyzer, URL Scanner, Fake Image Checker, the video finder, the children's adult-content filter, a For-you suggestion box in Standard Search and an optional AI picture background (image model). Every AI helper is optional, starts only when pressed or when its automatic option is on, shows which model answered, and says it can be wrong. The model is chosen automatically or by the visitor from a fixed server-side list of free models; the browser cannot pick a paid model. The free daily AI allowance is limited, so a feature may say the AI is unavailable.</p>
 <h2>Features menu</h2>
 <p>A Features menu lets the visitor switch most features off, which hides them and stops them from running, and switch them on again at any time. The choice is kept only on the visitor's device. AI features also include an automatic AI summary of the day in the Feed and a comparison of one searched topic on two different days.</p>
 <h2>Tools</h2>
@@ -847,7 +858,7 @@ b.textContent=st.busy?'Asking the AI model… (it reads only the names and short
 if(st.versions.length){var vr=document.createElement('div');vr.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;max-width:100%;min-width:0';
 st.versions.forEach(function(v,i){var vb=document.createElement('button');vb.type='button';vb.textContent=(i+1)+' · '+aiShort(v.model);vb.title='Version '+(i+1)+': '+String(v.model).replace(/^@cf\//,'');vb.setAttribute('aria-pressed',i===st.cur?'true':'false');vb.style.cssText='padding:4px 10px;font-size:12px;flex:0 1 auto;min-width:0;max-width:100%;white-space:normal;'+(i===st.cur?'outline:2px solid var(--accent)':'');vb.onclick=function(){st.cur=i;clsAiDraw();};vr.appendChild(vb);});box.appendChild(vr);}
 var o=document.createElement('button');o.type='button';o.textContent='🔁 Another model';o.disabled=st.busy;o.style.cssText='padding:6px 12px;font-size:13px';
-o.onclick=function(){var M=['@cf/google/gemma-4-26b-a4b-it','@cf/meta/llama-3.1-8b-instruct-fp8-fast','@cf/meta/llama-3.2-3b-instruct','@cf/ibm-granite/granite-4.0-h-micro','@cf/meta/llama-4-scout-17b-16e-instruct'];var u=st.versions.map(function(v){return v.model;});clsGen(M.filter(function(m){return u.indexOf(m)<0;})[0]||M[0]);};box.appendChild(o);
+o.onclick=function(){var M=Object.keys(AI_SHORT);var u=st.versions.map(function(v){return v.model;});clsGen(M.filter(function(m){return u.indexOf(m)<0;})[0]||M[0]);};box.appendChild(o);
 var n=document.createElement('div');n.className='v9-note';n.textContent='🤖 AI model run by Cloudflare. It summarises only the source names and descriptions listed here, can be wrong, and is not a verdict: open the sources to check.';box.appendChild(n);
 w.appendChild(box);
 }
@@ -1990,7 +2001,7 @@ document.addEventListener('click',function(){clearTimeout(timer);tip.style.displ
 })();
 /* ---- v64: pointer light + tilt on glass ---- */
 (function(){
-if(!window.matchMedia||!matchMedia('(hover:hover) and (pointer:fine)').matches||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+if(!window.matchMedia||!matchMedia('(hover:hover) and (pointer:fine)').matches||(window.AI_RMQ&&AI_RMQ()))return;
 var SEL='.v9-card,.scam-card,.fd-post,.vd-card,.tool-card,.std-card,#v9Bar button,.hdr-chip',cur=null,raf=0,ev=null;
 function upd(){raf=0;if(!cur||!ev)return;var r=cur.getBoundingClientRect(),x=(ev.clientX-r.left)/r.width,y=(ev.clientY-r.top)/r.height;
 var big=r.width>260||r.height>200,k=big?2.2:5;
@@ -2232,7 +2243,7 @@ if(radarEvery!==30)setTimeout(function(){setRadarEvery(radarEvery);},0);
 var tipState={topic:store.get('ai_tip_topic')||'security',every:parseInt(store.get('ai_tip_every')||'3600',10)||3600};
 function tipToCard(t){var c=$('tipCard');if(!c)return;c.textContent='';c.appendChild(el('b','','💡 '+'AI tip'));c.appendChild(el('div','',t.text));if(t.source){c.appendChild(el('small','',t.source));}c.style.display='block';}
 /* ===== shared AI helper: one "Ask AI" block for every tool (server task names are fixed on the server) ===== */
-var AI_SHORT={'@cf/google/gemma-4-26b-a4b-it':'Gemma 4','@cf/meta/llama-3.1-8b-instruct-fp8-fast':'Llama 3.1 fast','@cf/meta/llama-3.2-3b-instruct':'Llama 3.2','@cf/ibm-granite/granite-4.0-h-micro':'Granite','@cf/meta/llama-4-scout-17b-16e-instruct':'Llama 4 Scout'};
+var AI_SHORT={'@cf/google/gemma-4-26b-a4b-it':'Gemma 4','@cf/meta/llama-3.1-8b-instruct-fp8-fast':'Llama 3.1 fast','@cf/meta/llama-3.2-3b-instruct':'Llama 3.2','@cf/ibm-granite/granite-4.0-h-micro':'Granite','@cf/meta/llama-4-scout-17b-16e-instruct':'Llama 4 Scout','@cf/openai/gpt-oss-20b':'GPT-OSS 20B','@cf/openai/gpt-oss-120b':'GPT-OSS 120B'};
 var AI_ALL=Object.keys(AI_SHORT);
 function aiShort(m){return AI_SHORT[m]||String(m||'').replace(/^@cf\//,'');}
 function aiLang(){var l=String(document.documentElement.lang||navigator.language||'en');if(/^bg/i.test(l))return 'Bulgarian';try{var n=new Intl.DisplayNames(['en'],{type:'language'}).of(l.split('-')[0]);if(n&&/^[A-Za-z ()\-]{2,30}$/.test(n)&&n!==l)return n;}catch(e){}return 'English';}
@@ -2359,7 +2370,7 @@ return box;
 function modelPick(){var v=jget('ai_v9_model','');return typeof v==='string'?v:'';}
 function mkModelRow(){
 var ml=el('label','v9-note');ml.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap';ml.appendChild(document.createTextNode('🧩 Model:'));var msel=document.createElement('select');msel.className='v9-sel';msel.setAttribute('aria-label','AI model');
-[['','Auto (recommended)'],['@cf/google/gemma-4-26b-a4b-it','Gemma 4 26B (Google)'],['@cf/meta/llama-3.1-8b-instruct-fp8-fast','Llama 3.1 8B fast (Meta)'],['@cf/meta/llama-3.2-3b-instruct','Llama 3.2 3B (Meta, small)'],['@cf/ibm-granite/granite-4.0-h-micro','Granite 4.0 micro (IBM, smallest)'],['@cf/meta/llama-4-scout-17b-16e-instruct','Llama 4 Scout 17B (Meta, strongest)']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];msel.appendChild(op);});
+[['','Auto (recommended)'],['@cf/google/gemma-4-26b-a4b-it','Gemma 4 26B (Google)'],['@cf/meta/llama-3.1-8b-instruct-fp8-fast','Llama 3.1 8B fast (Meta)'],['@cf/meta/llama-3.2-3b-instruct','Llama 3.2 3B (Meta, small)'],['@cf/ibm-granite/granite-4.0-h-micro','Granite 4.0 micro (IBM, smallest)'],['@cf/meta/llama-4-scout-17b-16e-instruct','Llama 4 Scout 17B (Meta, strongest)'],['@cf/openai/gpt-oss-20b','GPT-OSS 20B (OpenAI)'],['@cf/openai/gpt-oss-120b','GPT-OSS 120B (OpenAI, bigger, uses more of the free daily allowance)']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];msel.appendChild(op);});
 var _pm=jget('ai_v9_model','');msel.value=typeof _pm==='string'?_pm:'';if(msel.value!==_pm)msel.value='';msel.onchange=function(){jset('ai_v9_model',msel.value);};
 ml.appendChild(msel);var mh=el('span','','Auto tries Gemma first and switches to the next model by itself if one fails. If you pick a model by hand, only that one is used and an error is shown if it does not answer.');mh.style.cssText='font-size:11px;opacity:.85;flex-basis:100%';ml.appendChild(mh);ml.msel=msel;return ml;}
 function fetchTip(similar,box,cb){
@@ -2582,8 +2593,8 @@ var w3=el('div','','If you do paste a home page or a section page, the tool show
 b.appendChild(el('div','v9-note','Paste two links about the same topic and press Enter. The page reads both, quotes the key passages and shows what they agree on and where they differ. You can paste article text instead of a link. It does not decide which one is right.'));
 var ta=[],st=[];
 ['A','B'].forEach(function(L){
-var l=el('div','v9-note','Link '+L);l.style.cssText='margin-top:10px;font-weight:700';b.appendChild(l);
-var t=el('textarea');t.rows=2;t.maxLength=20000;t.placeholder='https://… (or paste text)';t.autocapitalize='off';t.spellcheck=false;t.setAttribute('enterkeyhint','go');t.setAttribute('aria-label','Link '+L);t.style.cssText='width:100%;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;resize:vertical';
+var l=el('div','v9-note','Link '+L);l.style.cssText='margin:14px 0 10px;font-weight:700;line-height:1.3';b.appendChild(l);
+var t=el('textarea');t.rows=2;t.maxLength=20000;t.placeholder='https://… (or paste text)';t.autocapitalize='off';t.spellcheck=false;t.setAttribute('enterkeyhint','go');t.setAttribute('aria-label','Link '+L);t.style.cssText='display:block;box-sizing:border-box;width:100%;margin:0 0 6px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;resize:vertical';
 t.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();run();}});
 b.appendChild(t);ta.push(t);var s=el('div','v9-note','');b.appendChild(s);st.push(s);
 });
@@ -3665,6 +3676,13 @@ var c=document.createElement('input');c.type='checkbox';c.style.marginTop='3px';
 c.onchange=function(){FT.set(f[0],c.checked);};
 var t=el('span','');t.appendChild(document.createTextNode(f[1]));if(f[2]){var n=el('small','',f[2]);n.style.cssText='display:block;opacity:.75';t.appendChild(n);}
 l.appendChild(c);l.appendChild(t);body.appendChild(l);});});
+var ah=el('h3','','Animations');ah.style.margin='16px 0 6px';body.appendChild(ah);
+body.appendChild(el('div','v9-note','Many animations (the shine around the logo, hover effects, the start animation) are switched off when your device asks to reduce motion. This is often on by default on a computer (Windows: Settings > Accessibility > Visual effects > Animation effects), and usually off on a phone. Here you can choose for this site only.'));
+var arow=el('div','');arow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(arow);
+function curAnim(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
+var abtns=[];
+[['auto','Follow my device (default)'],['on','Always on'],['off','Off']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_anim',o[0]);}catch(e){}if(!store.get('ai_v9_anim'))try{localStorage.setItem('ai_v9_anim',o[0]);}catch(e){}if(window.AI_ANIM_APPLY)AI_ANIM_APPLY();if(window.AI_A11Y_APPLY)AI_A11Y_APPLY();mark();toast(o[0]==='on'?'Animations are on':o[0]==='off'?'Animations are off':'Animations follow your device','var(--accent)',2500);});b.style.margin='0';b.dataset.v=o[0];abtns.push(b);arow.appendChild(b);});
+function mark(){var c=curAnim();abtns.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});}mark();
 var all=mkBtn('Turn everything on','pri',function(){Object.keys(FT.off()).forEach(function(k){FT.set(k,true);});Object.keys(boxes).forEach(function(k){boxes[k].checked=true;});toast('All features are on','var(--accent)',2500);});all.style.marginTop='14px';body.appendChild(all);
 body.appendChild(el('p','v9-note','Always on: Accessibility, Language, Quick clear, Content filter, Colour, and this menu.'));
 var hb=document.querySelector('.hdr-tools');var b=el('button','hdr-chip','🎛️ Features');b.id='ftBtn';b.type='button';b.setAttribute('aria-label','Features: switch features on or off');b.onclick=function(){openPanel('v9Feat');};
@@ -4342,7 +4360,7 @@ var a=el('a','','Wikipedia ↗');a.href=safe(j.content_urls&&j.content_urls.desk
 return box;
 }
 
-var SUM_MODELS=['@cf/google/gemma-4-26b-a4b-it','@cf/meta/llama-3.1-8b-instruct-fp8-fast','@cf/meta/llama-3.2-3b-instruct','@cf/ibm-granite/granite-4.0-h-micro','@cf/meta/llama-4-scout-17b-16e-instruct'];
+var SUM_MODELS=Object.keys(AI_SHORT);
 function mName(m){return String(m||'').replace(/^@cf\//,'');}
 function mShort(m){return aiShort(m);}
 function drawSum(){
@@ -4467,7 +4485,8 @@ function load(){var o=null;try{o=JSON.parse(store.get('ai_a11y')||'null');}catch
 if(!o||typeof o!=='object'){var rm=false;try{rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}o={size:0,hc:false,rm:rm};}
 o.size=[0,1,2].indexOf(o.size)!==-1?o.size:0;o.hc=!!o.hc;o.rm=!!o.rm;return o;}
 var st=load();
-function apply(){D.classList.toggle('a11y-l',st.size===1);D.classList.toggle('a11y-xl',st.size===2);D.classList.toggle('a11y-hc',st.hc);D.classList.toggle('a11y-rm',st.rm);}
+function apply(){D.classList.toggle('a11y-l',st.size===1);D.classList.toggle('a11y-xl',st.size===2);D.classList.toggle('a11y-hc',st.hc);var ap='auto';try{ap=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}D.classList.toggle('a11y-rm',ap==='on'?false:ap==='off'?true:st.rm);}
+window.AI_A11Y_APPLY=apply;
 function save(){store.set('ai_a11y',JSON.stringify(st));apply();}
 apply();
 var body=mkPanel('v9A11y','♿️ Accessibility');
