@@ -3217,36 +3217,49 @@ return function(texts){return Promise.all(texts.map(function(x){return tmo(t.tra
 /* v41: translation straight from the browser (Google web translator, then MyMemory); the site server is only a spare */
 var GM={zh:'zh-CN',he:'iw',nb:'no',nn:'no',fil:'tl'};
 function gcode(c){return GM[c]||c;}
-function gtxOne(t,from,to){
+var gF=0,gDown=0,mF=0,mDown=0;
+function brk(kind,p){var k=kind==='g';if(Date.now()<(k?gDown:mDown))return Promise.reject(new Error('paused'));return p().then(function(v){if(k)gF=0;else mF=0;return v;},function(e){if(k){if(++gF>=3)gDown=Date.now()+180000;}else{if(++mF>=3)mDown=Date.now()+180000;}throw e;});}
+function gtxOne(t,from,to){return brk('g',function(){return gtxRaw(t,from,to);});}
+function gtxRaw(t,from,to){
 var u='https://translate.googleapis.com/translate_a/single?client=gtx&sl='+encodeURIComponent(from==='auto'?'auto':gcode(from))+'&tl='+encodeURIComponent(gcode(to))+'&dt=t&q='+encodeURIComponent(t);
 return apiFetch(u,{timeout:12000}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(j){var o=((j&&j[0])||[]).map(function(x){return x&&x[0]||'';}).join('');if(!o)throw new Error('empty');return o;});
 }
 function mmOne(t,from,to){
-if(t.length>450)return Promise.reject(new Error('long'));
+if(t.length>450)return Promise.reject(new Error('long'));return brk('m',function(){return mmRaw(t,from,to);});}
+function mmRaw(t,from,to){
 var u='https://api.mymemory.translated.net/get?q='+encodeURIComponent(t)+'&langpair='+encodeURIComponent((from==='auto'?'Autodetect':gcode(from))+'|'+gcode(to));
 return apiFetch(u,{timeout:12000}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(j){var o=j&&j.responseData&&j.responseData.translatedText;if(!o||Number(j.responseStatus)!==200||/MYMEMORY WARNING|INVALID|PLEASE SELECT/i.test(o))throw new Error('mm');return o;});
 }
 function oneTr(t,from,to){return gtxOne(t,from,to).catch(function(){return mmOne(t,from,to);}).catch(function(){return null;});}
 function batchTr(texts,from,to){
-/* several short texts in one request (joined by new lines); falls back to one by one when the answer does not line up */
+/* several short texts in one request (joined by new lines); when the answer does not line up the group is split in halves, then one by one */
 var groups=[],cur2=[],len=0;
-texts.forEach(function(t,i){if(cur2.length&&(len+t.length>1400||cur2.length>=15)){groups.push(cur2);cur2=[];len=0;}cur2.push(i);len+=t.length+1;});
+texts.forEach(function(t,i){if(cur2.length&&(len+t.length>2800||cur2.length>=25)){groups.push(cur2);cur2=[];len=0;}cur2.push(i);len+=t.length+1;});
 if(cur2.length)groups.push(cur2);
-var out=new Array(texts.length),gi=0;
+var out=texts.map(function(){return null;}),gi=0;/* real nulls: forEach skips holes, which used to hide the failed texts from the server fallback */
+function tryGroup(g,depth){
+var parts=g.map(function(i){return texts[i].replace(/\n+/g,' ');});
+if(g.length===1)return oneTr(parts[0],from,to).then(function(v){return [v];});
+return gtxOne(parts.join('\n'),from,to).then(function(o){var a=o.split('\n');if(a.length!==g.length)throw new Error('mismatch');return a;}).catch(function(e){
+if(Date.now()<gDown)return g.map(function(){return null;});
+if(depth<2){var h=Math.ceil(g.length/2);return Promise.all([tryGroup(g.slice(0,h),depth+1),tryGroup(g.slice(h),depth+1)]).then(function(r){return r[0].concat(r[1]);});}
+return Promise.all(parts.map(function(t){return oneTr(t,from,to);}));});
+}
 function worker(){
 if(gi>=groups.length)return Promise.resolve();
-var g=groups[gi++],parts=g.map(function(i){return texts[i].replace(/\n+/g,' ');});
-var p=g.length>1?gtxOne(parts.join('\n'),from,to).then(function(o){var a=o.split('\n');if(a.length!==g.length)throw new Error('mismatch');return a;}).catch(function(){return Promise.all(parts.map(function(t){return oneTr(t,from,to);}));}):oneTr(parts[0],from,to).then(function(v){return [v];});
-return p.then(function(a){g.forEach(function(i,k){if(a[k]&&String(a[k]).trim())out[i]=String(a[k]).trim();});}).then(worker);
+var g=groups[gi++];
+return tryGroup(g,0).then(function(a){g.forEach(function(i,k){if(a[k]&&String(a[k]).trim())out[i]=String(a[k]).trim();});}).then(worker);
 }
-return Promise.all([worker(),worker(),worker(),worker()]).then(function(){return out;});
+return Promise.all([worker(),worker(),worker()]).then(function(){return out;});
 }
 function anyTr(texts,from,to){
-return batchTr(texts,from,to).then(function(out){
+return batchTr(texts,from,to).then(function(out){if(out.some(Boolean)&&lastSrc.indexOf('your browser')<0)lastSrc+=(lastSrc?' + ':'')+'Google/MyMemory from your browser';
 var miss=[],mi=[];out.forEach(function(v,i){if(!v){miss.push(texts[i]);mi.push(i);}});
 if(!miss.length||miss.length===texts.length&&false)return out;
-var chunks=[];for(var c=0;c<miss.length;c+=30)chunks.push(c);
-return Promise.all(chunks.map(function(c){return xpost('translate',{from:from,to:to,texts:miss.slice(c,c+30)},60000).then(function(j){(j.out||[]).forEach(function(v,k){if(v)out[mi[c+k]]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});})).then(function(){return out;});
+var chunks=[];for(var c=0;c<miss.length;c+=12)chunks.push(c);
+var sq=Promise.resolve();
+chunks.forEach(function(c){sq=sq.then(function(){return xpost('translate',{from:from,to:to,texts:miss.slice(c,c+12)},50000).then(function(j){if(j.engine&&lastSrc.indexOf(j.engine)<0)lastSrc+=(lastSrc?' + ':'')+j.engine;(j.out||[]).forEach(function(v,k){if(v)out[mi[c+k]]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});});});
+return sq.then(function(){return out;});
 }).then(function(out){if(!out.some(Boolean))throw new Error('no translator could be reached (check the internet connection)');return out;});
 }
 function aiLangEngine(code){return function(texts){
@@ -3261,7 +3274,7 @@ if(!miss.length)return out;
 return remote(miss).then(function(r){r.forEach(function(v,j){out[mi[j]]=v;});return out;}).catch(function(){return out;});
 });};
 }
-var lastErr='';
+var lastErr='',lastSrc='';
 function translateTexts(texts,cb){
 var res=new Array(texts.length),need=[],idx=[];
 texts.forEach(function(t,i){if(cache[t]){res[i]=cache[t];}else{need.push(t);idx.push(i);}});
@@ -3290,6 +3303,7 @@ function pass(root){
 if(cur==='en'||!engine)return Promise.resolve();
 var items=[];collect(root||document.body,items);
 if(!items.length)return Promise.resolve();
+var vis=function(it){var e=it.n?it.n.parentElement:it.e;return e&&e.offsetParent!==null?0:1;};items.sort(function(a,b){return vis(a)-vis(b);});
 var uniq=[],seen={};items.forEach(function(it){if(!seen[it.s]){seen[it.s]=1;uniq.push(it.s);}});
 var done={};
 function flush(r){var m={};uniq.forEach(function(u,i){if(r[i]&&!done[u]){m[u]=r[i];done[u]=1;}});apply(items,items.map(function(it){return m[it.s];}));}
@@ -3317,18 +3331,45 @@ Promise.all(ps.map(function(n){return pass0(n);})).catch(function(){}).then(func
 obs.observe(document.body,{childList:true,subtree:true,characterData:true});
 }
 function pass0(n){if(n.nodeType===3){var l=[];collect(n,l);if(!l.length)return Promise.resolve();return translateTexts([l[0].s]).then(function(r){apply(l,[r[0]]);});}return pass(n);}
+var revBusy=false,revNote=null;
+function revSay(t){if(revNote)revNote.textContent=t;}
+/* v123: a second source translates the same texts and an AI model approves one version per text (or writes a better one) */
+function aiReview(code){
+if(revBusy||code==='en')return;
+var done=jget('ai_trv_'+code,{})||{};
+var keys=Object.keys(cache).filter(function(k){return cache[k]&&cache[k]!==k&&!done[k];}).slice(0,36);
+if(!keys.length){revSay('AI review: all texts on this page were already checked.');return;}
+revBusy=true;revSay('AI review: checking '+keys.length+' texts with a second source…');
+var st={checked:0,agreed:0,changed:0,src:{},model:''},i=0;
+function next(){
+if(i>=keys.length||cur!==code)return Promise.resolve();
+var ch=keys.slice(i,i+12);i+=12;
+return xpost('review',{from:'en',to:code,items:ch.map(function(k){return{s:k,t:cache[k]};})},90000).then(function(j){
+st.checked+=j.checked||0;st.agreed+=j.agreed||0;st.model=j.model||st.model;(j.sources||[]).forEach(function(x){st.src[x]=1;});
+(j.out||[]).forEach(function(v,k){if(v&&typeof v==='string'){cache[ch[k]]=v;st.changed++;}});
+ch.forEach(function(k){done[k]=1;});
+}).then(next);
+}
+next().then(function(){
+jset('ai_trv_'+code,done);saveCache();
+if(st.changed&&cur===code){watch(false);revert();return pass(document.body).then(function(){watch(true);});}
+}).then(function(){
+revSay('AI review: '+st.checked+' texts checked'+(Object.keys(st.src).length?' against '+Object.keys(st.src).join(', '):'')+'; '+st.agreed+' agreed, '+st.changed+' improved'+(st.model?' by '+st.model:'')+'.');
+if(st.changed)toast('🤖 AI improved '+st.changed+' translations','var(--accent)',3000);
+}).catch(function(e){revSay('AI review is not available right now ('+String((e&&e.message)||e).slice(0,60)+'). The translation above is unchanged.');}).then(function(){revBusy=false;});
+}
 function setLang(code,quiet){
 if(code==='en'){watch(false);revert();cur='en';store.set('ai_ui_lang','en');setDir('en');cache={};updBtn();if(!quiet)toast('Language: English');return Promise.resolve(true);}
 lastErr='';
-return (Promise.resolve(cur!=='en'?(watch(false),revert()):0)).then(function(){loadCache(code);cur=code;return null;}).then(function(ce){
-engine=aiLangEngine(code);
+return (Promise.resolve(cur!=='en'?(watch(false),revert()):0)).then(function(){loadCache(code);cur=code;return chromeEngine(code);}).then(function(ce){
+lastSrc=ce?'Chrome on-device translator':'';engine=combine(ce,serverEngine(code));
 if(!quiet)toast('Translating to '+name(code,true)+'…','var(--accent)');
 watch(false);
 return pass(document.body);
 }).then(function(){
 var any=tracked.length>0;
 if(!any&&!quiet){toast('This language could not be translated'+(lastErr?' ('+lastErr.slice(0,80)+')':'')+'. Try another language or try again later.','#ffaa00');cur='en';store.set('ai_ui_lang','en');setDir('en');updBtn();return false;}
-store.set('ai_ui_lang',code);setDir(code);watch(true);updBtn();if(!quiet)toast('✓ '+name(code),'var(--accent)');return true;
+store.set('ai_ui_lang',code);setDir(code);watch(true);updBtn();if(!quiet)toast('✓ '+name(code)+(lastSrc?' · '+lastSrc.slice(0,90):''),'var(--accent)',4500);setTimeout(function(){aiReview(code);},1500);return true;
 }).catch(function(e){revert();cur='en';store.set('ai_ui_lang','en');setDir('en');updBtn();if(!quiet)toast('Translation failed. Check the internet connection and try again.','#ffaa00');return false;});
 }
 var body=mkPanel('v9Lang','🌐 Language');
@@ -3338,6 +3379,9 @@ lw.appendChild(el('b','','⚠️ Please note'));
 lw.appendChild(el('div','v9-note','Your language may have much longer words than English, so some buttons, icons and animations may not fit or may look cramped. Also, not everything can always be translated: some texts, names, web results and video titles stay in their original language.'));
 body.appendChild(lw);
 body.appendChild(el('div','v9-note','Choose the language of the site. The text is machine-translated and may contain mistakes. Your own text, web results and video titles are not changed.'));
+var SRC22=['Chrome on-device translator (your browser)','Google Translate, called from your browser (translate.googleapis.com)','MyMemory, called from your browser','Google Translate via our server (translate.googleapis.com)','Google Translate via our server (translate.google.com)','Google Translate via our server (clients5.google.com)','Lingva via our server (lingva.ml)','Lingva via our server (lingva.garudalinux.org)','Lingva via our server (translate.plausibility.cloud)','Lingva via our server (lingva.lunar.icu)','LibreTranslate via our server (libretranslate.de)','LibreTranslate via our server (translate.terraprint.co)','LibreTranslate via our server (lt.vern.cc)','MyMemory via our server','AI m2m100 (Cloudflare Workers AI)','AI Gemma 4','AI Llama 3.1','AI Llama 3.2','AI Granite 4','AI Llama 4 Scout','AI GPT-OSS 20B','AI GPT-OSS 120B'];
+var dt=document.createElement('details');dt.style.margin='8px 0';var dsm=document.createElement('summary');dsm.textContent=SRC22.length+' translation sources (tap to see)';dsm.style.cursor='pointer';dt.appendChild(dsm);var dol=document.createElement('ol');dol.style.cssText='margin:6px 0 0 18px;padding:0;font-size:12px;line-height:1.5';SRC22.forEach(function(x){dol.appendChild(el('li','',x));});dt.appendChild(dol);dt.appendChild(el('div','v9-note','They are tried in this order. A source that does not answer is skipped for a few minutes. Some of them are free public services that may be busy or unavailable at times.'));body.appendChild(dt);
+revNote=el('div','v9-note','AI review: after a language is chosen, a second source translates the same texts and an AI model approves one version of each text (or writes a better one). It runs in the background.');body.appendChild(revNote);
 var q=el('input','v9-in');q.placeholder='Search a language…';q.setAttribute('aria-label','Search language');q.setAttribute('translate','no');q.style.marginBottom='10px';body.appendChild(q);
 var list=el('div');body.appendChild(list);
 var rows=null;
@@ -3798,7 +3842,7 @@ sec(b,'5. Features that contact other services',[
 ['Search and source checks: your search words go to our server, which asks public sources (for example Wikipedia and Wikimedia, DuckDuckGo instant answers, Hacker News, GDELT news). In Standard Mode your browser can also ask other free sources directly with your search words: other Wikimedia projects (Wikibooks, Wikisource, Wikinews, Wiktionary, Wikiversity, Wikivoyage, Wikiquote, Wikispecies, Wikidata and other language editions of Wikipedia), Internet Archive, Open Library, Project Gutenberg, Google Books, Library of Congress, Crossref, OpenAlex, Europe PMC, DOAJ, Semantic Scholar, INSPIRE, Zenodo, DataCite, Stack Exchange sites, GitHub, npm, Spaceflight News, GBIF, iNaturalist, Cleveland Museum of Art, MusicBrainz, OpenStreetMap (Nominatim), REST Countries, TheMealDB, Open Food Facts, Openverse, NASA and the Art Institute of Chicago. Their own privacy policies apply to those requests.',
  'Feed and videos: our server collects public posts and free-licensed videos from sources such as Wikipedia, Hacker News, Lobsters, DEV, Mastodon, Lemmy, Stack Exchange, news RSS feeds (BBC, NPR, DW, Al Jazeera, NASA and others), Wikimedia Commons, the Internet Archive, NASA and PeerTube servers (and Pexels / Pixabay if the operator added a key). Your browser then loads pictures and videos directly from those hosts, so they see your IP address.',
  'Weather: the weather chip at the top loads by itself for an approximate place (found from your network by Cloudflare) or for the city you chose. The coordinates go to Open-Meteo. When you press “My location” your browser asks you for permission first. If it cannot give a location, an approximate one may be looked up from your IP address with ipwho.is.',
- 'Language: the visible texts of the site go to an AI model on Cloudflare Workers AI, which translates them; nothing else is sent. Translator: the text to translate goes to the Google web translator (translate.googleapis.com) and, if that fails, to MyMemory (api.mymemory.translated.net). If you translate a website, its address goes to the text reader r.jina.ai, which fetches the page text.',
+ 'Language and Translator: the texts to translate go from your browser to Google’s web translator (translate.googleapis.com) and, if that fails, to MyMemory (api.mymemory.translated.net). If your browser has its own on-device translator (Chrome), it can be used too and stays on your device. If these fail, the texts go to our server, which tries other free translation services in turn (Google again, Lingva instances such as lingva.ml, LibreTranslate instances such as libretranslate.de, MyMemory) and then AI models on Cloudflare Workers AI. After a language is chosen, the original texts and their translations are also sent to our server, which asks a second translation service for the same texts and lets an AI model on Workers AI approve one version; only the site’s own texts are involved, never your input. The list is shown in the Language panel. For Language these are the visible texts of the site, not your own input. If you translate a website with the Translator, its address goes to the text reader r.jina.ai, which fetches the page text.',
  'Dictionary: the word goes to our server and then to Wiktionary.',
  'AI Summary in Standard Search (the “✨ AI Summary” bubble): after a search the summary is written automatically, unless you turn that off in the bubble or you chose an age group under 18. Your search words and the titles, snippets and links of the results on screen go to our server and to Cloudflare Workers AI, which writes the summary. With automatic summary off, nothing is sent until you press the bubble.',
  'AI Chat and AI Tip: your message goes to our server and is processed by Cloudflare Workers AI (an open model such as Google Gemma or Meta Llama), together with public web results. Cloudflare runs the model; the site does not keep the conversation on its server. Do not type personal data into the chat.',
