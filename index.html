@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="app-build" content="v108">
+<meta charset="UTF-8"><meta name="app-build" content="v109">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="mobile-web-app-capable" content="yes">
@@ -613,7 +613,7 @@ l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manif
 </head>
 <body>
 <div id="splash" aria-hidden="true"><div class="sp-glow"></div><img src="icon-192.png" alt="" width="170" height="170" decoding="async"></div>
-<script>(function(){var d=document.getElementById('splash');if(!d)return;if(navigator.webdriver||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){d.remove();return;}function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
+<script>(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){d.remove();return;}function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();</script>
 <section class="bot-only" id="about-for-bots" aria-label="Plain-text description of this site for search engines and AI assistants">
 <h1>AI INFORMATION - complete description of this website</h1>
 <p>Most of this site is JavaScript that runs in the visitor's browser, so a bot that does not run JavaScript cannot see it. This hidden-from-view HTML section is a plain-text description of everything the site does. It changes nothing in how the site works: the visible page and all other files are unchanged. It is not shown on screen and has no scripts, forms or links of its own.</p>
@@ -623,6 +623,8 @@ l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manif
 <p>Classic Mode: type a topic and press VERIFY. The site builds links to about 950 sources (fact-checkers, news agencies, science, health, government, Bulgarian and big-tech sources), shows a Wikipedia excerpt when one exists, lets you filter, share and export a report, and shows an automatic AI Summary right after the search with every model version kept as a numbered version, a model choice and an Another-model button. Standard Search: a web-like search with tabs (all, news, images and more) using public sources such as Wikipedia, Wikimedia Commons, Openverse, NASA, Internet Archive and museums; it also shows an automatic AI Summary bubble of all shown results with all versions. Both summaries read only titles and short descriptions, not whole pages, and can be wrong.</p>
 <h2>AI features</h2>
 <p>A real AI model (Cloudflare Workers AI; models include Gemma 4, Llama 3.1/3.2/4, Granite 4) answers in AI Chat (optional web search, optional picture or text file that only the AI reads and that can never trigger anything else on the site; binary files are only described by hash, type and readable text, never opened or run), AI Tip, and optional AI helpers in: Translator (text and whole website), Dictionary (with country choice), Calculator, Weather (AI Weather Scout: the AI searches the internet for the place you typed), Compare Two Sources, Find Quote Context, Quiz (new questions and explanations), Email Headers, Text Analyzer, URL Scanner, Fake Image Checker, the video finder, the children's adult-content filter, a For-you suggestion box in Standard Search and an optional AI picture background (image model). Every AI helper is optional, starts only when pressed or when its automatic option is on, shows which model answered, and says it can be wrong. The model is chosen automatically or by the visitor from a fixed server-side list of free models; the browser cannot pick a paid model. The free daily AI allowance is limited, so a feature may say the AI is unavailable.</p>
+<h2>Features menu</h2>
+<p>A Features menu lets the visitor switch most features off, which hides them and stops them from running, and switch them on again at any time. The choice is kept only on the visitor's device. AI features also include an automatic AI summary of the day in the Feed and a comparison of one searched topic on two different days.</p>
 <h2>Tools</h2>
 <p>Scam Lab (URL Scanner, Text Analyzer, Email Headers, Fake Image Checker, Weekly, Tools, AI Tip, Quiz), Translator, Dictionary, Calculator, Weather, Compare Two Sources, Find Quote Context, Feed, notifications, settings, themes, languages, accessibility options and a legal section.</p>
 <h2>Feed</h2>
@@ -656,7 +658,7 @@ l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manif
 <div id="homeContact" style="text-align:center;font-size:12px;opacity:.85;margin:6px 15px">✉️ Contact: <a href="mailto:ai.information.support@gmail.com" style="color:var(--accent)">ai.information.support@gmail.com</a></div>
 <div id="verdict"></div>
 <div id="trendingBar"><div class="trending-header"><b>🔥 TRENDING - Keyboard hides after click</b><button type="button" onclick="loadTrending()">↻ Refresh</button></div><div class="trending-scroll" id="trendingScroll"></div></div>
-<div id="clsAi" style="padding:0 15px"></div><div class="action-btns"><button id="summaryBtn" type="button" onclick="doSummary()">🔗 LINKS</button><button id="shareBtn" type="button" onclick="doShare()">📤 SHARE</button><button id="exportBtn" type="button" onclick="doExport()">📄 EXPORT REPORT</button><div style="display:flex;gap:8px;"><button id="saveProgressBtn" type="button" onclick="saveProgress()">💾 SAVE</button><button id="loadProgressBtn" type="button" onclick="document.getElementById('loadFileInput').click()">📂 LOAD</button><input type="file" id="loadFileInput" accept=".json" style="display:none;" onchange="loadProgress(event)"></div></div>
+<div id="clsAi" data-ft="aisum" style="padding:0 15px"></div><div class="action-btns"><button id="summaryBtn" type="button" onclick="doSummary()">🔗 LINKS</button><button id="shareBtn" type="button" onclick="doShare()">📤 SHARE</button><button id="exportBtn" type="button" onclick="doExport()">📄 EXPORT REPORT</button><div style="display:flex;gap:8px;"><button id="saveProgressBtn" type="button" onclick="saveProgress()">💾 SAVE</button><button id="loadProgressBtn" type="button" onclick="document.getElementById('loadFileInput').click()">📂 LOAD</button><input type="file" id="loadFileInput" accept=".json" style="display:none;" onchange="loadProgress(event)"></div></div>
 <div style="padding:0 15px;"><div id="filterBox"><div class="filter-row"><input id="filterInput" type="text" placeholder="Filter 953 sources (e.g. factcheck, bulgaria)…" onkeydown="if(event.key==='Enter'){filterSources(this.value); hideKeyboard();}" oninput="filterSources(this.value)"><button class="fav-btn" id="favFilterBtn" type="button" aria-label="Show only favorites" onclick="toggleFavFilter()">⭐</button></div></div><div id="result"></div></div>
 <div id="aiSummaryOverlay" onclick="closeSummary()"></div><div id="aiSummary" role="dialog" aria-modal="true" aria-label="AI summary"></div><div id="shareStatus" role="status" aria-live="polite"></div>
 <div id="breakingNewsBar" style="margin:12px 15px;background:var(--bg2);border:1.5px solid #ff3333;border-radius:12px;padding:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b style="color:#ff4444;font-size:12px;"><span class="live-dot off" id="radarDot"></span>LIVE RADAR · newest stories <span id="radarStatus" style="font-weight:normal;opacity:.7;font-size:10px;"></span></b><button type="button" onclick="loadBreaking(false)" style="padding:4px 10px;background:var(--bg2);border:1px solid #ff3333;border-radius:14px;color:#ff6666;font-size:10px;cursor:pointer;">↻ Refresh</button></div><div id="breakingNewsScroll" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;overscroll-behavior:contain;"></div></div>
@@ -851,6 +853,7 @@ w.appendChild(box);
 }
 function clsGen(model){
 var st=clsSt;if(!st||st.busy)return;
+if(!FT.on('aisum'))return;
 var kid=false;try{var g=ageG();kid=(g==='u13'||g==='13-15'||g==='16-17');}catch(e){}
 if(kid&&!model&&!st.manual){st.err='Pick a model above to ask once.';clsAiDraw();return;}
 if(model)st.manual=1;
@@ -2233,13 +2236,25 @@ var AI_SHORT={'@cf/google/gemma-4-26b-a4b-it':'Gemma 4','@cf/meta/llama-3.1-8b-i
 var AI_ALL=Object.keys(AI_SHORT);
 function aiShort(m){return AI_SHORT[m]||String(m||'').replace(/^@cf\//,'');}
 function aiLang(){var l=String(document.documentElement.lang||navigator.language||'en');if(/^bg/i.test(l))return 'Bulgarian';try{var n=new Intl.DisplayNames(['en'],{type:'language'}).of(l.split('-')[0]);if(n&&/^[A-Za-z ()\-]{2,30}$/.test(n)&&n!==l)return n;}catch(e){}return 'English';}
+
+/* ---- Features menu: switch whole features off and on (hidden and stopped) ---- */
+var FT={mem:null,
+off:function(){if(!FT.mem){FT.mem={};try{var a=jget('ai_v9_ftoff',[]);(Array.isArray(a)?a:[]).forEach(function(k){if(/^[a-z0-9]{2,20}$/.test(String(k)))FT.mem[k]=1;});}catch(e){}}return FT.mem;},
+on:function(id){return !FT.off()[id];},
+set:function(id,v){var o=FT.off();if(v)delete o[id];else o[id]=1;try{jset('ai_v9_ftoff',Object.keys(o));}catch(e){}FT.css();},
+css:function(){var st=document.getElementById('ftStyle');if(!st){st=document.createElement('style');st.id='ftStyle';document.head.appendChild(st);}st.textContent=Object.keys(FT.off()).map(function(k){return'[data-ft~="'+k+'"]{display:none!important}';}).join('\n');},
+rules:[['feed','#feedBar'],['news','#breakingNewsBar'],['trending','#trendingBar'],['weekly','#weeklyCard'],['tip','#tipCard'],['fakeimg','#fakeCheckerBar'],['weather','#wxChip'],
+['chat','#v9Bar button',/AI Chat/],['quote','#v9Bar button',/Quote context/],['compare','#v9Bar button',/Compare/],['weather','#v9Bar button',/Weather/],['dict','#v9Bar button',/Dictionary/],['translator','#v9Bar button',/Translator/],['calc','#v9Bar button',/Calculator/],['reminders','#v9Bar button',/Reminders/],['install','#v9Bar button',/Install/],
+['urlscan','.scam-card',/URL Scanner/],['textan','.scam-card',/Text Analyzer/],['headers','.scam-card',/Email headers/],['weekly','.scam-card',/Weekly/],['tip','.scam-card',/AI Tip/],['tools','.scam-card',/Tools/],['quiz','.scam-card',/Quiz/]],
+tag:function(){FT.rules.forEach(function(r){[].forEach.call(document.querySelectorAll(r[1]),function(e){if(r[2]&&!r[2].test(e.getAttribute('data-ft-txt')||e.textContent))return;if(r[2]&&!e.getAttribute('data-ft-txt'))e.setAttribute('data-ft-txt',e.textContent);var c=(e.getAttribute('data-ft')||'').split(' ').filter(Boolean);if(c.indexOf(r[0])<0){c.push(r[0]);e.setAttribute('data-ft',c.join(' '));}});});}};
+window.FT=FT;
 function aiAsk(task,req,signal){var o=Object.assign({task:task,model:modelPick()},req||{});o.extra=Object.assign({lang:aiLang()},o.extra||{});return xpost('assist',o,45000,signal);}
 function aiErrText(e){var m=String((e&&e.message)||e);return /needs-server|501|needs Workers AI/.test(m)?'AI needs the Cloudflare Worker with Workers AI switched on.':'The AI model did not answer ('+m.slice(0,150)+'). Try another model.';}
 /* aiBlock(label, task, getReq, opts): getReq() returns {text,extra,question,image} or a string (a message to show instead);
    opts.render(el,res) draws a custom result, opts.auto runs at once, opts.hint is a small note under the button */
 function aiBlock(label,task,getReq,opts){
 opts=opts||{};
-var box=el('div','v9-card ai-blk');box.style.cssText='margin:10px 0;padding:10px;line-height:1.5';
+var box=el('div','v9-card ai-blk');box.setAttribute('data-ft','aibtn');box.style.cssText='margin:10px 0;padding:10px;line-height:1.5';
 var st={versions:[],cur:-1,busy:false,err:''};
 var head=el('div','');head.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center';
 var go=mkBtn(label,'pri',function(){run(modelPick());});go.type='button';head.appendChild(go);
@@ -2541,6 +2556,22 @@ return fetch('https://'+m[1].toLowerCase()+'.wikipedia.org/w/api.php?action=quer
 var p=j.query&&j.query.pages,k=p&&Object.keys(p)[0],pg=p&&p[k];if(!pg||!pg.extract||pg.extract.length<200)throw new Error('empty');
 return{title:pg.title+' · Wikipedia',text:pg.extract.slice(0,20000),url:link,via:'page'};});
 }
+
+function cmpDays(){
+var box=el('div','v9-card');box.setAttribute('data-ft','aibtn');box.style.cssText='margin:16px 0;padding:12px;line-height:1.5';
+box.appendChild(el('b','','📅 Same topic, two different days (AI)'));
+box.appendChild(el('div','v9-note','When you search in Standard Search, this device keeps the top results of each topic for each day (only on your device, up to 8 days and 25 topics). Pick a topic and two days, and an AI model tells what changed. Search the same topic on two different days to use it.'));
+var S=jget('ai_v9_snaps',{}),topics=Object.keys(S||{}).filter(function(k){return Object.keys(S[k]||{}).length>=2;});
+if(!topics.length){box.appendChild(el('div','v9-note','Nothing to compare yet: no topic has been searched on two different days.'));return box;}
+function sel(){var x=document.createElement('select');x.style.cssText='width:100%;box-sizing:border-box;padding:10px;margin:6px 0;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text)';return x;}
+var ts=sel(),da=sel(),db=sel();ts.setAttribute('aria-label','Topic');da.setAttribute('aria-label','Earlier day');db.setAttribute('aria-label','Later day');
+topics.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;ts.appendChild(o);});
+function fillDays(){var ds=Object.keys(S[ts.value]||{}).sort();[da,db].forEach(function(x,j){x.textContent='';ds.forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=(j?'Later: ':'Earlier: ')+d;x.appendChild(o);});});da.value=ds[0];db.value=ds[ds.length-1];}
+ts.onchange=fillDays;fillDays();box.appendChild(ts);box.appendChild(da);box.appendChild(db);
+function blk(L,d){var a=(S[ts.value]||{})[d]||[];return 'Day '+L+' ('+d+'):\n'+a.map(function(r,i){return(i+1)+'. '+r[0]+' — '+r[1]+' ['+r[2]+']';}).join('\n');}
+box.appendChild(aiBlock('📅 Compare the two days','compare_days',function(){var a=da.value,b2=db.value;if(!a||!b2||a===b2)return 'Pick two different days.';var x=a<b2?a:b2,y=a<b2?b2:a;return{text:'Topic: '+ts.value+'\n\n'+blk('A',x)+'\n\n'+blk('B',y)};},{hint:'The AI reads only the saved titles and short descriptions. It can be wrong and does not decide what is true.'}));
+return box;
+}
 function openCompare(){
 var b=$('v9CmpBody');openPanel('v9Cmp');
 if(b.dataset.ready){var f0=b.querySelector('textarea');if(f0)f0.focus();return;}b.dataset.ready='1';b.textContent='';
@@ -2558,6 +2589,7 @@ b.appendChild(t);ta.push(t);var s=el('div','v9-note','');b.appendChild(s);st.pus
 });
 var go=mkBtn('⚖️ Compare','pri',run);go.style.marginTop='10px';b.appendChild(go);
 var out=el('div');out.style.marginTop='12px';b.appendChild(out);
+b.appendChild(cmpDays());
 var busy=false;
 function isLink(v){v=v.trim();return v.length<1000&&!/\s/.test(v)&&(/^https?:\/\//i.test(v)||v.indexOf('.')>0);}
 function load(i){
@@ -3093,7 +3125,7 @@ intro();
 }
 function initClear(){
 var body=mkPanel('v9Clear','🧹 Quick clear');
-var SEARCH=/^(ai_v9_(recent|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites)$/;
+var SEARCH=/^(ai_v9_(recent|snaps|feedsum|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites)$/;
 var VIDEO=/^ai_v9_vidx$/;
 function keys(){var o=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0)o.push(k);}}catch(e){}return o;}
 function groups(){var g={search:[],video:[],settings:[]};keys().forEach(function(k){if(VIDEO.test(k))g.video.push(k);else if(SEARCH.test(k))g.search.push(k);else g.settings.push(k);});return g;}
@@ -3618,6 +3650,28 @@ var bar=$('v9Bar');if(bar)bar.appendChild(btn);
 
 
 /* ===================== v57: accent colour (background stays the same) ===================== */
+
+function initFeatures(){
+var body=mkPanel('v9Feat','🎛️ Features');body.parentNode.id='v9Feat';
+var G=[['Main tools',[['feed','📰 Feed','Posts and videos'],['news','🚨 Breaking news bar',''],['trending','🔥 Trending bar',''],['chat','🤖 AI Chat','Chat button'],['weather','🌤️ Weather','Button and the chip at the top'],['translator','🌍 Translator',''],['dict','📖 Dictionary',''],['calc','🧮 Calculator',''],['compare','⚖️ Compare',''],['quote','🔎 Quote context',''],['reminders','⏰ Reminders',''],['install','📲 Install','']]],
+['Scam Lab',[['urlscan','🔗 URL Scanner',''],['textan','📝 Text Analyzer',''],['headers','✉️ Email headers',''],['fakeimg','🖼️ Fake image checker',''],['weekly','🛡️ Weekly report',''],['tip','💡 AI Tip',''],['tools','🧰 Tools',''],['quiz','🎮 Quiz','']]],
+['AI helpers',[['aisum','✨ AI Summary of search results','Also stops the automatic request'],['aifeed','📰 AI summary of the day in the Feed','Also stops the automatic request'],['aibtn','🤖 AI buttons inside tools','Explain, translate, check and the two-day comparison'],['foryou','✨ "For you" in Standard Search',''],['aibg','🖼️ AI picture background','Hides the picture; it stays saved']]],
+['Look',[['splash','✨ Start animation','']]]];
+body.appendChild(el('p','lg-p','Switch features off to hide them and stop them from running. Switch them on again here at any time. Nothing is deleted. The choice is saved on this device if you allowed storage.'));
+var boxes={};
+G.forEach(function(g){var h=el('h3','',g[0]);h.style.margin='16px 0 6px';body.appendChild(h);g[1].forEach(function(f){
+var l=el('label','');l.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin:4px 0;border:1px solid var(--border2);border-radius:10px;background:var(--bg2);cursor:pointer';
+var c=document.createElement('input');c.type='checkbox';c.style.marginTop='3px';c.checked=FT.on(f[0]);boxes[f[0]]=c;
+c.onchange=function(){FT.set(f[0],c.checked);};
+var t=el('span','');t.appendChild(document.createTextNode(f[1]));if(f[2]){var n=el('small','',f[2]);n.style.cssText='display:block;opacity:.75';t.appendChild(n);}
+l.appendChild(c);l.appendChild(t);body.appendChild(l);});});
+var all=mkBtn('Turn everything on','pri',function(){Object.keys(FT.off()).forEach(function(k){FT.set(k,true);});Object.keys(boxes).forEach(function(k){boxes[k].checked=true;});toast('All features are on','var(--accent)',2500);});all.style.marginTop='14px';body.appendChild(all);
+body.appendChild(el('p','v9-note','Always on: Accessibility, Language, Quick clear, Content filter, Colour, and this menu.'));
+var hb=document.querySelector('.hdr-tools');var b=el('button','hdr-chip','🎛️ Features');b.id='ftBtn';b.type='button';b.setAttribute('aria-label','Features: switch features on or off');b.onclick=function(){openPanel('v9Feat');};
+if(hb)hb.appendChild(b);
+FT.css();FT.tag();[400,1500,4000].forEach(function(ms){setTimeout(FT.tag,ms);});
+try{var mo=new MutationObserver(function(){clearTimeout(FT._t);FT._t=setTimeout(FT.tag,200);});['v9Bar','scamLabBar','feedBar'].forEach(function(id){var e=document.getElementById(id);if(e)mo.observe(e,{childList:true,subtree:true});});}catch(e){}
+}
 function initColor(){
 var C=[['Green',null,null],['Red','#ff5c5c','#b3261e'],['Orange','#ff9f43','#a65200'],['Yellow','#ffd93d','#8a6d00'],['Blue','#4da3ff','#0b57d0'],['Indigo','#8a8cff','#3f3fbf'],['Violet','#c084fc','#7b2fbf']];
 var st=document.createElement('style');st.id='accStyle';document.head.appendChild(st);
@@ -3648,7 +3702,7 @@ var chipRow=el('div','');chipRow.style.cssText='display:flex;flex-wrap:wrap;gap:
 function drawChips(list){chipRow.textContent='';list.forEach(function(t){var c=el('button','std-b',t);c.type='button';c.style.cssText='padding:6px 12px;font-size:12px;border-radius:999px;max-width:100%;white-space:normal;text-align:left;border:1px solid var(--accent);background:var(--bg2);color:var(--text);cursor:pointer';c.onclick=function(){bgIn.value=t;};chipRow.appendChild(c);});}
 drawChips(pick6());
 var bgSt=el('div','v9-note','');bgSt.setAttribute('role','status');bgSt.style.marginTop='8px';
-function bgShow(u){var L=document.getElementById('aiBgLayer');if(!u){if(L)L.remove();return;}if(!L){L=document.createElement('div');L.id='aiBgLayer';L.setAttribute('aria-hidden','true');document.body.insertBefore(L,document.body.firstChild);}L.style.backgroundImage='url("'+u+'")';}
+function bgShow(u){var L=document.getElementById('aiBgLayer');if(!u){if(L)L.remove();return;}if(!L){L=document.createElement('div');L.id='aiBgLayer';L.setAttribute('data-ft','aibg');L.setAttribute('aria-hidden','true');document.body.insertBefore(L,document.body.firstChild);}L.style.backgroundImage='url("'+u+'")';}
 var btnRow=el('div','');btnRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:4px 0';
 var mk=mkBtn('✨ Make the picture','',function(){var t=bgIn.value.trim();if(t.length<3){bgSt.textContent='Write at least 3 letters, or press a theme.';return;}mk.disabled=true;bgSt.textContent='Making the picture… this can take some seconds.';
 aiAsk('bgimage',{text:t}).then(function(j){if(!/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(j.image||''))throw new Error('bad picture');bgShow(j.image);try{store.set('ai_bgimg',j.image);}catch(e){}bgSt.textContent='Done. Made by '+String(j.model||'').replace(/^@cf\//,'')+'.';mk.disabled=false;}).catch(function(e){mk.disabled=false;bgSt.textContent=aiErrText(e);});});
@@ -3740,7 +3794,7 @@ sec(b,'2a. How this site works, in plain words',[
  'No system is perfectly safe, so we do not promise that the risk is zero. What we do: HTTPS, a strict content-security policy, no third-party scripts, and no ads or trackers. If you notice anything unexpected, write to the e-mail address in the footer.']
 ]);
 sec(b,'2b. Optional AI helpers and what they send',[
-'These helpers are optional. Each one sends data only when you press its button (or when you switch on its automatic option): Translator and Dictionary send the text or word you typed; Calculator sends your question; Weather Scout sends the place name you typed or chose (and lets the AI search the internet for it); Compare, Quote, Quiz and the Scam Lab tools send the text, links, e-mail headers or image you give them; AI Chat sends your message and, if you attach one, a picture or file; the video finder sends your wish and the titles of free videos the script found; the children filter sends result titles and short snippets; AI Summary sends the shown titles and snippets; “For you” in Standard Search sends your last searches (kept on your device); the AI picture background sends your picture description to an AI image model (Workers AI) and keeps the finished picture on your device.',
+'These helpers are optional. Each one sends data only when you press its button (or when you switch on its automatic option): Translator and Dictionary send the text or word you typed; Calculator sends your question; Weather Scout sends the place name you typed or chose (and lets the AI search the internet for it); Compare, Quote, Quiz and the Scam Lab tools send the text, links, e-mail headers or image you give them; AI Chat sends your message and, if you attach one, a picture or file; the video finder sends your wish and the titles of free videos the script found; the children filter sends result titles and short snippets; AI Summary sends the shown titles and snippets; “For you” in Standard Search sends your last searches (kept on your device); the AI summary of the day in the Feed sends the headlines shown in the feed (public news, not your data); the two-day comparison sends the saved titles and short descriptions of one topic you searched; the AI picture background sends your picture description to an AI image model (Workers AI) and keeps the finished picture on your device.',
 'The data goes to our Cloudflare script and from there to Cloudflare Workers AI, which runs the model. Our script does not store it. Pictures and files are read only by the AI model: the site never opens, runs or follows them, and an attached file cannot start anything else on the site. Cloudflare may process it under its own terms. Do not send secrets, passwords or other people\'s private data.',
 'You can switch automatic AI summaries off in the summary box. The AI children filter runs only if you switch it on with the Filter button.',
 'AI answers can be wrong, out of date or made up. They are not advice and not a verdict. Check the sources.'
@@ -4087,8 +4141,8 @@ var tabs=el('div','std-tabs');
 var TABS=[['all','All'],['images','Images'],['news','News']],tabBtn={};
 TABS.forEach(function(t){var b=el('button','std-tab',t[1]);b.type='button';b.onclick=function(){setTab(t[0]);};tabs.appendChild(b);tabBtn[t[0]]=b;});
 var meta=el('div','std-meta');var res=el('div','std-res');var more=el('div','std-more');more.style.cssText='display:none;text-align:center;margin:10px 0;padding:0;border:0;background:none;cursor:default';
-wrap.appendChild(top);wrap.appendChild(homeBtns);wrap.appendChild(tabs);wrap.appendChild(meta);var sumWrap=el('div','std-sum');wrap.appendChild(sumWrap);var curList=[],sumSt=null,sumTimer=0;wrap.appendChild(res);wrap.appendChild(more);
-var fyWrap=el('div','std-fy');fyWrap.style.cssText='margin:10px 0';
+wrap.appendChild(top);wrap.appendChild(homeBtns);wrap.appendChild(tabs);wrap.appendChild(meta);var sumWrap=el('div','std-sum');sumWrap.setAttribute('data-ft','aisum');wrap.appendChild(sumWrap);var curList=[],sumSt=null,sumTimer=0;wrap.appendChild(res);wrap.appendChild(more);
+var fyWrap=el('div','std-fy');fyWrap.setAttribute('data-ft','foryou');fyWrap.style.cssText='margin:10px 0';
 function fyDraw(){
 fyWrap.textContent='';
 var rc=jget('ai_v9_recent',[]).slice(0,8);
@@ -4327,7 +4381,7 @@ sumWrap.appendChild(box);
 function autoSumOn(){try{var g=ageG();if(g==='u13'||g==='13-15'||g==='16-17')return false;}catch(e){}return jget('ai_v9_autosum',true)!==false;}
 function msel0(){var v=jget('ai_v9_model','');return typeof v==='string'?v:'';}
 function genSum(model){
-if(!sumSt||sumSt.busy)return;var st=sumSt;st.busy=true;st.err='';drawSum();
+if(!FT.on('aisum'))return;if(!sumSt||sumSt.busy)return;var st=sumSt;st.busy=true;st.err='';drawSum();
 var items=curList.slice(0,14).map(function(r){return{title:String(r.title||'').slice(0,140),text:String(r.text||'').slice(0,320),source:String(r.source||'').slice(0,50),url:r.url};});
 xpost('summary',{query:q,items:items,model:model||''},40000).then(function(j){
 st.busy=false;if(!j.summary)throw new Error('empty');st.versions.push({model:j.model||model||'',text:j.summary,n:items.length});st.cur=st.versions.length-1;if(sumSt===st)drawSum();
@@ -4341,9 +4395,11 @@ if(!bad){if(!kfBusy[k]&&list.length&&typeof aiAsk==='function'){kfBusy[k]=1;var 
 aiAsk('kidfilter',{text:txt}).then(function(j){var m={};(j.unsafe||[]).forEach(function(n){var r=first[n-1];if(r&&r.url)m[r.url]=1;});kfBad[k]=m;kfBusy[k]=0;if(k===q+'|'+tab&&curList)renderList(curList);}).catch(function(){kfBad[k]={};kfBusy[k]=0;});}
 return list;}
 return list.filter(function(r){return !bad[r.url];});}
+var snapT=0;
+function snapSave(){clearTimeout(snapT);var qq=q,tt=tab;snapT=setTimeout(function(){try{if(!qq||qq.length<2||tt!=='all'||!curList||curList.length<3)return;var d=new Date().toISOString().slice(0,10),key=qq.toLowerCase().slice(0,60);var S=jget('ai_v9_snaps',{});if(!S||typeof S!=='object'||Array.isArray(S))S={};var o=S[key]||(S[key]={});o[d]=curList.slice(0,12).map(function(r){return[String(r.title||'').slice(0,120),String(r.text||'').slice(0,200),String(r.source||'').slice(0,30)];});var ds=Object.keys(o).sort();while(ds.length>8)delete o[ds.shift()];var ks=Object.keys(S);if(ks.length>25){ks.sort(function(a,b){var x=Object.keys(S[a]).sort().pop()||'',y=Object.keys(S[b]).sort().pop()||'';return x<y?-1:1;});delete S[ks[0]];}jset('ai_v9_snaps',S);}catch(e){}},1500);}
 function renderList(list){
 list=kfFilter(list);
-flowShow(list);curList=list;drawSum();
+flowShow(list);curList=list;drawSum();snapSave();
 res.textContent='';
 var shownN=0;
 if(tab==='all'){var kp=knowledge(list);if(kp)res.appendChild(kp);}
@@ -5337,12 +5393,35 @@ var fmV=el('button','std-b','🎬 Videos'),fmP=el('button','std-b','📝 Posts')
 fmRow.appendChild(fmV);fmRow.appendChild(fmP);var fmHint=el('span','v9-note','');fmRow.appendChild(fmHint);fb.insertBefore(fmRow,fbody);
 var fvid=el('div');fvid.style.display='none';fb.insertBefore(fvid,fbody);
 var vaiWrap=el('div');vaiWrap.style.display='none';fb.insertBefore(vaiWrap,fvid);
+var fsumBox=el('div');fsumBox.setAttribute('data-ft','aifeed');fsumBox.style.cssText='margin:0 0 10px';fb.insertBefore(fsumBox,vaiWrap);
+var fsum={busy:false,done:false};
+function dayKey(){return new Date().toISOString().slice(0,10);}
+function fsumDraw(rec,err){
+fsumBox.textContent='';if(!rec&&!err&&!fsum.busy)return;
+var c=el('div','v9-card');c.style.cssText='padding:12px;line-height:1.55';c.appendChild(el('b','','📰 AI summary of the day'));
+var bd=el('div','');bd.style.cssText='margin:8px 0;white-space:pre-wrap';bd.setAttribute('translate','no');bd.className='notranslate';bd.textContent=fsum.busy?'The AI is reading today\'s headlines…':(rec?rec.text:'⚠️ '+err);c.appendChild(bd);
+if(rec&&!fsum.busy)c.appendChild(el('div','v9-note','🤖 AI model ('+aiShort(rec.model)+'), run by Cloudflare. Made from the headlines in the feed on '+rec.d+'. It can be wrong: open the posts to check.'));
+var nb=mkBtn('↻ New summary','',function(){fsumRun(true);});nb.disabled=fsum.busy;nb.style.marginTop='6px';c.appendChild(nb);
+fsumBox.appendChild(c);
+}
+function fsumRun(force){
+if(!FT.on('aifeed')||fsum.busy)return;
+try{if(!API.ai)return;}catch(e){return;}
+var cached=jget('ai_v9_feedsum',null);
+if(!force&&cached&&cached.d===dayKey()&&cached.text){fsum.done=true;fsumDraw(cached);return;}
+var items=feedList.filter(function(it){return it&&it.title&&it.type!=='video'&&kidOK({title:it.title,text:it.text,source:it.source});}).slice(0,30);
+if(items.length<5){if(cached&&cached.text)fsumDraw(cached);return;}
+fsum.busy=true;fsum.done=true;fsumDraw();
+var txt=items.map(function(it,i){return(i+1)+'. '+String(it.title).replace(/\s+/g,' ').slice(0,140)+(it.source?' ['+String(it.source).slice(0,30)+']':'');}).join('\n');
+var used=cached&&cached.model?cached.model:'';var nx='';if(force){var al=AI_ALL.filter(function(m){return m!==used;});nx=al[Math.floor(Math.random()*al.length)]||'';}
+aiAsk('feed_day',{text:txt,model:nx||modelPick()}).then(function(j){fsum.busy=false;var rec={d:dayKey(),text:String(j.answer||'').slice(0,1500),model:j.model||nx||''};if(!rec.text)throw new Error('empty');jset('ai_v9_feedsum',rec);fsumDraw(rec);}).catch(function(e){fsum.busy=false;if(cached&&cached.text&&cached.d===dayKey())fsumDraw(cached);else fsumDraw(null,aiErrText(e));});
+}
 function fmApply(){
 if(!FM.v&&!FM.p)FM.p=true;jset('ai_v9_feedmode',FM);
 [[fmV,FM.v],[fmP,FM.p]].forEach(function(x){x[0].setAttribute('aria-pressed',x[1]?'true':'false');x[0].style.outline=x[1]?'2px solid var(--accent)':'none';});
 fmHint.textContent=FM.v&&FM.p?'Both: videos and posts together, with the AI video finder.':FM.v?'Videos only: For you, Search and My player, with the AI video finder.':'Posts only: no videos.';
 var vOnly=FM.v&&!FM.p;
-fvid.style.display=vOnly?'':'none';fbody.style.display=vOnly?'none':'';vaiWrap.style.display=FM.v?'':'none';
+fvid.style.display=vOnly?'':'none';fsumBox.style.display=vOnly?'none':'';fbody.style.display=vOnly?'none':'';vaiWrap.style.display=FM.v?'':'none';
 if(FM.v&&!vaiWrap._built){vaiWrap._built=1;vaiWrap.appendChild(aiVideoBlock());}
 if(vOnly){var vb=$('v9VideosBody');if(vb&&vb.parentNode!==fvid)fvid.appendChild(vb);var vb2=$('v9VideosBody');if(vb2&&!vb2._built)openVideos(window.__vtab||'fyp',true);}
 if(!vOnly&&window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();
@@ -5365,7 +5444,7 @@ renderFeed(fbody,feedList,Math.min(feedList.length,Math.max(12,(fbody._shown||12
 }).catch(function(){feedEnd=true;renderFeed(fbody,feedList,Math.max(12,fbody._shown||12),null);}).then(function(){feedMoreBusy=false;});
 }
 function loadFeed(force){
-if(feedBusy)return;if(!force&&feedPlaying()){return;}
+if(!FT.on('feed'))return;if(feedBusy)return;if(!force&&feedPlaying()){return;}
 feedBusy=true;var cached=jget('ai_v9_feed2_'+country(),null);
 if(!feedList.length){if(cached)renderFeed(fbody,cached.items,8);else{fbody.textContent='';fbody.appendChild(el('div','v9-spin'));}}
 feedItems().then(function(items){
@@ -5377,6 +5456,7 @@ feedList=(first?items:fresh.concat(items.filter(function(it){return !it.isNew;})
 var top=window.scrollY;renderFeed(fbody,feedList,Math.max(8,Math.min(feedList.length,Math.max(12,fbody._shown||0))),feedEnd?null:feedMore);window.scrollTo(0,top);
 feedLast=Date.now();fst.textContent='● LIVE · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+(fresh.length&&!first?' · '+fresh.length+' new':'');
 logAct('feed','loaded '+items.length+(fresh.length&&!first?' ('+fresh.length+' new)':''));
+if(!fsum.done)fsumRun(false);
 }).catch(function(){if(!feedList.length&&!cached)fbody.textContent='The feed is not reachable from this viewer.';fst.textContent='offline';}).then(function(){feedBusy=false;});
 }
 setInterval(function(){if(!document.hidden&&feedKnown)loadFeed(false);},90000);
@@ -5401,12 +5481,13 @@ initCalc();
 initRemind();
 initColor();
 initAge();
+initFeatures();
 
 /* v29: idle warm-up — fetch the feed once the page is idle so the next open is instant (skipped on Low data / Save-Data / slow links) */
 (function(){
 var c=navigator.connection||{};
 if(c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
-function go(){try{if(typeof LOW==='function'&&LOW())return;if(document.hidden)return;xget('feed',{},15000).catch(function(){});}catch(e){}}
+function go(){try{if(!FT.on('feed'))return;if(typeof LOW==='function'&&LOW())return;if(document.hidden)return;xget('feed',{},15000).catch(function(){});}catch(e){}}
 if('requestIdleCallback' in window)requestIdleCallback(function(){setTimeout(go,1500);},{timeout:6000});else setTimeout(go,4000);
 })();
 buildWelcome();
