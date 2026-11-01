@@ -1,0 +1,4658 @@
+/* AI INFORMATION - app.js
+   All the other JavaScript of the site (search, Scam Lab, tools, feed, weather, settings, legal...).
+   AI parts live in ai.js, styles in style.css, the page text in index.html, the server in _worker.js. */
+
+/* v44: stable vs beta decided by host; sets the home-screen name */
+(function(){var h=location.hostname,beta=/(^|\.)beta[-.]/i.test(h);window.AI_BETA=beta;try{var br=(navigator.userAgentData&&navigator.userAgentData.brands||[]).some(function(b){return /Chromium/.test(b.brand);});if(br&&!(window.matchMedia&&matchMedia('(prefers-reduced-transparency: reduce)').matches))document.documentElement.classList.add('lg-ref');}catch(e){}
+window.AI_AGE='18+';try{localStorage.removeItem('ai_age');}catch(e){}
+var nm='AI INFORMATION '+(beta?'BETA':'STABLE');
+try{document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content',nm);}catch(e){}
+try{if(beta)document.title='AI Information BETA';}catch(e){}
+window.AI_AGEQ=[];window.AGEWAIT=function(f){if(window.AI_AGE)f();else window.AI_AGEQ.push(f);};window.AI_AGEFLUSH=function(){var q=window.AI_AGEQ;window.AI_AGEQ=[];q.forEach(function(f){try{f();}catch(e){}});};
+window.AI_SHOWBLOCK=function(){document.documentElement.classList.add('agb');if(document.getElementById('ageBlock'))return;var d=document.createElement('div');d.id='ageBlock';d.setAttribute('role','alertdialog');d.innerHTML='<div class="ab"><h1>⛔ You are blocked</h1><p>You told us you are under 13 years old. You cannot use this site.</p><p>You will be allowed to come back when you are 13 or older.</p><p><b>If you find a way to get in anyway, you are officially in violation of the Terms of Use.</b></p></div>';document.body.appendChild(d);};
+if(window.AI_AGE==='u13'){if(document.body)window.AI_SHOWBLOCK();else document.addEventListener('DOMContentLoaded',window.AI_SHOWBLOCK);}
+try{var l=document.querySelector('link[rel="manifest"]');if(l&&/^https?:$/.test(location.protocol)){var o=location.origin+'/';
+var m={name:nm,short_name:nm,description:'Check links, messages and images, search sources and read tech news.',id:o,start_url:o,scope:o,display:'standalone',background_color:'#0a0a0a',theme_color:'#0a0a0a',icons:[{src:o+'icon-192.png',sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:o+'icon-512.png',sizes:'512x512',type:'image/png',purpose:'any maskable'},{src:o+'icon.svg',sizes:'any',type:'image/svg+xml'}]};
+l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));}}catch(e){}})();
+
+(function(){
+function pref(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
+window.AI_RMQ=function(){var p=pref();if(p==='on')return false;if(p==='off')return true;try{return !!(window.AI_RMQ&&AI_RMQ());}catch(e){return false;}};
+function walk(rules,fn){for(var i=0;i<rules.length;i++){var r=rules[i];if(r.media)fn(r);if(r.cssRules&&r.type!==1)walk(r.cssRules,fn);}}
+window.AI_ANIM_APPLY=function(){var p=pref();for(var k=0;k<document.styleSheets.length;k++){try{walk(document.styleSheets[k].cssRules,function(r){var o=r._aiOrig||(r._aiOrig=r.media.mediaText);if(o.indexOf('prefers-reduced-motion')<0)return;var np=/no-preference/.test(o),n=o;
+if(p==='on'){n=np?o.replace(/\s*and\s*\(\s*prefers-reduced-motion\s*:\s*no-preference\s*\)/i,''):'not all';}
+else if(p==='off'){n=np?'not all':o.replace(/\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/i,'all');}
+if(!n||/^\s*$/.test(n))n='all';if(r.media.mediaText!==n)r.media.mediaText=n;});}catch(e){}}};
+try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
+})();
+(function(){var d=document.getElementById('splash');if(!d)return;var offS=false;try{offS=/"splash"/.test(localStorage.getItem('ai_v9_ftoff')||'');}catch(e){}if(offS||navigator.webdriver||(window.AI_RMQ&&AI_RMQ())){d.remove();return;}document.documentElement.classList.add('splashing');function rm(){if(d&&d.parentNode)d.parentNode.removeChild(d);d=null;document.documentElement.classList.remove('splashing');}d.addEventListener('click',rm);d.addEventListener('animationend',function(e){if(e.animationName==='spOut')rm();});setTimeout(rm,3300);})();
+var toastTimer=null;
+function toast(msg,bg,ms){if(bg==='#ff4444')bg='#c62828';var st=document.getElementById('shareStatus');st.style.color=(bg==='#c62828')?'#fff':'';st.textContent=msg;st.style.background=bg||'var(--accent)';st.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(function(){st.style.display='none';},ms||2500);}
+function getCap(name){try{if(window.claude&&typeof window.claude.use==='function')return Promise.resolve(window.claude.use(name)).then(function(c){return c||null;},function(){return null;});}catch(e){}return Promise.resolve(null);}
+async function saveFile(filename,data,mime){
+try{var dl=await getCap('downloads');if(dl){await dl.save({filename:filename,data:data});toast('Saved');return;}}
+catch(e){if(e&&e.code==='declined')return;}
+var blob=new Blob([data],{type:mime||'text/plain'});var url=URL.createObjectURL(blob);var a=document.createElement('a');
+a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},2000);
+}
+function fmtBytes(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';}
+function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
+function addPassive(t,fn){document.addEventListener(t,fn,{passive:true});}
+/* v42: consent-aware storage. Until the visitor chooses, nothing except the choice itself is written to the device. */
+var CONS=(function(){try{var j=JSON.parse(localStorage.getItem('ai_consent')||'null');return j&&j.v===1?j:null;}catch(e){return null;}})();
+var MEM={};
+function consSave(){try{CONS.t=new Date().toISOString();localStorage.setItem('ai_consent',JSON.stringify(CONS));}catch(e){}}
+function storeAllowed(k){return k==='ai_consent'||!!(CONS&&(CONS.prefs||(CONS.cache&&/^ai_(vc|v9_vidx|v9_fyp|v9_feed2)/.test(k))));}
+function cacheOK(){return !!(CONS&&CONS.cache);}
+function flushMem(){Object.keys(MEM).forEach(function(k){if(storeAllowed(k)){try{localStorage.setItem(k,MEM[k]);}catch(e){}delete MEM[k];}});}
+function wipeStored(onlyPrefs){try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0&&k!=='ai_consent'&&k!=='ai_age'&&(!onlyPrefs||!/^ai_(vc|v9_vidx|v9_fyp|v9_feed2)/.test(k)))ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
+var store={
+get:function(k){if(Object.prototype.hasOwnProperty.call(MEM,k))return MEM[k];try{return localStorage.getItem(k);}catch(e){return null;}},
+set:function(k,v){if(storeAllowed(k)){try{localStorage.setItem(k,v);}catch(e){}delete MEM[k];}else{MEM[k]=String(v);}}
+};
+function netUp(){return window.__netUp!==false;}
+function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function safeUrl(u){return /^https?:\/\//i.test(String(u))?String(u):'#';}
+function hideKeyboard(){
+document.activeElement.blur();
+document.getElementById('q').blur();
+var inputs = document.querySelectorAll('input');
+inputs.forEach(function(input){input.blur();});
+window.focus();
+document.body.focus();
+console.log('Keyboard hidden');
+}
+function toggleTheme(){
+try{if(window.AI_AUTOTHEME_STOP)AI_AUTOTHEME_STOP();}catch(e){}
+var vt=document.startViewTransition&&!toggleTheme._skip&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+if(vt){try{document.startViewTransition(function(){toggleTheme._skip=1;try{toggleTheme();}finally{toggleTheme._skip=0;}});return;}catch(e){}}
+document.body.classList.toggle('light-theme');
+var isLight=document.body.classList.contains('light-theme');document.documentElement.style.colorScheme=isLight?'light':'dark';
+store.set('ai_info_theme',isLight?'light':'dark');
+document.querySelectorAll('.theme-btn').forEach(function(b){b.textContent=isLight?'☀️':'🌙';});
+}
+(function(){try{var am=localStorage.getItem('ai_v9_autotheme');if(am==='time'||am==='weather'){var hh=new Date().getHours();var lt=hh>=7&&hh<19;document.body.classList.toggle('light-theme',lt);document.documentElement.style.colorScheme=lt?'light':'dark';document.querySelectorAll('.theme-btn').forEach(function(b){b.textContent=lt?'☀️':'🌙';});return;}}catch(e){}var t=store.get('ai_info_theme');if(t==='light'){document.body.classList.add('light-theme');document.querySelectorAll('.theme-btn').forEach(function(b){b.textContent='☀️';});}})();
+var favorites=(function(){try{var f=JSON.parse(store.get('ai_favorites')||'[]');return Array.isArray(f)?f:[];}catch(e){return [];}})();var showOnlyFav=false;
+var SRC_DATA=[["Wikipedia (EN)","encyclopedia","en.wikipedia.org","https://en.wikipedia.org/w/index.php?search={q}","INT"],["Wikipedia (BG)","encyclopedia","bg.wikipedia.org","https://bg.wikipedia.org/w/index.php?search={q}","BG"],["Britannica","encyclopedia","britannica.com","https://www.britannica.com/search?query={q}","INT"],["Wikidata","encyclopedia","wikidata.org","https://www.wikidata.org/w/index.php?search={q}","INT"],["Wiktionary","encyclopedia","en.wiktionary.org","https://en.wiktionary.org/w/index.php?search={q}","INT"],["Wikimedia Commons","encyclopedia","commons.wikimedia.org","https://commons.wikimedia.org/w/index.php?search={q}","INT"],["Stanford Encyclopedia of Philosophy","encyclopedia","plato.stanford.edu","https://plato.stanford.edu/search/searcher.py?query={q}","US"],["Merriam-Webster","encyclopedia","merriam-webster.com","","US"],["Internet Archive","encyclopedia","archive.org","https://archive.org/search?query={q}","US"],["Our World in Data","encyclopedia","ourworldindata.org","https://ourworldindata.org/search?q={q}","INT"],["Wolfram Alpha","encyclopedia","wolframalpha.com","","US"],["Khan Academy","encyclopedia","khanacademy.org","https://www.khanacademy.org/search?page_search_query={q}","US"],["TED","encyclopedia","ted.com","https://www.ted.com/search?q={q}","INT"],["MIT OpenCourseWare","encyclopedia","ocw.mit.edu","https://ocw.mit.edu/search/?q={q}","US"],["Open Library","encyclopedia","openlibrary.org","https://openlibrary.org/search?q={q}","US"],["Project Gutenberg","encyclopedia","gutenberg.org","https://www.gutenberg.org/ebooks/search/?query={q}","US"],["Library of Congress","encyclopedia","loc.gov","https://www.loc.gov/search/?q={q}","US"],["Europeana","encyclopedia","europeana.eu","https://www.europeana.eu/en/search?query={q}","EU"],["Smithsonian Magazine","encyclopedia","smithsonianmag.com","","US"],["National Geographic","encyclopedia","nationalgeographic.com","","US"],["Metropolitan Museum of Art","encyclopedia","metmuseum.org","","US"],["Cornell Legal Information Institute","encyclopedia","law.cornell.edu","","US"],["Factcheck.bg","factcheck","factcheck.bg","","BG"],["Snopes","factcheck","snopes.com","https://www.snopes.com/?s={q}","US"],["PolitiFact","factcheck","politifact.com","https://www.politifact.com/search/?q={q}","US"],["FactCheck.org","factcheck","factcheck.org","https://www.factcheck.org/?s={q}","US"],["Full Fact","factcheck","fullfact.org","https://fullfact.org/search/?q={q}","UK"],["AFP Fact Check","factcheck","factcheck.afp.com","","INT"],["Reuters Fact Check","factcheck","reuters.com/fact-check","","INT"],["AP Fact Check","factcheck","apnews.com/hub/ap-fact-check","","US"],["Africa Check","factcheck","africacheck.org","","INT"],["Lead Stories","factcheck","leadstories.com","","US"],["Google Fact Check Explorer","factcheck","toolbox.google.com/factcheck/explorer","https://toolbox.google.com/factcheck/explorer/search/{q}","INT"],["EUvsDisinfo","factcheck","euvsdisinfo.eu","","EU"],["Bellingcat","factcheck","bellingcat.com","","INT"],["Poynter","factcheck","poynter.org","","US"],["Media Bias/Fact Check","factcheck","mediabiasfactcheck.com","","US"],["Reuters","agency","reuters.com","","INT"],["Associated Press","agency","apnews.com","","US"],["AFP","agency","afp.com","","INT"],["Bloomberg","agency","bloomberg.com","","US"],["BTA (Bulgarian News Agency)","agency","bta.bg","","BG"],["BBC News","news","bbc.co.uk","https://www.bbc.co.uk/search?q={q}","UK"],["The Guardian","news","theguardian.com","https://www.theguardian.com/search?q={q}","UK"],["The New York Times","news","nytimes.com","https://www.nytimes.com/search?query={q}","US"],["The Washington Post","news","washingtonpost.com","","US"],["The Wall Street Journal","news","wsj.com","","US"],["Financial Times","news","ft.com","","UK"],["The Economist","news","economist.com","","UK"],["Al Jazeera","news","aljazeera.com","https://www.aljazeera.com/search/{q}","INT"],["NPR","news","npr.org","https://www.npr.org/search?query={q}","US"],["PBS NewsHour","news","pbs.org","","US"],["CNN","news","cnn.com","https://edition.cnn.com/search?q={q}","US"],["CNBC","news","cnbc.com","","US"],["ABC News (US)","news","abcnews.go.com","","US"],["CBS News","news","cbsnews.com","","US"],["NBC News","news","nbcnews.com","","US"],["USA Today","news","usatoday.com","","US"],["Politico","news","politico.com","https://www.politico.com/search?q={q}","US"],["Politico Europe","news","politico.eu","","EU"],["Axios","news","axios.com","","US"],["TIME","news","time.com","","US"],["Newsweek","news","newsweek.com","","US"],["The Independent","news","independent.co.uk","","UK"],["Sky News","news","news.sky.com","","UK"],["Deutsche Welle","news","dw.com","","EU"],["France 24","news","france24.com","","EU"],["Euronews","news","euronews.com","https://www.euronews.com/search?query={q}","EU"],["Euractiv","news","euractiv.com","","EU"],["Le Monde","news","lemonde.fr","","EU"],["Der Spiegel","news","spiegel.de","","EU"],["El País","news","elpais.com","","EU"],["Corriere della Sera","news","corriere.it","","EU"],["The Hindu","news","thehindu.com","","INT"],["The Japan Times","news","japantimes.co.jp","","INT"],["The Straits Times","news","straitstimes.com","","INT"],["South China Morning Post","news","scmp.com","","INT"],["ABC News Australia","news","abc.net.au","","INT"],["CBC News","news","cbc.ca","","INT"],["The Globe and Mail","news","theglobeandmail.com","","INT"],["Haaretz","news","haaretz.com","","INT"],["The Times of Israel","news","timesofisrael.com","","INT"],["The Kyiv Independent","news","kyivindependent.com","","EU"],["Radio Free Europe / Radio Liberty","news","rferl.org","","EU"],["Balkan Insight","news","balkaninsight.com","","EU"],["Bulgarian National Radio (BNR)","bulgaria","bnr.bg","","BG"],["Bulgarian National Television (BNT)","bulgaria","bntnews.bg","","BG"],["bTV Новините","bulgaria","btvnovinite.bg","","BG"],["Nova News","bulgaria","nova.bg","","BG"],["Дневник","bulgaria","dnevnik.bg","","BG"],["Медиапул","bulgaria","mediapool.bg","","BG"],["Капитал","bulgaria","capital.bg","","BG"],["24 часа","bulgaria","24chasa.bg","","BG"],["Труд","bulgaria","trud.bg","","BG"],["Сега","bulgaria","segabg.com","","BG"],["Дир.бг","bulgaria","dir.bg","","BG"],["Investor.bg","bulgaria","investor.bg","","BG"],["Economic.bg","bulgaria","economic.bg","","BG"],["Offnews","bulgaria","offnews.bg","","BG"],["Народно събрание","bulgaria","parliament.bg","","BG"],["НСИ (Национален статистически институт)","bulgaria","nsi.bg","","BG"],["БНБ (Българска народна банка)","bulgaria","bnb.bg","","BG"],["МВР","bulgaria","mvr.bg","","BG"],["Nature","science","nature.com","https://www.nature.com/search?q={q}","INT"],["Science (AAAS)","science","science.org","https://www.science.org/action/doSearch?AllField={q}","US"],["Cell","science","cell.com","","INT"],["The Lancet","science","thelancet.com","","INT"],["New England Journal of Medicine","science","nejm.org","","US"],["The BMJ","science","bmj.com","","UK"],["PLOS ONE","science","journals.plos.org","https://journals.plos.org/plosone/search?q={q}","INT"],["arXiv","science","arxiv.org","https://arxiv.org/search/?query={q}&searchtype=all","INT"],["bioRxiv","science","biorxiv.org","","INT"],["medRxiv","science","medrxiv.org","","INT"],["SSRN","science","ssrn.com","","INT"],["PubMed","science","pubmed.ncbi.nlm.nih.gov","https://pubmed.ncbi.nlm.nih.gov/?term={q}","US"],["PubMed Central","science","ncbi.nlm.nih.gov/pmc","https://www.ncbi.nlm.nih.gov/pmc/?term={q}","US"],["Europe PMC","science","europepmc.org","https://europepmc.org/search?query={q}","EU"],["Google Scholar","science","scholar.google.com","https://scholar.google.com/scholar?q={q}","INT"],["Semantic Scholar","science","semanticscholar.org","https://www.semanticscholar.org/search?q={q}","US"],["CORE","science","core.ac.uk","https://core.ac.uk/search?q={q}","UK"],["DOAJ","science","doaj.org","","INT"],["JSTOR","science","jstor.org","","US"],["SpringerLink","science","link.springer.com","","INT"],["ScienceDirect","science","sciencedirect.com","","INT"],["Wiley Online Library","science","onlinelibrary.wiley.com","","INT"],["Scientific American","science","scientificamerican.com","","US"],["New Scientist","science","newscientist.com","","UK"],["Quanta Magazine","science","quantamagazine.org","","US"],["Phys.org","science","phys.org","","INT"],["ScienceDaily","science","sciencedaily.com","","US"],["Live Science","science","livescience.com","","US"],["CERN","science","home.cern","","EU"],["WHO","health","who.int","https://www.who.int/search?query={q}","INT"],["CDC","health","cdc.gov","https://search.cdc.gov/search/?query={q}","US"],["NIH","health","nih.gov","","US"],["FDA","health","fda.gov","","US"],["ECDC","health","ecdc.europa.eu","","EU"],["EMA","health","ema.europa.eu","","EU"],["NHS","health","nhs.uk","https://www.nhs.uk/search/results?q={q}","UK"],["MedlinePlus","health","medlineplus.gov","","US"],["Cochrane Library","health","cochranelibrary.com","https://www.cochranelibrary.com/search?q={q}","INT"],["Mayo Clinic","health","mayoclinic.org","","US"],["Johns Hopkins Medicine","health","hopkinsmedicine.org","","US"],["Harvard Health","health","health.harvard.edu","","US"],["NASA","gov","nasa.gov","","US"],["ESA (European Space Agency)","gov","esa.int","","EU"],["NOAA","gov","noaa.gov","","US"],["USGS","gov","usgs.gov","","US"],["IPCC","gov","ipcc.ch","","INT"],["WMO","gov","wmo.int","","INT"],["IAEA","gov","iaea.org","","INT"],["United Nations","gov","un.org","","INT"],["UNESCO","gov","unesco.org","","INT"],["UNICEF","gov","unicef.org","","INT"],["FAO","gov","fao.org","","INT"],["ITU","gov","itu.int","","INT"],["World Bank","gov","worldbank.org","","INT"],["IMF","gov","imf.org","","INT"],["OECD","gov","oecd.org","","INT"],["NATO","gov","nato.int","","INT"],["European Commission","gov","ec.europa.eu","","EU"],["Eurostat","gov","ec.europa.eu/eurostat","","EU"],["EUR-Lex","gov","eur-lex.europa.eu","https://eur-lex.europa.eu/search.html?text={q}&scope=EURLEX&type=quick&lang=en","EU"],["European Parliament","gov","europarl.europa.eu","","EU"],["ECB","gov","ecb.europa.eu","","EU"],["US Census Bureau","gov","census.gov","","US"],["US Bureau of Labor Statistics","gov","bls.gov","","US"],["Federal Reserve","gov","federalreserve.gov","","US"],["FRED (St. Louis Fed)","gov","fred.stlouisfed.org","https://fred.stlouisfed.org/searchresults/?st={q}","US"],["Data.gov","gov","data.gov","https://catalog.data.gov/dataset?q={q}","US"],["Hacker News","tech","news.ycombinator.com","https://hn.algolia.com/?q={q}","INT"],["Ars Technica","tech","arstechnica.com","https://arstechnica.com/search/?query={q}","US"],["The Verge","tech","theverge.com","","US"],["Wired","tech","wired.com","","US"],["TechCrunch","tech","techcrunch.com","","US"],["MIT Technology Review","tech","technologyreview.com","","US"],["IEEE Spectrum","tech","spectrum.ieee.org","","US"],["Engadget","tech","engadget.com","","US"],["CNET","tech","cnet.com","","US"],["ZDNET","tech","zdnet.com","","US"],["BleepingComputer","tech","bleepingcomputer.com","","US"],["Krebs on Security","tech","krebsonsecurity.com","","US"],["The Register","tech","theregister.com","","UK"],["Stack Overflow","tech","stackoverflow.com","https://stackoverflow.com/search?q={q}","INT"],["GitHub","tech","github.com","https://github.com/search?q={q}","INT"],["MDN Web Docs","tech","developer.mozilla.org","https://developer.mozilla.org/en-US/search?q={q}","INT"],["Hugging Face","tech","huggingface.co","https://huggingface.co/search/full-text?q={q}","INT"],["DEV Community","tech","dev.to","https://dev.to/search?q={q}","INT"],["Anthropic","tech","anthropic.com","","US"],["OpenAI","tech","openai.com","","US"],["Google DeepMind","tech","deepmind.google","","UK"],["Mozilla","tech","mozilla.org","","INT"],["Electronic Frontier Foundation","tech","eff.org","","US"],["GSMArena","tech","gsmarena.com","","INT"],["Google","bigtech","google.com","https://www.google.com/search?q={q}","US"],["YouTube","bigtech","youtube.com","https://www.youtube.com/results?search_query={q}","US"],["Microsoft","bigtech","microsoft.com","","US"],["Bing","bigtech","bing.com","https://www.bing.com/search?q={q}","US"],["LinkedIn","bigtech","linkedin.com","","US"],["GitHub Blog","bigtech","github.blog","","US"],["Apple","bigtech","apple.com","","US"],["Amazon","bigtech","amazon.com","https://www.amazon.com/s?k={q}","US"],["Amazon Web Services","bigtech","aws.amazon.com","","US"],["Meta","bigtech","about.meta.com","","US"],["Facebook","bigtech","facebook.com","https://www.facebook.com/search/top?q={q}","US"],["Instagram","bigtech","instagram.com","","US"],["WhatsApp","bigtech","whatsapp.com","","US"],["X (Twitter)","bigtech","x.com","https://x.com/search?q={q}","US"],["Reddit","bigtech","reddit.com","https://www.reddit.com/search/?q={q}","US"],["Pinterest","bigtech","pinterest.com","https://www.pinterest.com/search/pins/?q={q}","US"],["Snapchat","bigtech","snap.com","","US"],["Netflix","bigtech","netflix.com","","US"],["Tesla","bigtech","tesla.com","","US"],["SpaceX","bigtech","spacex.com","","US"],["Nvidia","bigtech","nvidia.com","","US"],["Intel","bigtech","intel.com","","US"],["AMD","bigtech","amd.com","","US"],["Qualcomm","bigtech","qualcomm.com","","US"],["Broadcom","bigtech","broadcom.com","","US"],["Micron","bigtech","micron.com","","US"],["IBM","bigtech","ibm.com","","US"],["Oracle","bigtech","oracle.com","","US"],["Cisco","bigtech","cisco.com","","US"],["Dell","bigtech","dell.com","","US"],["HP","bigtech","hp.com","","US"],["Adobe","bigtech","adobe.com","","US"],["Salesforce","bigtech","salesforce.com","","US"],["Intuit","bigtech","intuit.com","","US"],["Palantir","bigtech","palantir.com","","US"],["Zoom","bigtech","zoom.com","","US"],["Dropbox","bigtech","dropbox.com","","US"],["Uber","bigtech","uber.com","","US"],["Airbnb","bigtech","airbnb.com","","US"],["eBay","bigtech","ebay.com","https://www.ebay.com/sch/i.html?_nkw={q}","US"],["PayPal","bigtech","paypal.com","","US"],["Visa","bigtech","visa.com","","US"],["Mastercard","bigtech","mastercard.com","","US"],["Yahoo","bigtech","yahoo.com","https://search.yahoo.com/search?p={q}","US"],["Walmart","bigtech","walmart.com","","US"],["Disney","bigtech","disney.com","","US"],["Boeing","bigtech","boeing.com","","US"],["Lockheed Martin","bigtech","lockheedmartin.com","","US"],["Coca-Cola","bigtech","coca-colacompany.com","","US"],["Investopedia","economy","investopedia.com","https://www.investopedia.com/search?q={q}","US"],["Yahoo Finance","economy","finance.yahoo.com","","US"],["MarketWatch","economy","marketwatch.com","","US"],["Forbes","economy","forbes.com","","US"],["Fortune","economy","fortune.com","","US"],["Business Insider","economy","businessinsider.com","","US"],["Morningstar","economy","morningstar.com","","US"],["Trading Economics","economy","tradingeconomics.com","","INT"],["CoinDesk","economy","coindesk.com","https://www.coindesk.com/search?s={q}","US"],["CoinMarketCap","economy","coinmarketcap.com","","INT"],["Los Angeles Times","news","latimes.com","","US"],["Chicago Tribune","news","chicagotribune.com","","US"],["The Atlantic","news","theatlantic.com","","US"],["The New Yorker","news","newyorker.com","","US"],["Slate","news","slate.com","","US"],["Fox News","news","foxnews.com","","US"],["The Hill","news","thehill.com","","US"],["Mother Jones","news","motherjones.com","","US"],["The Intercept","news","theintercept.com","","US"],["The Christian Science Monitor","news","csmonitor.com","","US"],["The Seattle Times","news","seattletimes.com","","US"],["The Dallas Morning News","news","dallasnews.com","","US"],["Houston Chronicle","news","houstonchronicle.com","","US"],["The Philadelphia Inquirer","news","inquirer.com","","US"],["Voice of America","news","voanews.com","","US"],["The Texas Tribune","news","texastribune.org","","US"],["National Review","news","nationalreview.com","","US"],["Reason","news","reason.com","","US"],["Foreign Affairs","news","foreignaffairs.com","","US"],["Semafor","news","semafor.com","","US"],["The Telegraph","news","telegraph.co.uk","","UK"],["The Times (UK)","news","thetimes.co.uk","","UK"],["Metro","news","metro.co.uk","","UK"],["Evening Standard","news","standard.co.uk","","UK"],["The Scotsman","news","scotsman.com","","UK"],["The Spectator","news","spectator.co.uk","","UK"],["openDemocracy","news","opendemocracy.net","","UK"],["ITV News","news","itv.com","","UK"],["Belfast Telegraph","news","belfasttelegraph.co.uk","","UK"],["Le Figaro","news","lefigaro.fr","","EU"],["Le Parisien","news","leparisien.fr","","EU"],["Der Standard","news","derstandard.at","","EU"],["Süddeutsche Zeitung","news","sueddeutsche.de","","EU"],["Die Welt","news","welt.de","","EU"],["Tagesschau","news","tagesschau.de","","EU"],["El Mundo","news","elmundo.es","","EU"],["RTVE","news","rtve.es","","EU"],["La Repubblica","news","repubblica.it","","EU"],["ANSA","news","ansa.it","","EU"],["NRC","news","nrc.nl","","EU"],["NOS","news","nos.nl","","EU"],["The Brussels Times","news","brusselstimes.com","","EU"],["RTBF","news","rtbf.be","","EU"],["RTÉ","news","rte.ie","","EU"],["Público","news","publico.pt","","EU"],["Expresso","news","expresso.pt","","EU"],["Helsingin Sanomat","news","hs.fi","","EU"],["Aftenposten","news","aftenposten.no","","EU"],["NRK","news","nrk.no","","EU"],["SVT Nyheter","news","svt.se","","EU"],["Politiken","news","politiken.dk","","EU"],["Gazeta Wyborcza","news","wyborcza.pl","","EU"],["Radio Prague International","news","english.radio.cz","","EU"],["Hungary Today","news","hungarytoday.hu","","EU"],["Digi24","news","digi24.ro","","EU"],["N1","news","n1info.rs","","EU"],["Večernji list","news","vecernji.hr","","EU"],["The Baltic Times","news","baltictimes.com","","EU"],["ERR News","news","news.err.ee","","EU"],["LSM","news","lsm.lv","","EU"],["The Local","news","thelocal.com","","EU"],["Neue Zürcher Zeitung","news","nzz.ch","","EU"],["Hürriyet Daily News","news","hurriyetdailynews.com","","INT"],["Meduza","news","meduza.io","","INT"],["The Moscow Times","news","themoscowtimes.com","","INT"],["Ukrinform","news","ukrinform.net","","INT"],["NHK World","news","nhk.or.jp","","INT"],["Kyodo News","news","english.kyodonews.net","","INT"],["Nikkei Asia","news","asia.nikkei.com","","INT"],["Korea JoongAng Daily","news","koreajoongangdaily.joins.com","","INT"],["Yonhap News","news","en.yna.co.kr","","INT"],["China Daily","news","chinadaily.com.cn","","INT"],["CGTN","news","cgtn.com","","INT"],["The Times of India","news","timesofindia.indiatimes.com","","INT"],["NDTV","news","ndtv.com","","INT"],["Dawn","news","dawn.com","","INT"],["The Daily Star (Bangladesh)","news","thedailystar.net","","INT"],["The Jakarta Post","news","thejakartapost.com","","INT"],["Rappler","news","rappler.com","","INT"],["The Star (Malaysia)","news","thestar.com.my","","INT"],["Taipei Times","news","taipeitimes.com","","INT"],["Focus Taiwan","news","focustaiwan.tw","","INT"],["Arab News","news","arabnews.com","","INT"],["Middle East Eye","news","middleeasteye.net","","INT"],["Al-Monitor","news","al-monitor.com","","INT"],["Ynetnews","news","ynetnews.com","","INT"],["Daily Maverick","news","dailymaverick.co.za","","INT"],["News24","news","news24.com","","INT"],["The East African","news","theeastafrican.co.ke","","INT"],["Premium Times","news","premiumtimesng.com","","INT"],["The Sydney Morning Herald","news","smh.com.au","","INT"],["The Australian","news","theaustralian.com.au","","INT"],["NZ Herald","news","nzherald.co.nz","","INT"],["RNZ","news","rnz.co.nz","","INT"],["National Post","news","nationalpost.com","","INT"],["CTV News","news","ctvnews.ca","","INT"],["Folha de S.Paulo","news","folha.uol.com.br","","INT"],["La Nación","news","lanacion.com.ar","","INT"],["El Universal (Mexico)","news","eluniversal.com.mx","","INT"],["Infobae","news","infobae.com","","INT"],["GOV.UK","gov","gov.uk","","UK"],["USA.gov","gov","usa.gov","","US"],["Congress.gov","gov","congress.gov","","US"],["Supreme Court of the United States","gov","supremecourt.gov","","US"],["US Department of Defense","gov","defense.gov","","US"],["CIA World Factbook","gov","cia.gov","","US"],["US Department of Homeland Security","gov","dhs.gov","","US"],["US EPA","gov","epa.gov","","US"],["US Treasury","gov","treasury.gov","","US"],["US SEC","gov","sec.gov","","US"],["US FCC","gov","fcc.gov","","US"],["CISA","gov","cisa.gov","","US"],["USPTO","gov","uspto.gov","","US"],["Congressional Budget Office","gov","cbo.gov","","US"],["BEA","gov","bea.gov","","US"],["USDA","gov","usda.gov","","US"],["FAA","gov","faa.gov","","US"],["National Science Foundation","gov","nsf.gov","","US"],["National Weather Service","gov","weather.gov","","US"],["Statistics Canada","gov","statcan.gc.ca","","INT"],["Australia.gov.au","gov","australia.gov.au","","INT"],["New Zealand Government","gov","govt.nz","","INT"],["Japan Government","gov","japan.go.jp","","INT"],["German Federal Government","gov","bundesregierung.de","","EU"],["Deutscher Bundestag","gov","bundestag.de","","EU"],["French Government","gov","gouvernement.fr","","EU"],["INSEE","gov","insee.fr","","EU"],["Assemblée nationale","gov","assemblee-nationale.fr","","EU"],["ISTAT","gov","istat.it","","EU"],["La Moncloa (Spain)","gov","lamoncloa.gob.es","","EU"],["Rijksoverheid","gov","rijksoverheid.nl","","EU"],["Statistics Netherlands","gov","cbs.nl","","EU"],["Statistics Sweden","gov","scb.se","","EU"],["Statistics Norway","gov","ssb.no","","EU"],["Denmark.dk","gov","denmark.dk","","EU"],["Poland Government","gov","gov.pl","","EU"],["Greek Government","gov","gov.gr","","EU"],["Irish Government","gov","gov.ie","","EU"],["Central Statistics Office Ireland","gov","cso.ie","","EU"],["Bank of England","gov","bankofengland.co.uk","","UK"],["Bank of Japan","gov","boj.or.jp","","INT"],["Council of the EU","gov","consilium.europa.eu","","EU"],["Council of Europe","gov","coe.int","","EU"],["Court of Justice of the EU","gov","curia.europa.eu","","EU"],["EDPB","gov","edpb.europa.eu","","EU"],["ENISA","gov","enisa.europa.eu","","EU"],["Frontex","gov","frontex.europa.eu","","EU"],["European Environment Agency","gov","eea.europa.eu","","EU"],["EU Open Data Portal","gov","data.europa.eu","","EU"],["OSCE","gov","osce.org","","INT"],["WIPO","gov","wipo.int","","INT"],["ILO","gov","ilo.org","","INT"],["UNHCR","gov","unhcr.org","","INT"],["UNDP","gov","undp.org","","INT"],["World Food Programme","gov","wfp.org","","INT"],["UNFCCC","gov","unfccc.int","","INT"],["International Criminal Court","gov","icc-cpi.int","","INT"],["OPCW","gov","opcw.org","","INT"],["International Energy Agency","gov","iea.org","","INT"],["OPEC","gov","opec.org","","INT"],["African Union","gov","au.int","","INT"],["The Commonwealth","gov","thecommonwealth.org","","INT"],["Amnesty International","gov","amnesty.org","","INT"],["Transparency International","gov","transparency.org","","INT"],["Freedom House","gov","freedomhouse.org","","INT"],["Committee to Protect Journalists","gov","cpj.org","","INT"],["WWF","gov","worldwildlife.org","","INT"],["IUCN","gov","iucn.org","","INT"],["Chatham House","gov","chathamhouse.org","","UK"],["Brookings Institution","gov","brookings.edu","","US"],["Pew Research Center","gov","pewresearch.org","","US"],["Council on Foreign Relations","gov","cfr.org","","US"],["CSIS","gov","csis.org","","US"],["Atlantic Council","gov","atlanticcouncil.org","","US"],["SIPRI","gov","sipri.org","","EU"],["Slashdot","tech","slashdot.org","","US"],["Lobsters","tech","lobste.rs","","INT"],["Mashable","tech","mashable.com","","US"],["The Next Web","tech","thenextweb.com","","EU"],["TechRadar","tech","techradar.com","","UK"],["Tom's Guide","tech","tomsguide.com","","US"],["PCMag","tech","pcmag.com","","US"],["Android Authority","tech","androidauthority.com","","US"],["9to5Mac","tech","9to5mac.com","","US"],["MacRumors","tech","macrumors.com","","US"],["XDA","tech","xda-developers.com","","US"],["Phoronix","tech","phoronix.com","","US"],["The Information","tech","theinformation.com","","US"],["Stratechery","tech","stratechery.com","","US"],["Daring Fireball","tech","daringfireball.net","","US"],["IEEE","tech","ieee.org","","US"],["ACM","tech","acm.org","","US"],["The Linux Kernel Archives","tech","kernel.org","","INT"],["Ubuntu","tech","ubuntu.com","","UK"],["Fedora Project","tech","fedoraproject.org","","US"],["Red Hat","tech","redhat.com","","US"],["Docker","tech","docker.com","","US"],["Python","tech","python.org","","US"],["npm","tech","npmjs.com","","US"],["Node.js","tech","nodejs.org","","US"],["Go","tech","go.dev","","US"],["React","tech","react.dev","","US"],["Vue.js","tech","vuejs.org","","INT"],["Svelte","tech","svelte.dev","","INT"],["Django","tech","djangoproject.com","","US"],["Laravel","tech","laravel.com","","US"],["MySQL","tech","mysql.com","","US"],["SQLite","tech","sqlite.org","","US"],["MongoDB","tech","mongodb.com","","US"],["Elastic","tech","elastic.co","","US"],["Cloudflare Blog","tech","blog.cloudflare.com","","US"],["Netlify","tech","netlify.com","","US"],["GitLab","tech","gitlab.com","","US"],["Stack Exchange","tech","stackexchange.com","","US"],["freeCodeCamp","tech","freecodecamp.org","","US"],["W3Schools","tech","w3schools.com","","INT"],["Can I use","tech","caniuse.com","","INT"],["Chrome for Developers","tech","developer.chrome.com","","US"],["W3C","tech","w3.org","","INT"],["ICANN","tech","icann.org","","INT"],["OWASP","tech","owasp.org","","INT"],["National Vulnerability Database","tech","nvd.nist.gov","","US"],["Exploit-DB","tech","exploit-db.com","","INT"],["VirusTotal","tech","virustotal.com","","INT"],["WeLiveSecurity (ESET)","tech","welivesecurity.com","","EU"],["Malwarebytes","tech","malwarebytes.com","","US"],["The Hacker News","tech","thehackernews.com","","INT"],["SecurityWeek","tech","securityweek.com","","US"],["Signal","tech","signal.org","","US"],["Let's Encrypt","tech","letsencrypt.org","","US"],["Privacy International","tech","privacyinternational.org","","UK"],["Wikimedia Foundation","tech","wikimediafoundation.org","","INT"],["Mistral AI","tech","mistral.ai","","EU"],["Stability AI","tech","stability.ai","","UK"],["xAI","tech","x.ai","","US"],["Perplexity","tech","perplexity.ai","","US"],["TensorFlow","tech","tensorflow.org","","US"],["Kaggle","tech","kaggle.com","","US"],["DeepLearning.AI","tech","deeplearning.ai","","US"],["LessWrong","tech","lesswrong.com","","US"],["PNAS","science","pnas.org","","US"],["Physical Review Journals","science","journals.aps.org","","US"],["AIP Publishing","science","publishing.aip.org","","US"],["The Royal Society","science","royalsocietypublishing.org","","UK"],["ACS Publications","science","pubs.acs.org","","US"],["Taylor & Francis Online","science","tandfonline.com","","UK"],["Cambridge Core","science","cambridge.org","","UK"],["Oxford Academic","science","academic.oup.com","","UK"],["MDPI","science","mdpi.com","","EU"],["eLife","science","elifesciences.org","","UK"],["F1000Research","science","f1000research.com","","UK"],["Annual Reviews","science","annualreviews.org","","US"],["ACM Digital Library","science","dl.acm.org","","US"],["ChemRxiv","science","chemrxiv.org","","INT"],["OSF Preprints","science","osf.io","","US"],["Figshare","science","figshare.com","","UK"],["ResearchGate","science","researchgate.net","","EU"],["Google Patents","science","patents.google.com","","US"],["Crossref","science","crossref.org","","INT"],["OpenAlex","science","openalex.org","","US"],["Science News","science","sciencenews.org","","US"],["Popular Science","science","popsci.com","","US"],["Space.com","science","space.com","","US"],["EarthSky","science","earthsky.org","","US"],["Knowable Magazine","science","knowablemagazine.org","","US"],["The Scientist","science","the-scientist.com","","US"],["EurekAlert!","science","eurekalert.org","","US"],["Mongabay","science","mongabay.com","","INT"],["Carbon Brief","science","carbonbrief.org","","UK"],["The Planetary Society","science","planetary.org","","US"],["HubbleSite","science","hubblesite.org","","US"],["European Southern Observatory","science","eso.org","","EU"],["Fraunhofer","science","fraunhofer.de","","EU"],["Caltech","science","caltech.edu","","US"],["Stanford University","science","stanford.edu","","US"],["Harvard University","science","harvard.edu","","US"],["University of Cambridge","science","cam.ac.uk","","UK"],["Imperial College London","science","imperial.ac.uk","","UK"],["UC Berkeley","science","berkeley.edu","","US"],["Yale University","science","yale.edu","","US"],["Cornell University","science","cornell.edu","","US"],["University College London","science","ucl.ac.uk","","UK"],["University of Edinburgh","science","ed.ac.uk","","UK"],["Tsinghua University","science","tsinghua.edu.cn","","INT"],["Sorbonne University","science","sorbonne-universite.fr","","EU"],["Technical University of Munich","science","tum.de","","EU"],["University of Helsinki","science","helsinki.fi","","EU"],["Uppsala University","science","uu.se","","EU"],["TU Delft","science","tudelft.nl","","EU"],["Heidelberg University","science","uni-heidelberg.de","","EU"],["University of Toronto","science","utoronto.ca","","INT"],["University of Melbourne","science","unimelb.edu.au","","INT"],["Australian National University","science","anu.edu.au","","INT"],["Seoul National University","science","snu.ac.kr","","INT"],["IIT Bombay","science","iitb.ac.in","","INT"],["Samsung","company","samsung.com","","INT"],["Sony","company","sony.com","","INT"],["Volkswagen Group","company","volkswagen-group.com","","EU"],["Mercedes-Benz Group","company","group.mercedes-benz.com","","EU"],["SAP","company","sap.com","","EU"],["TSMC","company","tsmc.com","","INT"],["Xiaomi","company","mi.com","","INT"],["Tencent","company","tencent.com","","INT"],["ByteDance","company","bytedance.com","","INT"],["Spotify","company","spotify.com","","EU"],["Stripe","company","stripe.com","","US"],["Binance","company","binance.com","","INT"],["Twilio","company","twilio.com","","US"],["Atlassian","company","atlassian.com","","INT"],["Snowflake","company","snowflake.com","","US"],["Workday","company","workday.com","","US"],["Panasonic","company","panasonic.com","","INT"],["Ericsson","company","ericsson.com","","EU"],["Texas Instruments","company","ti.com","","US"],["Lenovo","company","lenovo.com","","INT"],["Acer","company","acer.com","","INT"],["Garmin","company","garmin.com","","US"],["Sonos","company","sonos.com","","US"],["Epic Games","company","epicgames.com","","US"],["Steam","company","store.steampowered.com","","US"],["Electronic Arts","company","ea.com","","US"],["Unity","company","unity.com","","US"],["Telegram","company","telegram.org","","INT"],["Vimeo","company","vimeo.com","","US"],["Substack","company","substack.com","","US"],["Rolls-Royce","company","rolls-royce.com","","UK"],["Rocket Lab","company","rocketlabusa.com","","US"],["Rivian","company","rivian.com","","US"],["General Motors","company","gm.com","","US"],["Volvo Cars","company","volvocars.com","","EU"],["Wikipedia (German)","encyclopedia","de.wikipedia.org","https://de.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (French)","encyclopedia","fr.wikipedia.org","https://fr.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Spanish)","encyclopedia","es.wikipedia.org","https://es.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Italian)","encyclopedia","it.wikipedia.org","https://it.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Portuguese)","encyclopedia","pt.wikipedia.org","https://pt.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Russian)","encyclopedia","ru.wikipedia.org","https://ru.wikipedia.org/w/index.php?search={q}","INT"],["Wikipedia (Japanese)","encyclopedia","ja.wikipedia.org","https://ja.wikipedia.org/w/index.php?search={q}","INT"],["Wikipedia (Chinese)","encyclopedia","zh.wikipedia.org","https://zh.wikipedia.org/w/index.php?search={q}","INT"],["Wikipedia (Arabic)","encyclopedia","ar.wikipedia.org","https://ar.wikipedia.org/w/index.php?search={q}","INT"],["Wikipedia (Dutch)","encyclopedia","nl.wikipedia.org","https://nl.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Polish)","encyclopedia","pl.wikipedia.org","https://pl.wikipedia.org/w/index.php?search={q}","EU"],["Wikipedia (Turkish)","encyclopedia","tr.wikipedia.org","https://tr.wikipedia.org/w/index.php?search={q}","INT"],["Simple English Wikipedia","encyclopedia","simple.wikipedia.org","https://simple.wikipedia.org/w/index.php?search={q}","INT"],["Wikibooks","encyclopedia","en.wikibooks.org","https://en.wikibooks.org/w/index.php?search={q}","INT"],["Wikisource","encyclopedia","en.wikisource.org","https://en.wikisource.org/w/index.php?search={q}","INT"],["Wikispecies","encyclopedia","species.wikimedia.org","https://species.wikimedia.org/w/index.php?search={q}","INT"],["Wiktionary (BG)","encyclopedia","bg.wiktionary.org","https://bg.wiktionary.org/w/index.php?search={q}","BG"],["Wikiquote (BG)","encyclopedia","bg.wikiquote.org","https://bg.wikiquote.org/w/index.php?search={q}","BG"],["Oxford English Dictionary","encyclopedia","oed.com","","UK"],["Dictionary.com","encyclopedia","dictionary.com","","US"],["Etymonline","encyclopedia","etymonline.com","","US"],["Internet Encyclopedia of Philosophy","encyclopedia","iep.utm.edu","","INT"],["OEIS","encyclopedia","oeis.org","","US"],["Brilliant","encyclopedia","brilliant.org","","US"],["edX","encyclopedia","edx.org","","US"],["HathiTrust","encyclopedia","hathitrust.org","","US"],["WorldCat","encyclopedia","worldcat.org","","INT"],["British Library","encyclopedia","bl.uk","","UK"],["British Museum","encyclopedia","britishmuseum.org","","UK"],["Rijksmuseum","encyclopedia","rijksmuseum.nl","","EU"],["Google Arts & Culture","encyclopedia","artsandculture.google.com","","INT"],["World History Encyclopedia","encyclopedia","worldhistory.org","","INT"],["OpenStreetMap","encyclopedia","openstreetmap.org","","INT"],["Rotten Tomatoes","encyclopedia","rottentomatoes.com","","US"],["Discogs","encyclopedia","discogs.com","","US"],["Know Your Meme","encyclopedia","knowyourmeme.com","","US"],["Atlas Obscura","encyclopedia","atlasobscura.com","","US"],["Tripadvisor","encyclopedia","tripadvisor.com","","US"],["Windy","encyclopedia","windy.com","","INT"],["Met Office","encyclopedia","metoffice.gov.uk","","UK"],["Barron's","economy","barrons.com","","US"],["The Motley Fool","economy","fool.com","","US"],["Kiplinger","economy","kiplinger.com","","US"],["NerdWallet","economy","nerdwallet.com","","US"],["TradingView","economy","tradingview.com","","INT"],["New York Stock Exchange","economy","nyse.com","","US"],["London Stock Exchange","economy","londonstockexchange.com","","UK"],["Euronext","economy","euronext.com","","EU"],["PitchBook","economy","pitchbook.com","","US"],["CB Insights","economy","cbinsights.com","","US"],["Macrotrends","economy","macrotrends.net","","US"],["McKinsey","economy","mckinsey.com","","US"],["Boston Consulting Group","economy","bcg.com","","US"],["PwC","economy","pwc.com","","INT"],["KPMG","economy","kpmg.com","","INT"],["Gartner","economy","gartner.com","","US"],["IDC","economy","idc.com","","US"],["Inc.","economy","inc.com","","US"],["Fast Company","economy","fastcompany.com","","US"],["Financial Post","economy","financialpost.com","","INT"],["The Economic Times","economy","economictimes.indiatimes.com","","INT"],["Caixin Global","economy","caixinglobal.com","","INT"],["Les Echos","economy","lesechos.fr","","EU"],["Expansión","economy","expansion.com","","EU"],["Moneycontrol","economy","moneycontrol.com","","INT"],["The Block","economy","theblock.co","","US"],["Messari","economy","messari.io","","US"],["DefiLlama","economy","defillama.com","","INT"],["Etherscan","economy","etherscan.io","","INT"],["Ethereum.org","economy","ethereum.org","","INT"],["Numbeo","economy","numbeo.com","","INT"],["Indeed","economy","indeed.com","","US"],["Club Z","bulgaria","clubz.bg","","BG"],["Novinite.com","bulgaria","novinite.com","","BG"],["The Sofia Globe","bulgaria","sofiaglobe.com","","BG"],["Standart","bulgaria","standartnews.com","","BG"],["Telegraph.bg","bulgaria","telegraph.bg","","BG"],["Blitz","bulgaria","blitz.bg","","BG"],["Actualno","bulgaria","actualno.com","","BG"],["Fakti.bg","bulgaria","fakti.bg","","BG"],["Dnes.bg","bulgaria","dnes.bg","","BG"],["Lentata","bulgaria","lentata.com","","BG"],["Duma","bulgaria","duma.bg","","BG"],["Monitor","bulgaria","monitor.bg","","BG"],["Struma","bulgaria","struma.bg","","BG"],["Plovdiv24","bulgaria","plovdiv24.bg","","BG"],["Bivol","bulgaria","bivol.bg","","BG"],["Edna.bg","bulgaria","edna.bg","","BG"],["Webcafe","bulgaria","webcafe.bg","","BG"],["Technews.bg","bulgaria","technews.bg","","BG"],["Kaldata","bulgaria","kaldata.com","","BG"],["Banker.bg","bulgaria","banker.bg","","BG"],["Bloomberg TV Bulgaria","bulgaria","bloombergtv.bg","","BG"],["Council of Ministers (BG)","bulgaria","gov.bg","","BG"],["President of Bulgaria","bulgaria","president.bg","","BG"],["Ministry of Foreign Affairs (BG)","bulgaria","mfa.bg","","BG"],["Ministry of Finance (BG)","bulgaria","minfin.bg","","BG"],["Ministry of Education (BG)","bulgaria","mon.bg","","BG"],["Sofia Municipality","bulgaria","sofia.bg","","BG"],["Commission for Personal Data Protection","bulgaria","cpdp.bg","","BG"],["Commission for Protection of Competition","bulgaria","cpc.bg","","BG"],["Financial Supervision Commission","bulgaria","fsc.bg","","BG"],["National Revenue Agency","bulgaria","nap.bg","","BG"],["Bulgarian Drug Agency","bulgaria","bda.bg","","BG"],["National Health Insurance Fund","bulgaria","nhif.bg","","BG"],["Bulgarian Red Cross","bulgaria","redcross.bg","","BG"],["Sofia University","bulgaria","uni-sofia.bg","","BG"],["Technical University of Sofia","bulgaria","tu-sofia.bg","","BG"],["New Bulgarian University","bulgaria","nbu.bg","","BG"],["University of Plovdiv","bulgaria","uni-plovdiv.bg","","BG"],["Medical University of Sofia","bulgaria","mu-sofia.bg","","BG"],["Bulgarian Stock Exchange","bulgaria","bse-sofia.bg","","BG"],["WebMD","health","webmd.com","","US"],["Healthline","health","healthline.com","","US"],["Medical News Today","health","medicalnewstoday.com","","UK"],["Cleveland Clinic","health","my.clevelandclinic.org","","US"],["National Cancer Institute","health","cancer.gov","","US"],["American Heart Association","health","heart.org","","US"],["American Diabetes Association","health","diabetes.org","","US"],["Alzheimer's Association","health","alz.org","","US"],["PAHO","health","paho.org","","INT"],["Africa CDC","health","africacdc.org","","INT"],["NICE","health","nice.org.uk","","UK"],["Santé publique France","health","santepubliquefrance.fr","","EU"],["Karolinska Institutet","health","ki.se","","EU"],["ClinicalTrials.gov","health","clinicaltrials.gov","","US"],["DrugBank","health","drugbank.com","","INT"],["RxList","health","rxlist.com","","US"],["NORD","health","rarediseases.org","","US"],["NIMH","health","nimh.nih.gov","","US"],["NHLBI","health","nhlbi.nih.gov","","US"],["Mind (UK)","health","mind.org.uk","","UK"],["KFF","health","kff.org","","US"],["Fierce Biotech","health","fiercebiotech.com","","US"],["BioSpace","health","biospace.com","","US"],["MedPage Today","health","medpagetoday.com","","US"],["Verywell Health","health","verywellhealth.com","","US"],["Everyday Health","health","everydayhealth.com","","US"],["Massachusetts General Hospital","health","massgeneral.org","","US"],["healthdirect (Australia)","health","healthdirect.gov.au","","INT"],["EFSA","health","efsa.europa.eu","","EU"],["European Union Drugs Agency","health","euda.europa.eu","","EU"],["IARC","health","iarc.who.int","","INT"],["The Global Fund","health","theglobalfund.org","","INT"],["Médecins Sans Frontières","health","msf.org","","INT"],["Check Your Fact","factcheck","checkyourfact.com","","US"],["Science Feedback","factcheck","science.feedback.org","","EU"],["Health Feedback","factcheck","healthfeedback.org","","EU"],["Logically Facts","factcheck","logically.ai","","UK"],["BOOM Live","factcheck","boomlive.in","","INT"],["CORRECTIV","factcheck","correctiv.org","","EU"],["Maldita.es","factcheck","maldita.es","","EU"],["Pagella Politica","factcheck","pagellapolitica.it","","EU"],["Faktabaari","factcheck","faktabaari.fi","","EU"],["Faktisk","factcheck","faktisk.no","","EU"],["Mimikama","factcheck","mimikama.org","","EU"],["EDMO","factcheck","edmo.eu","","EU"],["First Draft","factcheck","firstdraftnews.org","","INT"],["Institute for Strategic Dialogue","factcheck","isdglobal.org","","UK"],["NewsGuard","factcheck","newsguardtech.com","","US"],["AllSides","factcheck","allsides.com","","US"],["Media Matters","factcheck","mediamatters.org","","US"],["TruthOrFiction","factcheck","truthorfiction.com","","US"],["Hoax-Slayer","factcheck","hoax-slayer.com","","INT"],["Teyit","factcheck","teyit.org","","INT"],["StopFake","factcheck","stopfake.org","","INT"],["Chequeado","factcheck","chequeado.com","","INT"],["Aos Fatos","factcheck","aosfatos.org","","INT"],["ColombiaCheck","factcheck","colombiacheck.com","","INT"],["PesaCheck","factcheck","pesacheck.org","","INT"],["NHK World","news","www3.nhk.or.jp","","INT"],["Korea Herald","news","koreaherald.com","","INT"],["Stuff NZ","news","stuff.co.nz","","INT"],["Toronto Star","news","thestar.com","","US"],["Die Zeit","news","zeit.de","","EU"],["Frankfurter Allgemeine","news","faz.net","","EU"],["La Vanguardia","news","lavanguardia.com","","EU"],["De Volkskrant","news","volkskrant.nl","","EU"],["Irish Times","news","irishtimes.com","","EU"],["Yle News","news","yle.fi","","EU"],["Aftonbladet","news","aftonbladet.se","","EU"],["Dagens Nyheter","news","dn.se","","EU"],["DR Nyheder","news","dr.dk","","EU"],["ORF","news","orf.at","","EU"],["SRF News","news","srf.ch","","EU"],["Notes from Poland","news","notesfrompoland.com","","EU"],["Prague Daily Monitor","news","praguemonitor.com","","EU"],["Kathimerini","news","ekathimerini.com","","EU"],["Daily Sabah","news","dailysabah.com","","INT"],["Jerusalem Post","news","jpost.com","","INT"],["Gulf News","news","gulfnews.com","","INT"],["The National UAE","news","thenationalnews.com","","INT"],["Daily Nation Kenya","news","nation.africa","","INT"],["Mail & Guardian","news","mg.co.za","","INT"],["O Globo","news","oglobo.globo.com","","INT"],["Clarín","news","clarin.com","","INT"],["Buenos Aires Times","news","batimes.com.ar","","INT"],["Ukrainska Pravda","news","pravda.com.ua","","EU"],["The Diplomat","news","thediplomat.com","","INT"],["Bangkok Post","news","bangkokpost.com","","INT"],["Vox","news","vox.com","","US"],["Salon","news","salon.com","","US"],["Boston Globe","news","bostonglobe.com","","US"],["Miami Herald","news","miamiherald.com","","US"],["Denver Post","news","denverpost.com","","US"],["ProPublica","news","propublica.org","","US"],["Quartz","news","qz.com","","US"],["New Statesman","news","newstatesman.com","","UK"],["PLOS","science","plos.org","","INT"],["Frontiers","science","frontiersin.org","","INT"],["SAGE Journals","science","journals.sagepub.com","","INT"],["IEEE Xplore","science","ieeexplore.ieee.org","","INT"],["IOP Science","science","iopscience.iop.org","","UK"],["Perseus Digital Library","science","perseus.tufts.edu","","US"],["JAXA","science","jaxa.jp","","INT"],["Max Planck Society","science","mpg.de","","EU"],["CNRS","science","cnrs.fr","","EU"],["Royal Society","science","royalsociety.org","","UK"],["Nobel Prize","science","nobelprize.org","","INT"],["Allen Institute","science","alleninstitute.org","","US"],["Gizmodo","tech","gizmodo.com","","US"],["Tom's Hardware","tech","tomshardware.com","","US"],["AnandTech","tech","anandtech.com","","US"],["LWN.net","tech","lwn.net","","US"],["Heise","tech","heise.de","","EU"],["Golem","tech","golem.de","","EU"],["Numerama","tech","numerama.com","","EU"],["9to5Google","tech","9to5google.com","","US"],["WHATWG","tech","whatwg.org","","INT"],["IETF","tech","ietf.org","","INT"],["Python Docs","tech","docs.python.org","","INT"],["Rust Docs","tech","doc.rust-lang.org","","INT"],["Kotlin Docs","tech","kotlinlang.org","","INT"],["Docker Docs","tech","docs.docker.com","","INT"],["Kubernetes Docs","tech","kubernetes.io","","INT"],["Debian","tech","debian.org","","INT"],["Arch Linux Wiki","tech","wiki.archlinux.org","","INT"],["Schneier on Security","tech","schneier.com","","US"],["Dark Reading","tech","darkreading.com","","US"],["CVE","tech","cve.org","","US"],["Mozilla Foundation","tech","foundation.mozilla.org","","US"],["Cochrane","health","cochrane.org","","INT"],["JAMA Network","health","jamanetwork.com","","US"],["American Cancer Society","health","cancer.org","","US"],["Cancer Research UK","health","cancerresearchuk.org","","UK"],["UK Parliament","gov","parliament.uk","","UK"],["Office for National Statistics","gov","ons.gov.uk","","UK"],["The White House","gov","whitehouse.gov","","US"],["NIST","gov","nist.gov","","US"],["National Archives US","gov","archives.gov","","US"],["The National Archives UK","gov","nationalarchives.gov.uk","","UK"],["Destatis","gov","destatis.de","","EU"],["Australian Bureau of Statistics","gov","abs.gov.au","","INT"],["UN Data","gov","data.un.org","","INT"],["WTO","gov","wto.org","","INT"],["Interpol","gov","interpol.int","","INT"],["Europol","gov","europol.europa.eu","","EU"],["Red Cross ICRC","gov","icrc.org","","INT"],["Human Rights Watch","gov","hrw.org","","INT"],["Reporters Without Borders","gov","rsf.org","","INT"],["Oxfam","gov","oxfam.org","","INT"],["Newtral","factcheck","newtral.es","","EU"],["VoxCheck","factcheck","voxukraine.org","","EU"],["Encyclopedia.com","encyclopedia","encyclopedia.com","","US"],["Cambridge Dictionary","encyclopedia","dictionary.cambridge.org","","UK"],["Digital Public Library of America","encyclopedia","dp.la","","US"],["Smithsonian Institution","encyclopedia","si.edu","","US"],["Louvre","encyclopedia","louvre.fr","","EU"],["Natural History Museum London","encyclopedia","nhm.ac.uk","","UK"],["Worldometer","encyclopedia","worldometers.info","","INT"],["GeoNames","encyclopedia","geonames.org","","INT"],["IMDb","encyclopedia","imdb.com","","US"],["MusicBrainz","encyclopedia","musicbrainz.org","","INT"],["Свободна Европа","bulgaria","svobodnaevropa.bg","","BG"],["Тоест","bulgaria","toest.bg","","BG"],["Държавен вестник","bulgaria","dv.parliament.bg","","BG"],["Lex.bg","bulgaria","lex.bg","","BG"],["БАН","bulgaria","bas.bg","","BG"],["Money.bg","bulgaria","money.bg","","BG"],["Programata","bulgaria","programata.bg","","BG"],["Bank for International Settlements","economy","bis.org","","INT"],["Statista","economy","statista.com","","INT"],["Crunchbase","economy","crunchbase.com","","US"],["Microsoft News","company","news.microsoft.com","","US"],["Google Blog","company","blog.google","","US"],["Amazon News","company","aboutamazon.com","","US"],["Meta Newsroom","company","about.fb.com","","US"],["NVIDIA Blog","company","blogs.nvidia.com","","US"],["Intel Newsroom","company","newsroom.intel.com","","US"],["Samsung Newsroom","company","news.samsung.com","","INT"],["Mozilla Blog","company","blog.mozilla.org","","US"],["Stack Overflow Blog","company","stackoverflow.blog","","US"],["Le Soir","news","lesoir.be","","EU"],["De Standaard","news","standaard.be","","EU"],["Il Sole 24 Ore","news","ilsole24ore.com","","EU"],["EFE","news","efe.com","","EU"],["ABC España","news","abc.es","","EU"],["Libération","news","liberation.fr","","EU"],["Mediapart","news","mediapart.fr","","EU"],["Handelsblatt","news","handelsblatt.com","","EU"],["ZDF heute","news","zdf.de","","EU"],["Tages-Anzeiger","news","tagesanzeiger.ch","","EU"],["Swissinfo","news","swissinfo.ch","","EU"],["Polskie Radio","news","polskieradio.pl","","EU"],["Rzeczpospolita","news","rp.pl","","EU"],["Slovak Spectator","news","spectator.sme.sk","","EU"],["Telex Hungary","news","telex.hu","","EU"],["G4Media Romania","news","g4media.ro","","EU"],["Romania Insider","news","romania-insider.com","","EU"],["Total Croatia News","news","total-croatia-news.com","","EU"],["Serbian Monitor","news","serbianmonitor.com","","EU"],["LSM Latvia","news","eng.lsm.lv","","EU"],["LRT Lithuania","news","lrt.lt","","EU"],["Cyprus Mail","news","cyprus-mail.com","","EU"],["Times of Malta","news","timesofmalta.com","","EU"],["Iceland Review","news","icelandreview.com","","EU"],["The Local Sweden","news","thelocal.se","","EU"],["TV2 Norway","news","tv2.no","","EU"],["Berlingske","news","berlingske.dk","","EU"],["Anadolu Agency","news","aa.com.tr","","INT"],["TASS","news","tass.com","","INT"],["RIA Novosti","news","ria.ru","","INT"],["Interfax","news","interfax.ru","","INT"],["Xinhua","news","xinhuanet.com","","INT"],["Global Times","news","globaltimes.cn","","INT"],["Yonhap","news","yna.co.kr","","INT"],["Kyodo News","news","kyodonews.net","","INT"],["Mainichi","news","mainichi.jp","","INT"],["Asahi Shimbun","news","asahi.com","","INT"],["Hindustan Times","news","hindustantimes.com","","INT"],["The Wire India","news","thewire.in","","INT"],["Scroll.in","news","scroll.in","","INT"],["Himalayan Times","news","thehimalayantimes.com","","INT"],["Colombo Gazette","news","colombogazette.com","","INT"],["Channel NewsAsia","news","channelnewsasia.com","","INT"],["Vietnam News","news","vietnamnews.vn","","INT"],["Philippine Daily Inquirer","news","inquirer.net","","INT"],["Tehran Times","news","tehrantimes.com","","INT"],["Egypt Independent","news","egyptindependent.com","","INT"],["Ahram Online","news","english.ahram.org.eg","","INT"],["Morocco World News","news","moroccoworldnews.com","","INT"],["The Guardian Nigeria","news","guardian.ng","","INT"],["Ghana Web","news","ghanaweb.com","","INT"],["Ethiopia Insight","news","ethiopia-insight.com","","INT"],["El Tiempo Colombia","news","eltiempo.com","","INT"],["El Comercio Peru","news","elcomercio.pe","","INT"],["La Tercera Chile","news","latercera.com","","INT"],["Mexico News Daily","news","mexiconewsdaily.com","","INT"],["Jamaica Gleaner","news","jamaica-gleaner.com","","INT"],["Winnipeg Free Press","news","winnipegfreepress.com","","US"],["Vancouver Sun","news","vancouversun.com","","US"],["Radio-Canada","news","ici.radio-canada.ca","","US"],["C-SPAN","news","c-span.org","","US"],["The Daily Beast","news","thedailybeast.com","","US"],["HuffPost","news","huffpost.com","","US"],["Vice","news","vice.com","","US"],["Rolling Stone","news","rollingstone.com","","US"],["Foreign Policy","news","foreignpolicy.com","","US"],["RAND Corporation","news","rand.org","","US"],["Gallup","news","gallup.com","","US"],["Carnegie Endowment","news","carnegieendowment.org","","US"],["Crisis Group","news","crisisgroup.org","","INT"],["ISW","news","understandingwar.org","","US"],["Zenodo","science","zenodo.org","","EU"],["Dryad","science","datadryad.org","","INT"],["BASE Search","science","base-search.net","","EU"],["NASA Science","science","science.nasa.gov","","US"],["JPL","science","jpl.nasa.gov","","US"],["Space Telescope Science Institute","science","stsci.edu","","US"],["Reuters Institute","news","reutersinstitute.politics.ox.ac.uk","","UK"]];
+var ALL_SOURCES=SRC_DATA.map(function(p,i){return{id:i,name:p[0],type:p[1],domain:p[2],tpl:p[3],region:p[4]};});
+var TYPE_INFO={encyclopedia:'Reference and learning site',factcheck:'Fact-checking or investigation organisation',agency:'International news agency',news:'News outlet',bulgaria:'Bulgarian source',science:'Scientific journal, preprint server or science publication',health:'Health authority or medical reference',gov:'Official or intergovernmental institution',tech:'Technology source',bigtech:'Major US technology company',economy:'Business and finance source',company:'Major company or industry leader'};
+function sourceUrl(b,q){
+if(b.tpl)return b.tpl.replace('{q}',encodeURIComponent(q));
+return 'https://www.google.com/search?q='+encodeURIComponent('site:'+b.domain+' '+q);
+}
+/* live source lists: all Wikimedia sites in all languages + the Stack Exchange network, fetched when you search */
+var LIVE={p:null,n:0};
+function loadLive(){
+if(LIVE.p)return LIVE.p;
+function get(u){var c=window.AbortController?new AbortController():null,t=c&&setTimeout(function(){c.abort();},6000);return fetch(u,{credentials:'omit',referrerPolicy:'no-referrer',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);return r.ok?r.json():null;}).catch(function(){clearTimeout(t);return null;});}
+var have={};ALL_SOURCES.forEach(function(b){have[b.domain]=1;});
+function add(name,type,domain,tpl,region){if(!domain||have[domain])return;have[domain]=1;ALL_SOURCES.push({id:ALL_SOURCES.length,name:name,type:type,domain:domain,tpl:tpl,region:region});LIVE.n++;}
+LIVE.p=Promise.all([
+get('https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json&origin=*&smtype=language&smsiteprop=url|sitename').then(function(j){var m=(j&&j.sitematrix)||{};Object.keys(m).forEach(function(k){if(!/^\d+$/.test(k))return;var L=m[k];(L.site||[]).forEach(function(x){if('closed' in x||'private' in x||'fishbowl' in x||!x.url)return;var h=x.url.replace(/^https?:\/\//,'');add((x.sitename||'Wikimedia')+' ('+(L.localname||L.name||L.code)+')','encyclopedia',h,'https://'+h+'/w/index.php?search={q}','INT');});});}),
+get('https://api.stackexchange.com/2.3/sites?pagesize=500').then(function(j){((j&&j.items)||[]).forEach(function(x){if(x.site_type!=='main_site'||!x.site_url)return;var h=x.site_url.replace(/^https?:\/\//,'');add(x.name+' (Stack Exchange)','tech',h,x.site_url+'/search?q={q}','INT');});})
+]).then(function(){if(LIVE.n){var sp=document.querySelector('.header h1 span:not(.ttl-l)');if(sp&&!window.AI_COUNTED){window.AI_COUNTED=1;sp.textContent=ALL_SOURCES.length+' SOURCES';}var fi=document.getElementById('filterInput');if(fi)fi.placeholder='Filter '+ALL_SOURCES.length+' sources (e.g. factcheck, bulgaria)…';}});
+return LIVE.p;
+}
+function generateSources(query){
+return ALL_SOURCES.map(function(b){
+return{uid:query+'_'+b.id,id:b.id,title:'Search "'+query+'" on '+b.name,
+snippet:(TYPE_INFO[b.type]||'Source')+' · '+b.domain+(b.tpl?'':' · this opens a Google search limited to this site'),
+url:sourceUrl(b,query),source:b.name,type:b.type,domain:b.domain,region:b.region};
+});
+}
+var currentSources=[],currentQuery='';
+var currentFiltered=[];
+function buildItem(s,full){
+var isFav=favorites.indexOf(s.uid)!==-1;
+var div=document.createElement('div');
+div.className='source-item'+(isFav?' favorited':'');
+div.setAttribute('data-uid',s.uid);
+div.innerHTML='<b>['+(Number(s.id)+1)+'] '+esc(s.source)+' - '+esc(s.type)+'</b>'
++'<div style="font-size:11px;font-weight:bold;">'+esc(s.title)+'</div>'
++'<div style="font-size:11px;opacity:0.8;margin:6px 0;line-height:1.5;">'+esc(s.snippet)+'</div>'
++'<a href="'+esc(safeUrl(s.url))+'" target="_blank" rel="noopener noreferrer">Open on '+esc(s.domain||s.source)+' ↗</a>'
++'<div style="font-size:9px;color:var(--gold);">'+esc(s.region||'')+' • '+(Number(s.id)+1)+'/'+ALL_SOURCES.length+'</div>'
++'<button class="source-fav '+(isFav?'active':'')+'" data-uid="'+esc(s.uid)+'" type="button" aria-label="Favorite" onclick="toggleFav(this)">⭐</button>';
+return div;
+}
+function renderSources(list){
+currentFiltered=list;
+var resultDiv=document.getElementById('result');resultDiv.innerHTML='';
+if(!list.length){var e=document.createElement('div');e.style.cssText='text-align:center;padding:16px;opacity:0.8;';e.textContent='No sources match your filter';resultDiv.appendChild(e);}
+var toShow=list.slice(0,150);
+for(var i=0;i<toShow.length;i++)resultDiv.appendChild(buildItem(toShow[i],false));
+if(list.length>150){var more=document.createElement('div');more.style.cssText='text-align:center;padding:12px;background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;margin-top:10px;';more.innerHTML='Showing 150 of '+Number(list.length)+'<br><button type="button" onclick="renderAllSources()" style="margin-top:8px;padding:8px 16px;background:var(--accent);color:var(--bg);border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Load all '+Number(list.length)+'</button>';resultDiv.appendChild(more);}
+resultDiv.style.display='block';document.getElementById('filterBox').style.display='block';document.getElementById('summaryBtn').style.display='block';try{clsAiDraw();}catch(e){}document.getElementById('shareBtn').style.display='block';document.getElementById('exportBtn').style.display='block';
+}
+function renderAllSources(){
+var resultDiv=document.getElementById('result');resultDiv.innerHTML='';
+var frag=document.createDocumentFragment();
+for(var i=0;i<currentFiltered.length;i++)frag.appendChild(buildItem(currentFiltered[i],true));
+resultDiv.appendChild(frag);
+}
+function toggleFav(btn){var uid=btn.getAttribute('data-uid');var idx=favorites.indexOf(uid);if(idx>-1){favorites.splice(idx,1);btn.classList.remove('active');btn.closest('.source-item').classList.remove('favorited');}else{favorites.push(uid);btn.classList.add('active');btn.closest('.source-item').classList.add('favorited');}store.set('ai_favorites',JSON.stringify(favorites));var s=document.getElementById('shareStatus');s.textContent=favorites.indexOf(uid)!==-1?'⭐ Added':'☆ Removed';s.style.display='block';setTimeout(function(){s.style.display='none';},1500);}
+var currentWiki=null;
+function fetchWiki(q,box){
+currentWiki=null;
+var lang=/[\u0400-\u04FF]/.test(q)?'bg':'en';
+var url='https://'+lang+'.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrlimit=3&prop=extracts%7Cinfo&inprop=url&exintro=1&explaintext=1&exsentences=3&format=json&formatversion=2&origin=*';
+apiFetch(url,{timeout:7000}).then(function(r){if(!r.ok)throw new Error('http');return r.json();}).then(function(d){
+if(q!==currentQuery)return;
+var pages=(d.query&&d.query.pages)||[];pages.sort(function(a,b){return a.index-b.index;});
+box.textContent='';
+if(!pages.length){box.textContent='Wikipedia has no article that matches this search.';return;}
+var p=pages[0];currentWiki={title:p.title,url:p.fullurl,text:p.extract||'',lang:lang};
+box.appendChild(el('b','','📖 '+p.title+' · Wikipedia ('+lang.toUpperCase()+')'));
+box.appendChild(el('div','',(p.extract||'No introduction available.').slice(0,700)));
+var a=el('a','','Read the full article ↗');a.href=safeUrl(p.fullurl);a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='font-size:11px;color:var(--accent2);';box.appendChild(a);
+}).catch(function(){if(q===currentQuery)box.textContent='A live Wikipedia excerpt is not available here (network blocked or offline). The buttons below still open real searches.';});
+}
+function setFilterChip(t){var i=document.getElementById('filterInput');i.value=(i.value===t)?'':t;applyFilters();hideKeyboard();}
+function doSearch(){
+hideKeyboard();
+var q=document.getElementById('q').value.trim();
+var verdict=document.getElementById('verdict'),result=document.getElementById('result');
+if(!q){
+verdict.innerHTML='<div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;text-align:center;">⚠️ Enter a topic first</div>';
+document.getElementById('q').focus();return;
+}
+verdict.innerHTML='<div style="background:var(--bg2);border:1px solid var(--accent);padding:10px;border-radius:8px;text-align:center;">⏳ Preparing searches on '+ALL_SOURCES.length+' sources for "'+esc(q)+'"…</div>';
+result.style.display='block';
+setTimeout(hideKeyboard,100);
+Promise.race([loadLive(),new Promise(function(r){setTimeout(r,5500);})]).then(function(){
+try{
+currentQuery=q;
+currentSources=generateSources(q);resetFilters();
+renderSources(currentSources);
+var chips=['factcheck','news','science','health','gov','bulgaria','bigtech'].map(function(t){return'<button type="button" class="src-chip" onclick="setFilterChip(\''+t+'\')">'+t+'</button>';}).join('');
+verdict.innerHTML='<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--accent);padding:12px;border-radius:8px;">'
++'<b style="color:var(--accent);font-size:14px;">🔎 '+ALL_SOURCES.length+' sources for "'+esc(q)+'"</b>'
++'<div style="font-size:11px;opacity:.85;line-height:1.5;margin-top:6px;">Each button below opens a real search on that website. This tool does not read those pages, so it cannot say whether something is true. Check at least one fact-checker, one news agency and one reference source.</div>'
++'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">'+chips+'<button type="button" class="src-chip" onclick="if(window.openStd)openStd(currentQuery)">🔎 Standard Mode</button></div>'
++'<div id="wikiBox" style="margin-top:10px;font-size:12px;line-height:1.5;padding:10px;background:var(--bg3);border-radius:8px;">⏳ Fetching a live Wikipedia excerpt…</div></div>';
+fetchWiki(q,document.getElementById('wikiBox'));
+var lb=document.createElement('div');lb.id='liveBox';lb.style.cssText='margin-top:10px;font-size:12px;line-height:1.5;padding:10px;background:var(--bg3);border-radius:8px';document.getElementById('wikiBox').parentNode.appendChild(lb);if(window.liveSearch)liveSearch(q,lb);
+hideKeyboard();
+setTimeout(hideKeyboard,300);
+toast('Ready: '+currentSources.length+' sources');
+}catch(e){verdict.innerHTML='<div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;"><b>Error:</b> '+esc(e.message)+'</div>';}
+});
+}
+function applyFilters(){
+var t=(document.getElementById('filterInput').value||'').trim().toLowerCase();
+var list=currentSources.filter(function(s){
+if(showOnlyFav&&favorites.indexOf(s.uid)===-1)return false;
+if(!t)return true;
+return (s.title+' '+s.source+' '+s.type+' '+(s.domain||'')+' '+(s.region||'')).toLowerCase().indexOf(t)!==-1;
+});
+renderSources(list);
+}
+var filterTimer=null;
+function filterSources(){clearTimeout(filterTimer);filterTimer=setTimeout(applyFilters,120);}
+function resetFilters(){document.getElementById('filterInput').value='';showOnlyFav=false;document.getElementById('favFilterBtn').classList.remove('active');}
+function toggleFavFilter(){
+showOnlyFav=!showOnlyFav;
+document.getElementById('favFilterBtn').classList.toggle('active',showOnlyFav);
+applyFilters();
+hideKeyboard();
+}
+var clsSt=null,clsTimer=0;
+
+function clsGen(model){
+var st=clsSt;if(!st||st.busy)return;
+if(!FT.on('aisum'))return;
+var kid=false;try{var g=ageG();kid=(g==='u13'||g==='13-15'||g==='16-17');}catch(e){}
+if(kid&&!model&&!st.manual){st.err='Pick a model above to ask once.';clsAiDraw();return;}
+if(model)st.manual=1;
+var items=currentSources.slice(0,14).map(function(r){return{title:String(r.source||r.title||'').slice(0,140),text:String(r.desc||r.description||r.text||r.type||'').slice(0,320),source:String(r.type||'').slice(0,50),url:r.url};});
+if(currentWiki&&currentWiki.text)items.unshift({title:'Wikipedia: '+currentWiki.title,text:String(currentWiki.text).slice(0,320),source:'wikipedia',url:currentWiki.url});
+if(!items.length)return;
+st.busy=true;st.err='';clsAiDraw();
+xpost('summary',{query:st.q,items:items,model:model||''},40000).then(function(j){st.busy=false;if(!j.summary)throw new Error('empty');st.versions.push({model:j.model||model||'',text:j.summary});st.cur=st.versions.length-1;if(clsSt===st)clsAiDraw();}).catch(function(e){st.busy=false;st.err=/needs-server|501|needs Workers AI/.test(String(e&&e.message))?'AI summary needs the Cloudflare Worker with Workers AI switched on.':'The AI model did not answer. Try another model.';if(clsSt===st)clsAiDraw();});
+}
+function doSummary(){
+hideKeyboard();
+var box=document.getElementById('aiSummary'),overlay=document.getElementById('aiSummaryOverlay');
+if(!currentSources.length){box.innerHTML='<div style="padding:20px;text-align:center;"><b>No results</b><br>Type a topic and press VERIFY first</div>';box.style.display='block';overlay.style.display='block';return;}
+function links(type,n){return currentSources.filter(function(s){return s.type===type;}).slice(0,n).map(function(s){return'<a href="'+esc(safeUrl(s.url))+'" target="_blank" rel="noopener noreferrer" style="display:block;margin:4px 0;color:var(--accent2);">'+esc(s.source)+' ↗</a>';}).join('');}
+var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h3 style="margin:0;color:var(--accent2);">📖 Summary</h3><button type="button" onclick="closeSummary()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button></div>';
+h+='<div class="trust-badge">"'+esc(currentQuery)+'" · '+currentSources.length+' sources</div><div class="summary-text">';
+if(currentWiki&&currentWiki.text)h+='<b style="color:var(--gold);">📚 From Wikipedia ('+esc(currentWiki.lang.toUpperCase())+'): '+esc(currentWiki.title)+'</b><br>'+esc(currentWiki.text)+'<br><a href="'+esc(safeUrl(currentWiki.url))+'" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);">Full article ↗</a><br><br>';
+else h+='<i>No live excerpt is available (network blocked or no matching article).</i><br><br>';
+h+='<b style="color:var(--accent);">✅ Check the claim</b>'+links('factcheck',4)+'<br><b style="color:#ff8800;">📰 News agencies</b>'+links('agency',3)+'<br><b style="color:var(--accent);">🔬 Research</b>'+links('science',3);
+h+='<div style="background:var(--bg2);border-left:3px solid var(--accent);padding:12px;border-radius:8px;margin-top:12px;"><b>Note:</b> the text above is quoted from Wikipedia, which anyone can edit. The links open real searches. Nothing here is a verdict on whether the topic is true.</div></div>';
+box.innerHTML=h;box.style.display='block';overlay.style.display='block';
+}
+function closeSummary(){document.getElementById('aiSummary').style.display='none';document.getElementById('aiSummaryOverlay').style.display='none';}
+function doShare(){
+hideKeyboard();
+var text=(currentQuery?'AI Information: '+currentQuery+' - ':'')+location.href;
+function fail(){toast('Could not copy automatically. Copy the address from your browser.','#ff4444',3500);}
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('Link copied');},fail);}else fail();
+}
+function doExport(){
+hideKeyboard();
+if(!currentSources.length){toast('Run a search first','#ff4444');return;}
+var lines=['AI Information report','Query: '+currentQuery,'Generated: '+new Date().toISOString(),'Sources: '+currentSources.length,''];
+currentSources.forEach(function(x){lines.push('['+(x.id+1)+'] '+x.source+' ('+x.type+')');lines.push('    '+x.title);lines.push('    '+x.url);});
+saveFile('ai-info-report.txt',lines.join('\n'),'text/plain');
+}
+function saveProgress(){
+hideKeyboard();
+if(!currentSources.length){toast('No data to save','#ff4444');return;}
+var data={query:currentQuery,sources:currentSources,favorites:favorites};
+var name='ai-info-'+currentSources.length+'-'+currentQuery.replace(/[^A-Za-z0-9Ѐ-ӿ_-]+/g,'_').slice(0,40)+'.json';
+saveFile(name,JSON.stringify(data),'application/json');
+}
+function loadProgress(e){
+hideKeyboard();
+var file=e.target.files[0];if(!file)return;
+if(file.size>5*1024*1024){toast('File too large (max 5 MB)','#ff4444');e.target.value='';return;}
+var reader=new FileReader();
+reader.onload=function(ev){
+try{
+var data=JSON.parse(ev.target.result);
+if(!data||!Array.isArray(data.sources))throw new Error('bad file');
+currentSources=data.sources.slice(0,5000).map(function(x,i){x=x||{};return{
+uid:String(x.uid||('x_'+i)),id:Number(x.id)||i,title:String(x.title||''),snippet:String(x.snippet||''),
+url:String(x.url||''),source:String(x.source||''),type:String(x.type||''),
+domain:String(x.domain||''),region:String(x.region||'')};});
+currentQuery=String(data.query||'');
+favorites=Array.isArray(data.favorites)?data.favorites.map(String):[];
+store.set('ai_favorites',JSON.stringify(favorites));
+document.getElementById('q').value=currentQuery;
+resetFilters();applyFilters();
+}catch(err){toast('Could not load this file','#ff4444');}
+};
+reader.readAsText(file);e.target.value='';
+}
+var RADAR_SNAPSHOT={"taken": "3 Oct 2026, 11:47 (Sofia time)", "items": [{"t": "Court agrees with EFF: Utah's VPN law demands a technical impossibility", "u": "https://www.eff.org/deeplinks/2026/10/court-agrees-eff-utahs-vpn-law-demands-technical-impossibility", "p": 614}, {"t": "Mike Tomlin spent 12 years building a Minecraft city", "u": "https://www.nytimes.com/athletic/7648198/2026/10/01/mike-tomlin-minecraft-nfl-coach/", "p": 444}, {"t": "Apple Pass Designer", "u": "https://developer.apple.com/pass-designer/", "p": 409}, {"t": "FLUX 3 Image", "u": "https://bfl.ai/models/flux-3-image", "p": 335}, {"t": "The Legend of von Neumann (1973) [pdf]", "u": "https://gwern.net/doc/math/1973-halmos.pdf", "p": 275}, {"t": "A 12-year sequence of telescope images of a star and four planets orbiting", "u": "https://bsky.app/profile/theplanetaryguy.com/post/3mwucf5ert22f", "p": 273}, {"t": "Show HN: Giving Opus 5.5 a simulated paint canvas", "u": "https://stillwet.art/", "p": 270}, {"t": "Extra Big Ass Intelligence", "u": "https://www.extrabigassintelligence.com/", "p": 265}]};
+function ago(t){var d=Math.max(0,Math.floor(Date.now()/1000-t));if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' h ago';return Math.floor(d/86400)+' d ago';}
+var radarSeen=null,radarTimer=null,radarBusy=false,radarLive=false,radarLast=0;
+function renderRadar(items,note,markNew){
+var sc=document.getElementById('breakingNewsScroll'),keep=sc.scrollTop;sc.textContent='';
+if(note){var n=el('div','',note);n.style.cssText='font-size:10px;opacity:.7;line-height:1.5;margin-bottom:4px;';sc.appendChild(n);}
+items.forEach(function(h){
+var a=el('a','breaking-item');a.href=safeUrl(h.u);a.target='_blank';a.rel='noopener noreferrer';
+var b=el('b','','');
+if(markNew&&radarSeen&&!radarSeen[h.u])b.appendChild(el('span','new-tag','NEW'));
+b.appendChild(document.createTextNode(h.t));a.appendChild(b);
+if(h.a||h.p!=null){var m=el('div','',(h.a?ago(h.a):'')+((h.a&&h.p>0)?' · ':'')+(h.p>0?'▲ '+h.p:''));m.style.cssText='font-size:10px;opacity:.85;margin-top:3px;';a.appendChild(m);}
+sc.appendChild(a);
+});
+sc.scrollTop=keep;
+}
+function radarSet(live,text){
+var d=document.getElementById('radarDot'),s=document.getElementById('radarStatus');
+if(d)d.className='live-dot'+(live?'':' off');if(s)s.textContent=text||'';
+}
+function radarFetch(){
+if(API.ok){
+return apiFetch('/api/news',{timeout:8000}).then(function(r){
+if(!r.ok)throw new Error('http '+r.status);return r.json();
+}).then(function(d){return{items:d.items,from:'server'};});
+}
+function algolia(){return apiFetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=40',{timeout:6000}).then(function(r){if(!r.ok)throw new Error('a');return r.json();})
+.then(function(d){return{from:'hn.algolia.com',items:(d.hits||[]).map(function(h){return{t:String(h.title||''),u:h.url||('https://news.ycombinator.com/item?id='+encodeURIComponent(h.objectID)),p:h.points,a:h.created_at_i};})};});}
+function firebase(){return apiFetch('https://hacker-news.firebaseio.com/v0/newstories.json',{timeout:6000}).then(function(r){if(!r.ok)throw new Error('f');return r.json();})
+.then(function(ids){return Promise.all(ids.slice(0,40).map(function(id){return apiFetch('https://hacker-news.firebaseio.com/v0/item/'+id+'.json',{timeout:6000}).then(function(r){return r.json();});}));})
+.then(function(a){return{from:'hacker-news.firebaseio.com',items:a.filter(Boolean).map(function(h){return{t:String(h.title||''),u:h.url||('https://news.ycombinator.com/item?id='+h.id),p:h.score,a:h.time};})};});}
+function devto(){return apiFetch('https://dev.to/api/articles?per_page=40',{timeout:6000}).then(function(r){if(!r.ok)throw new Error('d');return r.json();})
+.then(function(a){return{from:'dev.to',items:a.map(function(h){return{t:String(h.title||''),u:h.url,p:h.positive_reactions_count,a:h.published_timestamp?Math.floor(Date.parse(h.published_timestamp)/1000):null};})};});}
+return algolia().catch(firebase).catch(devto);
+}
+function loadBreaking(auto){
+if(radarBusy)return;radarBusy=true;
+var sc=document.getElementById('breakingNewsScroll');
+if(!auto&&!radarLive){sc.textContent='Loading…';}
+radarSet(radarLive,radarLive?'updating…':'connecting…');
+radarFetch().then(function(r){
+if(!r.items||!r.items.length)throw new Error('empty');
+r.items=r.items.filter(function(h){return h.t;}).sort(function(a,b){return(b.a||0)-(a.a||0);}).slice(0,40);
+var first=!radarSeen;if(first)radarSeen={};
+renderRadar(r.items,'● LIVE · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+r.from+' · newest first · refreshes every '+(radarEvery>=60?(radarEvery/60)+' min':radarEvery+' s'),!first);
+r.items.forEach(function(h){radarSeen[h.u]=1;});
+radarLive=true;radarLast=Date.now();radarSet(true,'LIVE');
+trendTech=trendKeywords(r.items);renderTrending();
+}).catch(function(){
+if(radarLive){radarSet(false,'connection lost – retrying');return;}
+renderRadar(RADAR_SNAPSHOT.items,'NOT LIVE – this viewer cannot reach the news feeds, so you see a saved snapshot from '+RADAR_SNAPSHOT.taken+'. It will switch to live automatically when a connection works (retry every 30 s).');
+radarSet(false,'offline snapshot');
+}).then(function(){radarBusy=false;});
+if(!radarTimer){
+radarTimer=setInterval(function(){if(!document.hidden)loadBreaking(true);},30000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-radarLast>20000)loadBreaking(true);});
+}
+}
+function renderReport(box,rep){
+box.textContent='';
+var badge=rep.aiTask?el('b','',rep.headline):el('div','rep-badge lvl-'+rep.level,rep.headline);
+if(rep.score!=null&&!rep.aiTask)badge.appendChild(el('div','rep-sub','Risk signals: '+rep.score+'/100 (a count of warning signs, not a probability)'));
+box.appendChild(badge);
+if(rep.items&&rep.items.length){
+var ul=el('ul','rep-list');
+rep.items.forEach(function(it){var li=el('li','rep-item sev-'+(rep.aiTask?'info':it.sev));li.appendChild(el('b','',it.title));if(it.detail)li.appendChild(el('div','',it.detail));ul.appendChild(li);});
+box.appendChild(ul);
+}
+(rep.nodes||[]).forEach(function(n){box.appendChild(n);});
+if(rep.links&&rep.links.length){
+var lk=el('div','rep-links');
+rep.links.forEach(function(l){var a=el('a','',l.label);a.href=safeUrl(l.url);a.target='_blank';a.rel='noopener noreferrer';lk.appendChild(a);});
+box.appendChild(lk);
+}
+if(rep.note)box.appendChild(el('div','rep-note',rep.note));
+if(rep.aiTask)box.appendChild(aiRisk(rep.aiTask,function(){return{text:String(rep.aiText||rep.headline).slice(0,5000)};}));else if(rep.ai)attachAi(box,rep.ai);
+}
+function attachAi(box,ai){
+var wrap=el('div','rep-ai');box.appendChild(wrap);
+getCap('sample').then(async function(sm){
+if(!sm||!wrap.isConnected)return;
+if(ai.kind==='image'){
+try{var lim=await sm.limits();if(!(lim&&lim.images&&lim.images.mediaTypes.indexOf(ai.file.type)!==-1&&ai.file.size<=lim.images.maxInputBytes))return;}catch(e){return;}
+}
+var btn=el('button','rep-ai-btn','🤖 Ask Claude for a second opinion');btn.type='button';
+var out=el('div','rep-ai-box');out.hidden=true;
+btn.onclick=function(){askClaude(sm,ai,btn,out);};
+wrap.appendChild(btn);wrap.appendChild(out);
+});
+}
+
+
+function renderAi(out,d){
+out.textContent='';
+if(!d||typeof d!=='object'){out.textContent='Claude returned an unexpected answer.';return;}
+var names={likely_scam:'Likely a scam',suspicious:'Suspicious',probably_ok:'Probably fine',unclear:'Unclear',likely_ai:'Looks AI-generated',likely_real:'Looks like a real photo'};
+var v=String(d.verdict||'unclear');
+out.appendChild(el('b','',(names[v]||'Unclear')+(d.confidence?' · confidence: '+String(d.confidence).slice(0,12):'')));
+if(d.summary){var sm=el('div','',String(d.summary).slice(0,600));sm.style.marginTop='4px';out.appendChild(sm);}
+var list=Array.isArray(d.reasons)?d.reasons:(Array.isArray(d.observations)?d.observations:[]);
+if(list.length){var ul=el('ul','');ul.style.cssText='margin:6px 0 0 18px;padding:0;';list.slice(0,6).forEach(function(r){ul.appendChild(el('li','',String(r).slice(0,300)));});out.appendChild(ul);}
+if(d.advice){var ad=el('div','',String(d.advice).slice(0,300));ad.style.marginTop='6px';out.appendChild(ad);}
+if(d.caveat){var cv=el('div','',String(d.caveat).slice(0,300));cv.style.cssText='margin-top:6px;opacity:.8;';out.appendChild(cv);}
+out.appendChild(el('div','rep-note','This is an AI opinion based on what it could see. It is not proof.'));
+}
+var SUSPICIOUS_TLDS=['zip','mov','top','xyz','click','link','gq','tk','ml','cf','ga','work','country','support','rest','cam','icu','monster','buzz','cyou','sbs','quest','loan','date','men','win','bid','download','review','racing','stream','party'];
+var SHORTENERS=['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','is.gd','buff.ly','cutt.ly','rebrand.ly','shorturl.at','tiny.cc','rb.gy','lnkd.in','t.ly','s.id','v.gd','clck.ru'];
+var RISKY_EXT=['exe','apk','scr','msi','bat','cmd','vbs','js','jar','iso','dmg','pkg','lnk','ps1','hta'];
+var HOST_WORDS=['login','signin','sign-in','verify','secure','account','update','confirm','wallet','password','billing','invoice','gift','claim','prize','suspend','unlock','recover','support','helpdesk'];
+var BRANDS={paypal:['paypal.com','paypal.me'],apple:['apple.com','icloud.com'],google:['google.com','gmail.com','youtube.com'],microsoft:['microsoft.com','live.com','outlook.com','office.com','windows.com'],amazon:['amazon.com','amazon.de','amazon.co.uk','amazonaws.com'],facebook:['facebook.com','fb.com','messenger.com'],instagram:['instagram.com'],netflix:['netflix.com'],binance:['binance.com'],coinbase:['coinbase.com'],dhl:['dhl.com','dhl.de'],fedex:['fedex.com'],ups:['ups.com'],econt:['econt.com'],speedy:['speedy.bg'],revolut:['revolut.com'],visa:['visa.com'],mastercard:['mastercard.com'],whatsapp:['whatsapp.com'],telegram:['telegram.org','t.me'],olx:['olx.bg','olx.com'],postbank:['postbank.bg'],dskbank:['dskbank.bg'],fibank:['fibank.bg'],unicredit:['unicreditbulbank.bg','unicredit.eu'],raiffeisen:['raiffeisen.bg','rbinternational.com'],linkedin:['linkedin.com'],tiktok:['tiktok.com'],steam:['steampowered.com','steamcommunity.com'],dropbox:['dropbox.com'],adobe:['adobe.com'],ebay:['ebay.com'],aliexpress:['aliexpress.com'],docusign:['docusign.com','docusign.net'],usps:['usps.com'],chase:['chase.com'],wellsfargo:['wellsfargo.com'],bankofamerica:['bankofamerica.com']};
+function lev(a,b){var m=a.length,n=b.length,i,j,d=[];for(i=0;i<=m;i++){d[i]=[i];}for(j=1;j<=n;j++)d[0][j]=j;
+for(i=1;i<=m;i++)for(j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));return d[m][n];}
+function leet(t){return t.replace(/0/g,'o').replace(/1/g,'l').replace(/3/g,'e').replace(/4/g,'a').replace(/5/g,'s').replace(/rn/g,'m').replace(/vv/g,'w');}
+function regDomain(host){var p=host.split('.');if(p.length<=2)return host;var sld=p[p.length-2],tld=p[p.length-1];
+if(tld.length===2&&['co','com','org','net','gov','ac','edu','or','ne'].indexOf(sld)!==-1)return p.slice(-3).join('.');return p.slice(-2).join('.');}
+function officialBrand(host){for(var b in BRANDS){var list=BRANDS[b];for(var i=0;i<list.length;i++){if(host===list[i]||host.slice(-(list[i].length+1))==='.'+list[i])return b;}}return null;}
+function analyzeUrl(raw){
+var items=[],score=0;
+function add(sev,pts,title,detail){items.push({sev:sev,title:title,detail:detail});score+=pts;}
+var input=String(raw||'').trim().replace(/^[<"'(\[]+|[>"')\]]+$/g,'').replace(/^hxxp/i,'http').replace(/\[\.\]|\(\.\)/g,'.');
+if(!input)return null;
+var note='Based on the text of the link only. This tool never visits the site. For live reputation use the Google or VirusTotal checks below. No warning signs does not mean a link is safe.';
+if(/\s/.test(input))return{level:'unknown',headline:'That does not look like a single link',score:null,items:[{sev:'info',title:'The text contains spaces',detail:'Paste one link only. For a whole message use the Text Analyzer.'}],links:[],note:''};
+var hadScheme=/^(https?|ftp|file):\/\//i.test(input)||/^(javascript|data|vbscript|blob|mailto|tel):/i.test(input);
+var u;
+try{u=new URL(hadScheme?input:'https://'+input);}catch(e){return{level:'unknown',headline:'This is not a valid link',score:null,items:[{sev:'info',title:'Could not read the address',detail:'Check it for typos, or paste the full link including https://'}],links:[],note:''};}
+if(/^(javascript|data|vbscript):$/.test(u.protocol))return{level:'high',headline:'⛔ Dangerous: this link runs code instead of opening a site',score:100,items:[{sev:'high',title:'Scheme "'+u.protocol+'"',detail:'Links like this can run script in your browser. Do not open it.'}],links:[],note:note,ai:{kind:'url',href:u.protocol+'(code hidden)',signals:['dangerous scheme']}};
+if(u.protocol!=='http:'&&u.protocol!=='https:')return{level:'info',headline:'Not a web link ('+u.protocol+')',score:null,items:[{sev:'info',title:'Unusual link type',detail:'This tool checks web links (http and https) only.'}],links:[],note:''};
+var hostRaw=input.replace(/^[a-z][a-z0-9+.-]*:\/\//i,'').split(/[\/?#]/)[0];
+var host=u.hostname.toLowerCase(),labels=host.split('.'),tld=labels[labels.length-1];
+var official=officialBrand(host);
+if(u.protocol==='http:')add('med',15,'No HTTPS','The connection is not encrypted. Never enter passwords or card details here.');
+if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.charAt(0)==='[')add('high',30,'The address is a raw IP number','Real services use domain names. An IP link hides who runs the site.');
+if(u.username||u.password||hostRaw.indexOf('@')!==-1)add('high',35,'Contains "@" before the host','The browser ignores everything before "@". Scammers put a trusted name there to fake it.');
+if(/[^\x00-\x7F]/.test(hostRaw)||host.indexOf('xn--')!==-1)add('high',30,'Lookalike (international) characters in the domain','Stored as "'+host+'". Letters from other alphabets can imitate Latin ones, for example Cyrillic "а" for "a".');
+if(SHORTENERS.indexOf(host)!==-1)add('med',15,'Link shortener','The real destination is hidden until you open it.');
+if(SUSPICIOUS_TLDS.indexOf(tld)!==-1)add('low',10,'Domain ending ".'+tld+'"','This ending is cheap and often abused by scammers. Many legitimate sites use others, so it is a weak hint.');
+if(labels.length>=5)add('low',10,'Many subdomains ('+labels.length+' parts)',host);
+if(host.length>40)add('low',8,'Very long domain name',host.length+' characters.');
+if((host.replace(/xn--/g,'').match(/-/g)||[]).length>=3)add('low',8,'Many hyphens in the domain',host);
+if((host.match(/\d/g)||[]).length>=5)add('low',6,'Many digits in the domain',host);
+if(u.port&&u.port!=='80'&&u.port!=='443')add('med',10,'Unusual port :'+u.port,'Normal sites use the default web ports.');
+var ext=(u.pathname.match(/\.([a-z0-9]{2,4})$/i)||[])[1];
+if(ext&&RISKY_EXT.indexOf(ext.toLowerCase())!==-1)add('high',25,'Link points to a program file (.'+ext.toLowerCase()+')','Downloading and running it can install malware.');
+if(/[?&](url|redirect|redirect_uri|next|goto|target|dest|continue|return)=(https?:|https?%3a)/i.test(u.search))add('med',15,'Redirect inside the link','The site sends you on to another address that is written in the link.');
+if((u.href.match(/%[0-9a-f]{2}/gi)||[]).length>=6)add('low',5,'Lots of encoded characters','Hard-to-read links are sometimes used to hide the real address.');
+if(input.length>120)add('low',5,'Very long link',input.length+' characters.');
+if(!official){
+var words=HOST_WORDS.filter(function(w){return host.indexOf(w)!==-1;});
+if(words.length)add('low',Math.min(12,6*words.length),'Sensitive words in the domain: '+words.join(', '),'Fake sites often include words like these to look official.');
+var cands=labels.slice(0,-1).reduce(function(a,l){a.push(l);a.push(l.replace(/-/g,''));l.split('-').forEach(function(p){a.push(p);});return a;},[]);
+var hit=null;
+outer:for(var b in BRANDS){
+var re1=new RegExp('^'+b+'(secure|login|verify|support|help|account|service|update|billing|id|pay|wallet|online|app|team|center|care|\\d+)$');
+var re2=new RegExp('^(secure|login|my|verify|support|account|service|update)'+b+'$');
+for(var i=0;i<cands.length;i++){
+var c=cands[i],cn=leet(c);
+if(c===b||cn===b||re1.test(cn)||re2.test(cn)){hit={brand:b,kind:'uses'};break outer;}
+if(b.length>=5&&c!==b&&Math.abs(c.length-b.length)<=2&&lev(cn,b)<=(b.length>=8?2:1)){hit={brand:b,kind:'misspells'};break outer;}
+}
+}
+if(hit){
+var rd=regDomain(host).split('.'),sld=rd[rd.length-2];
+if(hit.kind==='uses'&&sld===hit.brand&&tld.length===2)add('low',10,'Uses the name "'+hit.brand+'" on a country domain','Big brands do own some country domains, but fakes do too. Check the address carefully.');
+else add('high',35,hit.kind==='uses'?'Contains "'+hit.brand+'" but is not '+BRANDS[hit.brand][0]:'Looks like a misspelling of "'+hit.brand+'"','Official domains for this brand: '+BRANDS[hit.brand].join(', ')+'. This one is "'+regDomain(host)+'".');
+}
+}else if(u.protocol==='https:'){
+items.push({sev:'ok',title:'The domain belongs to '+official,detail:'It is on this tool\'s list of official domains. That says nothing about the specific page, so still check what it asks for.'});
+}
+var level=score>=45?'high':score>=20?'medium':'low';
+var headline=score>=45?'⛔ High risk: this link looks like a scam':score>=20?'⚠️ Suspicious link':score>0?'🟡 A few weak warning signs':'✅ No warning signs in the link itself';
+var signals=items.filter(function(x){return x.sev!=='ok';}).map(function(x){return x.title;});
+return{level:level,headline:headline,score:Math.min(100,score),items:items,note:note,
+links:[{label:'Google Safe Browsing report',url:'https://transparencyreport.google.com/safe-browsing/search?url='+encodeURIComponent(u.href)},{label:'VirusTotal',url:'https://www.virustotal.com/gui/home/url'},{label:'urlscan.io',url:'https://urlscan.io/'}],
+ai:{kind:'url',href:u.href,signals:signals}};
+}
+var TXT_RULES=[
+{id:'urgency',w:12,label:'Pressure and urgency',why:'Scammers rush you so you do not stop to verify.',p:['urgent*','immediately','right away','within 24 hours','within 48 hours','act now','last chance','final notice','expires today','limited time','спешно*','незабавно','веднага','в рамките на 24 часа','в рамките на 48 часа','последен шанс','последно предупреждение','само днес','изтича днес']},
+{id:'threat',w:15,label:'Account threat',why:'Fake alerts about blocked or suspended accounts are the classic phishing opener.',p:['account suspended','account locked','account blocked','account has been','your account will be','unusual activity','suspicious activity','unauthorized login','unauthorised login','verify your account','verify your identity','confirm your identity','security alert','акаунтът ви','профилът ви','сметката ви','необичайна активност','подозрителна активност','потвърдете самоличност*','потвърдете данни*','верифицирайте']},
+{id:'credentials',w:25,label:'Asks for secrets',why:'Banks and real companies never ask for passwords, PINs or one-time codes by message.',p:['password','passcode','pin','cvv','cvc','otp','one-time code','verification code','sms code','security code','card number','login details','парола','паролата','пин','пин код','пин-код','код от sms','код за потвърждение','еднократен код','номер на карта*','данни за вход']},
+{id:'payment',w:15,label:'Unusual payment request',why:'Gift cards, crypto and wire transfers are hard to reverse, which is why scammers ask for them.',p:['wire transfer','western union','moneygram','gift card*','itunes card','google play card','bitcoin','usdt','crypto*','wallet address','processing fee','release fee','advance fee','bank transfer','send money','iban','банков превод','преведете','пратете пари','карта за подарък','процесинг такса','такса за','криптовалут*','биткойн','портфейл']},
+{id:'prize',w:18,label:'Prize, lottery or inheritance',why:'You cannot win a lottery you did not enter. This is an advance-fee classic.',p:['you have won','you won','congratulations','lottery','winner','prize','inheritance','beneficiary','unclaimed funds','спечелихте','печеливш*','лотария','награда','наследство','бенефициент','поздравления']},
+{id:'delivery',w:10,label:'Parcel or delivery notice',why:'Fake courier messages ask for a small fee or your card details.',p:['parcel','package could not','delivery failed','could not be delivered','customs fee','customs duty','shipping fee','пратка','колет','куриер','митническа такса','такса за доставка','не може да бъде доставена','econt','speedy','еконт','спиди','dhl','fedex']},
+{id:'authority',w:12,label:'Claims to be an authority',why:'Police, tax or bank security rarely contact you this way, and never to move your money.',p:['police','court','tax office','tax authority','irs','customs','bank security','fraud department','полиция','прокуратура','съд','нап','данъчна','митница','отдел сигурност']},
+{id:'secrecy',w:15,label:'Asks you to keep it secret',why:'Isolation stops you from asking someone who would spot the scam.',p:['don\'t tell anyone','do not tell anyone','keep this confidential','keep it secret','не казвайте на никого','не споделяйте с никого','поверително']},
+{id:'remote',w:25,label:'Remote access or app install',why:'Installing remote-control apps lets a scammer empty your accounts.',p:['anydesk','teamviewer','remote access','ultraviewer','quicksupport','install the app','download the app','отдалечен достъп','инсталирайте приложение','изтеглете приложение']},
+{id:'invest',w:15,label:'Too-good-to-be-true profit',why:'Guaranteed returns do not exist. Promises like this are typical of investment fraud.',p:['guaranteed profit','guaranteed return','risk-free','risk free','double your money','100% return','passive income','trading signals','investment opportunity','гарантирана печалба','гарантиран доход','без риск','удвоите','пасивен доход','инвестиц*']},
+{id:'job',w:10,label:'Easy-money job offer',why:'Fake job offers lead to advance fees, money-mule work or stolen documents.',p:['work from home','easy money','earn $','earn €','лесни пари','работа от вкъщи','работа от дома','печелете от вкъщи']},
+{id:'generic',w:8,label:'Generic greeting',why:'Mass messages do not know your name.',p:['dear customer','dear user','dear sir','dear client','dear account holder','уважаеми клиент','уважаеми потребител','драги клиент']},
+{id:'channel',w:6,label:'Moves you to a chat app',why:'Scammers prefer private chats where fewer checks apply.',p:['whatsapp','telegram','viber']}
+];
+function isWordChar(ch){return /[\p{L}\p{N}]/u.test(ch);}
+function findAll(lower,phrase,max){
+var star=phrase.charAt(phrase.length-1)==='*',p=star?phrase.slice(0,-1):phrase,res=[],pos=0;
+while(res.length<max){
+var i=lower.indexOf(p,pos);if(i===-1)break;
+var before=i>0?lower.charAt(i-1):' ',after=lower.charAt(i+p.length)||' ';
+var okL=!isWordChar(before)||!isWordChar(p.charAt(0)),okR=star||!isWordChar(after)||!isWordChar(p.charAt(p.length-1));
+if(okL&&okR)res.push({i:i,len:p.length});
+pos=i+p.length;
+}
+return res;
+}
+function excerpt(text,hit){var a=Math.max(0,hit.i-35),b=Math.min(text.length,hit.i+hit.len+35);return(a>0?'…':'')+text.slice(a,b).replace(/\s+/g,' ')+(b<text.length?'…':'');}
+function analyzeText(raw){
+var text=String(raw||'').trim();
+if(text.length<15)return null;
+var lower=text.toLowerCase(),items=[],score=0,cats={};
+TXT_RULES.forEach(function(r){
+var hits=[];
+r.p.forEach(function(ph){findAll(lower,ph,3).forEach(function(h){hits.push(h);});});
+if(!hits.length)return;
+hits.sort(function(a,b){return a.i-b.i;});
+cats[r.id]=true;score+=r.w;
+var seen={},ex=[];
+hits.forEach(function(h){var key=Math.floor(h.i/40);if(!seen[key]&&ex.length<2){seen[key]=1;ex.push('"'+excerpt(text,h)+'"');}});
+items.push({sev:r.w>=18?'high':r.w>=10?'med':'low',title:r.label,detail:r.why+' Found: '+ex.join('  ')});
+});
+if((cats.credentials||cats.payment)&&(cats.urgency||cats.threat)){score+=15;items.push({sev:'high',title:'Urgency combined with a request for secrets or money',detail:'This pairing is the strongest single phishing pattern.'});}
+var catCount=Object.keys(cats).length;
+if(catCount>=4){score+=10;items.push({sev:'med',title:catCount+' different scam patterns in one message',detail:'Genuine messages rarely hit this many at once.'});}
+var urls=[],seenU={};
+(text.match(/(?:https?:\/\/|www\.)[^\s<>"'()]+/gi)||[]).concat(text.match(/\b(?:bit\.ly|tinyurl\.com|t\.co|goo\.gl|ow\.ly|is\.gd|cutt\.ly|rb\.gy|t\.ly)\/\S+/gi)||[]).forEach(function(u){u=u.replace(/[.,;:!?]+$/,'');if(!seenU[u]&&urls.length<5){seenU[u]=1;urls.push(u);}});
+var linkScore=0;
+urls.forEach(function(u){
+var r=analyzeUrl(u);if(!r||r.score==null)return;
+var top=r.items.filter(function(x){return x.sev!=='ok';}).slice(0,2).map(function(x){return x.title;}).join('; ');
+if(r.level==='high'){linkScore=Math.max(linkScore,30);items.push({sev:'high',title:'Risky link: '+u.slice(0,70),detail:top||'Several warning signs.'});}
+else if(r.level==='medium'){linkScore=Math.max(linkScore,12);items.push({sev:'med',title:'Suspicious link: '+u.slice(0,70),detail:top});}
+else items.push({sev:'info',title:'Link found: '+u.slice(0,70),detail:r.score>0?top:'No warning signs in the link text itself.'});
+});
+score+=linkScore;
+var letters=text.replace(/[^\p{L}]/gu,'');
+if(letters.length>=40){var up=0;for(var k=0;k<letters.length;k++){var ch=letters.charAt(k);if(ch===ch.toUpperCase()&&ch!==ch.toLowerCase())up++;}
+if(up/letters.length>0.35){score+=8;items.push({sev:'low',title:'Lots of CAPITAL LETTERS',detail:Math.round(up/letters.length*100)+'% of the letters. Shouting is a pressure tactic.'});}}
+if((text.match(/!/g)||[]).length>=3){score+=5;items.push({sev:'low',title:'Many exclamation marks',detail:'Hype and urgency are typical of scam messages.'});}
+score=Math.min(100,score);
+var level=score>=50?'high':score>=25?'medium':'low';
+var headline=score>=50?'⛔ Likely a scam or phishing message':score>=25?'⚠️ Suspicious message':score>0?'🟡 A few weak warning signs':'✅ No known scam patterns found';
+if(!items.length)items.push({sev:'info',title:'Nothing matched',detail:'The check looks for common scam wording in English and Bulgarian. A new or unusual scam can slip through.'});
+return{level:level,headline:headline,score:score,items:items,links:[],
+note:'Pattern matching on common scam wording (English and Bulgarian). No warning signs does not prove a message is safe. If it claims to be from your bank or a company, contact them through their official app or phone number, not through the message.',
+ai:{kind:'text',text:text,signals:items.filter(function(x){return x.sev!=='info';}).map(function(x){return x.title;})}};
+}
+var scamMode='url';
+function openScam(tool){
+hideKeyboard();scamMode=tool==='text'?'text':'url';
+document.getElementById('scamLabOutput').style.display='block';
+document.getElementById('scamOutputTitle').textContent=scamMode==='url'?'URL Scanner (AI)':'Text Analyzer (AI)';
+document.getElementById('scamInput').style.display=scamMode==='url'?'block':'none';document.getElementById('scamUrlNote').style.display=scamMode==='url'?'block':'none';
+var ta=document.getElementById('scamText');
+ta.style.display=scamMode!=='url'?'block':'none';
+ta.maxLength=8000;
+ta.placeholder='Paste the message here (email, SMS, chat)…';
+ta.rows=6;
+document.getElementById('scamResult').textContent='';
+var _o=document.getElementById('scamLabOutput');setTimeout(function(){try{_o.scrollIntoView({behavior:'smooth',block:'center'});var f=scamMode==='url'?document.getElementById('scamInput'):ta;if(f)f.focus({preventScroll:true});}catch(e){}},60);
+}
+function closeScam(){hideKeyboard();document.getElementById('scamLabOutput').style.display='none';}
+
+
+function runScam(){
+hideKeyboard();
+var res=document.getElementById('scamResult'),inp,mode=scamMode;
+if(mode==='url'){inp=document.getElementById('scamInput').value.trim();if(!inp){res.textContent='Paste a link first.';return;}}
+else{inp=document.getElementById('scamText').value.trim();if(inp.length<15){res.textContent='Paste the whole message (at least a sentence).';return;}}
+res.textContent='';
+res.appendChild(aiRisk(mode,function(){return{text:mode==='url'?'Address: '+inp.slice(0,500):inp.slice(0,5000)};}));
+try{res.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}
+if(mode==='url'){res.appendChild(el('div','v9-note','⚠️ Not every website can be checked: some use anti-bot protection and block automatic checks. When a check cannot run, the result says so. “Nothing found” never proves a site is safe.'));serverUrlCheck(inp,res);dnsCheck(inp,res);}
+}
+var AI_SIGS=[
+{re:/compositewithtrainedalgorithmicmedia/i,label:'Declared as a composite that includes AI-generated media (IPTC DigitalSourceType)'},
+{re:/trainedalgorithmicmedia/i,label:'Declared as AI-generated (IPTC DigitalSourceType: trainedAlgorithmicMedia)'},
+{re:/midjourney/i,label:'Metadata mentions Midjourney'},
+{re:/dall[\-· ]?e\b/i,label:'Metadata mentions DALL·E'},
+{re:/openai/i,label:'Metadata mentions OpenAI'},
+{re:/stable[ _\-]?diffusion/i,label:'Metadata mentions Stable Diffusion'},
+{re:/comfyui/i,label:'Metadata mentions ComfyUI'},
+{re:/automatic1111/i,label:'Metadata mentions AUTOMATIC1111'},
+{re:/adobe firefly/i,label:'Metadata mentions Adobe Firefly'},
+{re:/leonardo\.ai/i,label:'Metadata mentions Leonardo.Ai'},
+{re:/ideogram/i,label:'Metadata mentions Ideogram'},
+{re:/novelai/i,label:'Metadata mentions NovelAI'},
+{re:/black forest labs/i,label:'Metadata mentions Black Forest Labs (FLUX)'},
+{re:/made with google ai/i,label:'Metadata says "Made with Google AI"'},
+{re:/bing image creator|microsoft designer/i,label:'Metadata mentions Bing Image Creator / Designer'},
+{re:/\bsdxl\b/i,label:'Metadata mentions SDXL'}
+];
+var EDITORS=/photoshop|lightroom|gimp|affinity|capture one|snapseed|canva|picsart|pixelmator|paint\.net|darktable|luminar|facetune|illustrator|figma/i;
+var AI_DIMS={'512x512':1,'768x768':1,'1024x1024':1,'1024x1792':1,'1792x1024':1,'1024x1536':1,'1536x1024':1,'832x1216':1,'1216x832':1,'1344x768':1,'768x1344':1,'896x1152':1,'1152x896':1,'1536x1536':1,'2048x2048':1};
+var _dec=new TextDecoder('latin1');
+function lat(b,s,e){return _dec.decode(b.subarray(s,e));}
+function sniffFmt(b){
+if(b[0]===0xFF&&b[1]===0xD8)return'jpeg';
+if(b[0]===0x89&&b[1]===0x50&&b[2]===0x4E&&b[3]===0x47)return'png';
+if(lat(b,0,4)==='RIFF'&&lat(b,8,12)==='WEBP')return'webp';
+if(lat(b,0,3)==='GIF')return'gif';
+if(lat(b,4,8)==='ftyp')return'mp4';
+if(b[0]===0x1A&&b[1]===0x45&&b[2]===0xDF&&b[3]===0xA3)return'webm';
+return'unknown';
+}
+function parseTiff(b,off){
+var out={};
+try{
+var le=b[off]===0x49&&b[off+1]===0x49;if(!le&&!(b[off]===0x4D&&b[off+1]===0x4D))return null;
+var dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+var u16=function(o){return dv.getUint16(o,le);},u32=function(o){return dv.getUint32(o,le);};
+if(u16(off+2)!==42)return null;
+var sizes={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8,11:4,12:8};
+var val=function(e,tag){
+var t=u16(e+2),c=u32(e+4),sz=(sizes[t]||1)*c,o=sz>4?off+u32(e+8):e+8;
+if(t===2){var str='';for(var k=0;k<Math.min(c,256);k++){var ch=b[o+k];if(!ch)break;str+=String.fromCharCode(ch);}return str.trim();}
+if(t===3)return u16(o);if(t===4)return u32(o);
+if(t===5){var d=u32(o+4);return d?u32(o)/d:0;}
+if(t===10){var sd=dv.getInt32(o+4,le);return sd?dv.getInt32(o,le)/sd:0;}
+if(t===11)return dv.getFloat32(o,le);
+if(t===12)return dv.getFloat64(o,le);
+if(t===7&&tag===0x9286)return lat(b,o+8,o+Math.min(c,2048)).replace(/\0/g,'').trim();
+return null;
+};
+var ifd=function(o,depth){
+var n=Math.min(u16(o),300);
+for(var i=0;i<n;i++){
+var e=o+2+i*12,tag=u16(e);
+if(tag===0x8769){if(depth<2)ifd(off+u32(e+8),depth+1);continue;}
+if(tag===0x8825){out.gps=true;continue;}
+var v=val(e,tag);
+switch(tag){case 0x010F:out.make=v;break;case 0x0110:out.model=v;break;case 0x0131:out.software=v;break;case 0x0132:out.date=v;break;case 0x9003:out.dateOriginal=v;break;case 0x829A:out.exposure=v;break;case 0x829D:out.fnumber=v;break;case 0x8827:out.iso=v;break;case 0xA434:out.lens=v;break;case 0x010E:out.description=v;break;case 0x013B:out.artist=v;break;case 0x9286:out.userComment=v;break;}
+}
+};
+ifd(off+u32(off+4),0);
+}catch(e){}
+return out;
+}
+function scanJpeg(b){
+var out={exif:null,xmp:'',c2pa:false,comments:[],app11:''},i=2,guard=0;
+while(i+4<b.length&&guard++<400){
+if(b[i]!==0xFF){i++;continue;}
+var m=b[i+1];
+if(m===0xD8||m===0x01||(m>=0xD0&&m<=0xD7)){i+=2;continue;}
+if(m===0xD9||m===0xDA)break;
+var len=(b[i+2]<<8)|b[i+3],s=i+4,e=Math.min(b.length,i+2+len);
+if(m===0xE1){
+if(lat(b,s,s+6)==='Exif\0\0'){if(!out.exif)out.exif=parseTiff(b,s+6);}
+else if(lat(b,s,s+28).indexOf('http://ns.adobe.com/xap/1.0/')===0){out.xmp+=lat(b,s+29,Math.min(e,s+29+262144));}
+}else if(m===0xEB){var t=lat(b,s,Math.min(e,s+4096));out.app11+=t;if(t.indexOf('c2pa')!==-1||t.indexOf('jumb')!==-1)out.c2pa=true;}
+else if(m===0xFE){out.comments.push(lat(b,s,Math.min(e,s+2000)));}
+i=e;
+}
+return out;
+}
+async function inflateBytes(u8){
+try{if(typeof DecompressionStream==='undefined')return'';var st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate'));return await new Response(st).text();}catch(e){return'';}
+}
+async function scanPng(b){
+var dv=new DataView(b.buffer,b.byteOffset,b.byteLength),out={text:{},exif:null,c2pa:false,xmp:''},i=8,guard=0;
+while(i+12<=b.length&&guard++<600){
+var len=dv.getUint32(i),type=lat(b,i+4,i+8),d=i+8,end=Math.min(b.length,d+len);
+if(type==='tEXt'){var z=d;while(z<end&&b[z]!==0)z++;out.text[lat(b,d,z)]=lat(b,z+1,end).slice(0,30000);}
+else if(type==='zTXt'){var z2=d;while(z2<end&&b[z2]!==0)z2++;out.text[lat(b,d,z2)]=(await inflateBytes(b.subarray(z2+2,end))).slice(0,30000);}
+else if(type==='iTXt'){
+var z3=d;while(z3<end&&b[z3]!==0)z3++;var key=lat(b,d,z3),comp=b[z3+1],p=z3+3;
+while(p<end&&b[p]!==0)p++;p++;while(p<end&&b[p]!==0)p++;p++;
+var body=b.subarray(p,end),txt=comp?await inflateBytes(body):new TextDecoder('utf-8').decode(body);
+if(key==='XML:com.adobe.xmp')out.xmp+=txt.slice(0,262144);else out.text[key]=txt.slice(0,30000);
+}
+else if(type==='eXIf'){out.exif=parseTiff(b,d);}
+else if(type==='caBX'){out.c2pa=true;}
+else if(type==='IEND')break;
+i=d+len+4;
+}
+return out;
+}
+function scanWebp(b){
+var out={exif:null,xmp:''},i=12,guard=0;
+while(i+8<=b.length&&guard++<200){
+var type=lat(b,i,i+4),len=(b[i+4]|(b[i+5]<<8)|(b[i+6]<<16)|(b[i+7]<<24))>>>0,d=i+8;
+if(type==='EXIF'){out.exif=parseTiff(b,lat(b,d,d+4)==='Exif'?d+6:d);}
+else if(type==='XMP '){out.xmp=lat(b,d,Math.min(d+len,d+262144));}
+i=d+len+(len&1);
+}
+return out;
+}
+function findSigs(text){
+var found=[],composite=false;
+AI_SIGS.forEach(function(sg,idx){
+if(idx===1&&composite)return;
+if(sg.re.test(text)){found.push(sg.label);if(idx===0)composite=true;}
+});
+return found;
+}
+async function runEla(file){
+var bmp=await createImageBitmap(file),W=bmp.width,H=bmp.height,sx=0,sy=0,cw=W,ch=H,cropped=false;
+if(W*H>8e6){cw=Math.min(W,2048);ch=Math.min(H,2048);sx=Math.floor((W-cw)/2/16)*16;sy=Math.floor((H-ch)/2/16)*16;cropped=true;}
+var c1=document.createElement('canvas');c1.width=cw;c1.height=ch;
+var x1=c1.getContext('2d',{willReadFrequently:true});x1.drawImage(bmp,sx,sy,cw,ch,0,0,cw,ch);
+var blob=await new Promise(function(r){c1.toBlob(r,'image/jpeg',0.9);});
+if(!blob)throw new Error('encode failed');
+var bmp2=await createImageBitmap(blob);
+var c2=document.createElement('canvas');c2.width=cw;c2.height=ch;
+var x2=c2.getContext('2d',{willReadFrequently:true});x2.drawImage(bmp2,0,0);
+var a=x1.getImageData(0,0,cw,ch),A=a.data,B=x2.getImageData(0,0,cw,ch).data;
+var gx=16,gy=16,cells=new Float64Array(gx*gy),cnt=new Uint32Array(gx*gy),sum=0;
+for(var y=0;y<ch;y++){
+var cy=Math.min(gy-1,Math.floor(y*gy/ch));
+for(var x=0;x<cw;x++){
+var p=(y*cw+x)*4,d=(Math.abs(A[p]-B[p])+Math.abs(A[p+1]-B[p+1])+Math.abs(A[p+2]-B[p+2]))/3;
+sum+=d;var ci=cy*gx+Math.min(gx-1,Math.floor(x*gx/cw));cells[ci]+=d;cnt[ci]++;
+var v=Math.min(255,d*20);A[p]=v;A[p+1]=v;A[p+2]=v;A[p+3]=255;
+}
+}
+x1.putImageData(a,0,0);
+var means=[];for(var k=0;k<cells.length;k++)if(cnt[k])means.push(cells[k]/cnt[k]);
+var sorted=means.slice().sort(function(m,n){return m-n;}),median=sorted[Math.floor(sorted.length/2)]||0,flagged=0;
+means.forEach(function(m){if(m>4&&m>median*3.5)flagged++;});
+return{canvas:c1,mean:sum/(cw*ch),median:median,flagged:flagged,total:means.length,cropped:cropped,cw:cw,ch:ch};
+}
+async function analyzeMedia(file){
+var isVideo=file.type.indexOf('video')===0,size=file.size,items=[],nodes=[];
+var big=size>40*1048576;
+var head=new Uint8Array(await file.slice(0,isVideo?4*1048576:Math.min(size,40*1048576)).arrayBuffer());
+var tail=null;if(isVideo&&size>head.length)tail=new Uint8Array(await file.slice(Math.max(head.length,size-1048576)).arrayBuffer());
+var fmt=sniffFmt(head);
+items.push({sev:'info',title:(fmt==='unknown'?'Unknown format':fmt.toUpperCase())+' · '+fmtBytes(size),detail:file.name?String(file.name).slice(0,80):''});
+var exif=null,xmp='',c2pa=false,texts=[],pngText={};
+if(fmt==='jpeg'){var j=scanJpeg(head);exif=j.exif;xmp=j.xmp;c2pa=j.c2pa;texts=j.comments.concat([j.app11]);}
+else if(fmt==='png'){var pn=await scanPng(head);exif=pn.exif;xmp=pn.xmp;c2pa=pn.c2pa;pngText=pn.text;for(var key in pn.text)texts.push(key+': '+pn.text[key]);}
+else if(fmt==='webp'){var w=scanWebp(head);exif=w.exif;xmp=w.xmp;}
+var rawText=lat(head,0,Math.min(head.length,524288))+(tail?lat(tail,0,tail.length):lat(head,Math.max(0,head.length-65536),head.length));
+var rawLower=rawText.toLowerCase();
+if(rawLower.indexOf('c2pa')!==-1)c2pa=true;
+var metaText=[xmp,texts.join('\n'),exif?[exif.software,exif.userComment,exif.description,exif.artist].join(' '):''].join('\n');
+var sigs=findSigs(metaText+'\n'+rawText);
+var strongExtra=[];
+if(pngText.parameters&&/steps:\s*\d+/i.test(pngText.parameters)&&/sampler|cfg scale|seed/i.test(pngText.parameters))strongExtra.push('Contains Stable Diffusion generation parameters (prompt, steps, sampler)');
+if((pngText.prompt&&/class_type/.test(pngText.prompt))||pngText.workflow)strongExtra.push('Contains a ComfyUI workflow');
+if(pngText.Comment&&/"sampler"/.test(pngText.Comment)&&/"steps"/.test(pngText.Comment))strongExtra.push('Contains image-generator settings (steps, sampler)');
+var strong=sigs.concat(strongExtra);
+strong.forEach(function(t){items.push({sev:'high',title:t,detail:'Written into the file by the tool that made it, so this is strong evidence the file came from AI. It is not proof of intent, and a file can be re-saved without it.'});});
+var camera=!!(exif&&exif.make&&(exif.model||exif.exposure!==undefined));
+var xmpTool=(xmp.match(/CreatorTool(?:>|=")([^<"]{2,80})/)||[])[1];
+var software=(exif&&exif.software)||xmpTool||'';
+if(camera){
+var bits=[(exif.make+' '+(exif.model||'')).trim()];
+if(exif.exposure)bits.push(exif.exposure<1?'1/'+Math.round(1/exif.exposure)+' s':exif.exposure+' s');
+if(exif.fnumber)bits.push('f/'+exif.fnumber.toFixed(1));if(exif.iso)bits.push('ISO '+exif.iso);if(exif.lens)bits.push(exif.lens);
+items.push({sev:'ok',title:'Camera data: '+bits.join(' · '),detail:'Typical of a photo from a real camera or phone. Metadata can be copied or forged, so this is a hint, not proof.'});
+}
+if(software&&!strong.length)items.push({sev:EDITORS.test(software)?'med':'info',title:(EDITORS.test(software)?'Edited or exported with: ':'Software: ')+software.slice(0,80),detail:EDITORS.test(software)?'The picture passed through an editor, so it may differ from what the camera recorded.':'Recorded by the program that saved the file.'});
+if(exif&&(exif.dateOriginal||exif.date))items.push({sev:'info',title:'Date in metadata: '+(exif.dateOriginal||exif.date),detail:'Written by the device or program. It can be edited.'});
+if(exif&&exif.gps)items.push({sev:'info',title:'Contains a GPS location',detail:'If you share this file, the place it was taken can be read from it.'});
+if(c2pa)items.push({sev:'info',title:'Content Credentials (C2PA) found',detail:'Signed provenance data is embedded. This tool does not verify the signature; check it at contentcredentials.org/verify.'});
+var hasMeta=!!(exif&&(exif.make||exif.software||exif.dateOriginal))||xmp.length>0||Object.keys(pngText).length>0||c2pa;
+if(!hasMeta&&!strong.length)items.push({sev:'info',title:'No provenance metadata',detail:'Messengers, social networks and screenshots strip metadata, and so do many AI workflows. Its absence proves nothing either way.'});
+var mismatch=fmt!=='unknown'&&file.type&&file.type.indexOf(fmt==='jpeg'?'jpeg':fmt)===-1&&!isVideo;
+if(mismatch)items.push({sev:'low',title:'File type does not match its content',detail:'Declared '+file.type+', but the data is '+fmt.toUpperCase()+'.'});
+if(!isVideo){
+try{
+var bm=await createImageBitmap(file),dim=bm.width+'x'+bm.height;
+items.push({sev:'info',title:'Size: '+bm.width+' × '+bm.height+' px',detail:''});
+if(!camera&&AI_DIMS[dim]&&bm.width%64===0&&bm.height%64===0)items.push({sev:'low',title:'Size is a common AI-generator output',detail:'Many generators output exactly '+bm.width+' × '+bm.height+', but plenty of ordinary images share it. A weak hint at most.'});
+}catch(e){}
+if(fmt==='jpeg'&&!big){
+try{
+var ela=await runEla(file);
+var cap=el('div','ela-cap','Error Level Analysis map'+(ela.cropped?' (centre '+ela.cw+' × '+ela.ch+' px at full resolution)':'')+'. Even grey means the whole picture was compressed the same way. Bright patches that do not follow object edges can mean a region was edited or pasted in.');
+var holder=el('div','');holder.id='fakeEla';holder.appendChild(ela.canvas);holder.appendChild(cap);nodes.push(holder);
+if(ela.flagged>0&&ela.flagged<=ela.total*0.1)items.push({sev:'low',title:'ELA: '+ela.flagged+' of '+ela.total+' zones compress differently from the rest',detail:'A few isolated zones. This can mean part of the picture was edited, but sharp edges and text trigger it too. Look at the map.'});
+else if(ela.flagged>ela.total*0.1)items.push({sev:'info',title:'ELA: uneven across much of the image',detail:'Detailed textures, noise and sharp edges cause this. It does not point to one specific edit.'});
+else items.push({sev:'info',title:'ELA: compression level looks uniform',detail:'No obvious local edit found. This does not rule out AI generation or edits to the whole picture.'});
+}catch(e){items.push({sev:'info',title:'ELA could not run on this file',detail:''});}
+}else if(fmt==='jpeg'&&big)items.push({sev:'info',title:'File too large for in-browser ELA',detail:'Only the first 40 MB were read for metadata.'});
+else if(fmt!=='jpeg')items.push({sev:'info',title:'ELA skipped',detail:'It works on JPEG files. PNG and other lossless formats carry no compression history.'});
+}else{
+try{await analyzeVideo(file,items,nodes);}
+catch(e){items.push({sev:'info',title:'Frames could not be read in this browser',detail:'Only metadata and markers were checked. The browser may not support this video codec.'});}
+}
+if(!big&&window.crypto&&crypto.subtle&&size<=40*1048576){
+try{var buf=await file.arrayBuffer(),h=await crypto.subtle.digest('SHA-256',buf),hex=Array.prototype.map.call(new Uint8Array(h),function(x){return('0'+x.toString(16)).slice(-2);}).join('');
+items.push({sev:'info',title:'SHA-256 fingerprint',detail:hex});}catch(e){}
+}
+var level,headline;
+if(strong.length){level='high';headline='🤖 The file says it was made with AI';}
+else if(c2pa){level='info';headline='🔏 Signed Content Credentials found';}
+else if(camera){level='low';headline='📷 Camera data present (consistent with a real photo)';}
+else if(software&&EDITORS.test(software)){level='medium';headline='🛠️ Edited with '+software.slice(0,40);}
+else{level='unknown';headline='❔ Inconclusive: nothing in the file settles it';}
+return{level:level,headline:headline,score:null,items:items,nodes:nodes,
+links:[{label:'Google Lens',url:'https://lens.google.com/'},{label:'TinEye',url:'https://tineye.com/'},{label:'Bing Visual Search',url:'https://www.bing.com/visualsearch'},{label:'Yandex Images',url:'https://yandex.com/images/'},{label:'Verify Content Credentials',url:'https://contentcredentials.org/verify'}],
+note:'This reads what the file says about itself and runs forensic checks. It cannot prove that a picture is real or fake, and no in-browser tool can. Upload the file to a reverse-search site above to find where it first appeared.',
+ai:isVideo?null:{kind:'image',file:file}};
+}
+function seekTo(v,t){return new Promise(function(res,rej){
+var done=false,to=setTimeout(function(){if(!done){done=true;rej(new Error('seek timeout'));}},6000);
+v.onseeked=function(){if(!done){done=true;clearTimeout(to);res();}};
+v.currentTime=t;});}
+function frameStats(ctx,w,h,prev){
+var d=ctx.getImageData(0,0,w,h).data,n=w*h,g=new Float32Array(n),i,x,y;
+for(i=0;i<n;i++)g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
+var noise=0,l1=0,l2=0,cnt=0,diff=null;
+for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){
+var c=g[y*w+x],dev=c-(g[y*w+x-1]+g[y*w+x+1]+g[(y-1)*w+x]+g[(y+1)*w+x])/4;
+noise+=Math.abs(dev);l1+=dev*4;l2+=dev*dev*16;cnt++;
+}
+if(prev){var s=0;for(i=0;i<n;i++)s+=Math.abs(g[i]-prev[i]);diff=s/n;}
+return{gray:g,noise:noise/cnt,sharp:l2/cnt-(l1/cnt)*(l1/cnt),diff:diff};
+}
+async function analyzeVideo(file,items,nodes){
+var url=URL.createObjectURL(file),v=document.createElement('video');
+v.muted=true;v.preload='auto';v.playsInline=true;v.src=url;
+try{
+await new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error('meta'));},8000);
+v.onloadedmetadata=function(){clearTimeout(t);res();};v.onerror=function(){clearTimeout(t);rej(new Error('decode'));};});
+var dur=v.duration;if(!isFinite(dur)||dur<=0.3||!v.videoWidth)throw new Error('dur');
+items.push({sev:'info',title:'Video: '+v.videoWidth+' × '+v.videoHeight+' px · '+dur.toFixed(1)+' s',detail:''});
+var W=Math.min(320,v.videoWidth),H=Math.max(2,Math.round(W*v.videoHeight/v.videoWidth));
+var c=document.createElement('canvas');c.width=W;c.height=H;var ctx=c.getContext('2d',{willReadFrequently:true});
+var STEP=1/12,N=dur<3?3:6,anchors=[],k,j;
+for(k=0;k<N;k++)anchors.push(Math.max(0,Math.min(dur-3*STEP,dur*(k+0.5)/N)));
+var rows=[],diffs=[],strip=el('div','vid-strip');
+for(k=0;k<anchors.length;k++){
+var prev=null,row={t:anchors[k],noise:0,sharp:0,diffs:[]};
+for(j=0;j<3;j++){
+await seekTo(v,anchors[k]+j*STEP);
+ctx.drawImage(v,0,0,W,H);
+var st=frameStats(ctx,W,H,prev);prev=st.gray;
+if(j===0){row.noise=st.noise;row.sharp=st.sharp;
+var fig=document.createElement('figure'),tc=document.createElement('canvas');tc.width=96;tc.height=Math.round(96*H/W);tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);
+fig.appendChild(tc);fig.appendChild(el('div','',anchors[k].toFixed(1)+' s'));fig.dataset.t=String(anchors[k]);fig.title='Jump to this moment';
+fig.addEventListener('click',function(){var pv=document.querySelector('#fakeMediaPreview video');if(pv){pv.pause();pv.currentTime=parseFloat(this.dataset.t);}});
+strip.appendChild(fig);}
+else{row.diffs.push(st.diff);diffs.push({t:anchors[k]+j*STEP,d:st.diff});}
+}
+rows.push(row);
+}
+var holder=el('div','');holder.appendChild(strip);
+holder.appendChild(el('div','ela-cap','Frames sampled at '+rows.length+' moments, 3 frames each (about 0.08 s apart). Tap a frame to jump there, then use the frame buttons under the video to step through it.'));
+nodes.push(holder);
+var all=diffs.map(function(x){return x.d;}).sort(function(a,b){return a-b;}),med=all[Math.floor(all.length/2)]||0;
+var frozen=diffs.filter(function(x){return x.d<0.05;}).length;
+if(frozen&&frozen>=diffs.length*0.5)items.push({sev:'info',title:'Most neighbouring frames are identical',detail:'The picture barely changes between sampled frames. That is normal for a still shot or a very low frame rate, and it is also how repeated or frozen frames look.'});
+else if(frozen)items.push({sev:'low',title:frozen+' of '+diffs.length+' frame pairs are identical',detail:'Some frames repeat. This happens with low frame rates, pauses and duplicated footage.'});
+var jumps=diffs.filter(function(x){return x.d>25&&x.d>med*4;});
+if(jumps.length)items.push({sev:'info',title:'Abrupt picture change at '+jumps.map(function(x){return x.t.toFixed(1)+' s';}).join(', '),detail:'The image changes completely within a fraction of a second. That is usually a cut between shots, which is normal in edited video.'});
+var nz=rows.map(function(r){return r.noise;}),nmin=Math.min.apply(null,nz),nmax=Math.max.apply(null,nz),navg=nz.reduce(function(a,b){return a+b;},0)/nz.length;
+if(nmin>0.3&&nmax>nmin*3)items.push({sev:'low',title:'Image noise differs a lot between moments ('+nmin.toFixed(1)+' to '+nmax.toFixed(1)+')',detail:'Parts of the video may come from different cameras or were processed differently. Lighting changes and compression also cause this, so treat it as a reason to look closer.'});
+if(navg<0.8)items.push({sev:'info',title:'Very smooth frames (average noise '+navg.toFixed(2)+')',detail:'AI-generated video often looks like this, but so do heavily compressed, denoised or animated videos.'});
+if(!frozen&&!jumps.length&&!(nmin>0.3&&nmax>nmin*3)&&navg>=0.8)items.push({sev:'info',title:'Frames look consistent with each other',detail:'No freezes, jumps or noise changes in the sampled moments. This does not show the video is genuine; only a few moments were sampled.'});
+}finally{v.removeAttribute('src');v.load();URL.revokeObjectURL(url);}
+}
+function buildFrameStepper(video){
+var row=el('div','vid-step'),back=el('button','','◀ Frame'),fwd=el('button','','Frame ▶'),lab=el('span','','');
+back.type='button';fwd.type='button';var fps=30;
+function upd(){lab.textContent=video.currentTime.toFixed(3)+' s · frame '+Math.round(video.currentTime*fps);}
+function step(dir){video.pause();video.currentTime=Math.max(0,Math.min(video.duration||0,video.currentTime+dir/fps));}
+back.onclick=function(){step(-1);};fwd.onclick=function(){step(1);};
+video.addEventListener('seeked',upd);video.addEventListener('timeupdate',upd);
+video.addEventListener('loadedmetadata',function(){
+upd();
+if(!video.requestVideoFrameCallback)return;
+var times=[],stopped=false;
+function done(){if(stopped)return;stopped=true;video.pause();video.currentTime=0;
+var d=[];for(var i=1;i<times.length;i++){var x=times[i]-times[i-1];if(x>0.004)d.push(x);}
+if(d.length>=3){d.sort(function(a,b){return a-b;});var f=1/d[Math.floor(d.length/2)];if(f>=5&&f<=240)fps=f;}upd();}
+function cb(now,meta){times.push(meta.mediaTime);if(times.length>=8)done();else video.requestVideoFrameCallback(cb);}
+video.requestVideoFrameCallback(cb);
+var m=video.muted;video.muted=true;var p=video.play();if(p&&p.catch)p.catch(function(){stopped=true;});
+setTimeout(function(){done();video.muted=m;},1500);
+},{once:true});
+row.appendChild(back);row.appendChild(lab);row.appendChild(fwd);return row;
+}
+var fakeRun=0,fakeUrl=null;
+async function handleFakeFile(file){
+hideKeyboard();
+if(!file)return;
+if(!/^(image|video)\//.test(file.type)){toast('Please choose an image or a video','#ff4444');return;}
+var token=++fakeRun;
+document.getElementById('fakePreviewArea').style.display='block';
+var preview=document.getElementById('fakeMediaPreview');preview.textContent='';
+if(fakeUrl)URL.revokeObjectURL(fakeUrl);
+fakeUrl=URL.createObjectURL(file);
+var media;
+if(file.type.indexOf('image')===0){media=document.createElement('img');media.alt='Selected image preview';}
+else{media=document.createElement('video');media.controls=true;media.preload='metadata';}
+media.src=fakeUrl;media.style.cssText='width:100%;border-radius:10px;';preview.appendChild(media);
+if(media.tagName==='VIDEO')preview.appendChild(buildFrameStepper(media));
+document.getElementById('fakeReverseSearch').textContent='';
+var out=document.getElementById('fakeAnalysis');out.textContent='⏳ Analyzing the file…';
+try{
+var rep=await analyzeMedia(file);
+if(token!==fakeRun)return;
+renderReport(out,rep);
+if(file.type.indexOf('image')===0){out.appendChild(aiBlock('🤖 Check this image with AI','image',function(){return imgToDataUrl(file).then(function(d){return{image:d,question:'Is this image AI-generated, edited or misleading?'};});},{auto:true,hint:'AI mode: a smaller copy of the image is sent to an AI model automatically when the checks finish. It can be wrong; the metadata and error-level measurements above stay and are separate.'}));}
+}catch(e){if(token===fakeRun)out.textContent='Could not analyze this file. Try a JPEG, PNG, WebP or MP4.';}
+}
+function clearFake(){
+hideKeyboard();fakeRun++;
+if(fakeUrl){URL.revokeObjectURL(fakeUrl);fakeUrl=null;}
+document.getElementById('fakePreviewArea').style.display='none';
+document.getElementById('fakeMediaPreview').textContent='';
+document.getElementById('fakeAnalysis').textContent='';
+document.getElementById('fakeReverseSearch').textContent='';
+document.getElementById('fakeFileInput').value='';
+}
+var trendWiki=[],trendTech=[],trendTimer=null,trendTip='';
+var TREND_STOP=/^(the|and|for|with|from|that|this|into|your|you|are|was|not|but|have|has|had|how|why|what|when|who|new|more|than|will|can|its|our|their|about|over|after|before|show|hn|ask|tell|using|use|via|vs|out|all|one|two|now|just|get|got|why|does|did|is|in|on|of|to|a|an|it|by|at|as|be|or|we|my|me|i)$/i;
+function trendKeywords(items){
+var count={};
+items.forEach(function(h){
+var seen={};
+(String(h.t||'').match(/[A-Za-z][A-Za-z0-9+#.\-]{2,}/g)||[]).forEach(function(w){
+var k=w.toLowerCase().replace(/[.\-]+$/,'');
+if(k.length<3||TREND_STOP.test(k)||seen[k])return;seen[k]=1;count[k]=(count[k]||0)+1;
+});
+});
+return Object.keys(count).filter(function(k){return count[k]>=2;}).sort(function(x,y){return count[y]-count[x];}).slice(0,4)
+.map(function(k){return k.charAt(0).toUpperCase()+k.slice(1);});
+}
+function renderTrending(){
+var scroll=document.getElementById('trendingScroll'),bar=document.getElementById('trendingBar');
+scroll.textContent='';
+var list=trendWiki.map(function(t){return{t:t,tip:trendTip||'Among the most-read Wikipedia articles yesterday'};})
+.concat(trendTech.map(function(t){return{t:t,tip:'On the front page of Hacker News right now'};}));
+if(!list.length){
+var n=el('div','','Trending needs a live connection and is not available here. It loads by itself when one works.');
+n.style.cssText='font-size:11px;opacity:.7;padding:6px 2px;';scroll.appendChild(n);
+}
+list.forEach(function(x){
+var chip=el('div','trending-chip',x.t);chip.title=x.tip;chip.setAttribute('role','button');chip.tabIndex=0;
+function go(){document.getElementById('q').value=x.t;doSearch();}
+chip.onclick=go;chip.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};
+scroll.appendChild(chip);
+});
+bar.classList.add('show');
+}
+function loadTrending(){
+function day(off){var d=new Date(Date.now()-off*86400000);return d.getUTCFullYear()+'/'+('0'+(d.getUTCMonth()+1)).slice(-2)+'/'+('0'+d.getUTCDate()).slice(-2);}
+function top(lang,off){
+return apiFetch('https://wikimedia.org/api/rest_v1/metrics/pageviews/top/'+lang+'.wikipedia/all-access/'+day(off),{timeout:7000})
+.then(function(r){if(!r.ok)throw new Error('http');return r.json();})
+.then(function(d){
+return((d.items&&d.items[0]&&d.items[0].articles)||[])
+.filter(function(a){return!/^(Main_Page|Начална_страница|Special:|Wikipedia:|Уикипедия:|Portal:|Help:|File:|Category:|Talk:|Template:|User:|Служебна:|Заглавна_страница|-$)/.test(a.article)&&!/^(Special|Служебна|Спец)/i.test(a.article);})
+.map(function(a){return a.article.replace(/_/g,' ');});
+});
+}
+function get(lang){return top(lang,1).catch(function(){return top(lang,2);}).catch(function(){return top(lang,3);}).catch(function(){return[];});}
+var ul=String(navigator.language||'en').slice(0,2).toLowerCase(),langs=['en'];if(ul!=='en'&&/^[a-z]{2,3}$/.test(ul))langs.push(ul);
+function shortT(t){t=String(t||'').replace(/\s+/g,' ').trim();if(t.length>46)t=t.slice(0,44).replace(/\s+\S*$/,'')+'…';return t;}
+var hn=apiFetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=14',{timeout:7000}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){return(j.hits||[]).map(function(h){return shortT(h.title);}).filter(function(t){return t.length>6;});}).catch(function(){return[];});
+var EVER=['artificial intelligence','climate change','space exploration','electric cars','cybersecurity','renewable energy','quantum computing','vaccines','ocean life','the Moon','Mars','volcanoes','black holes','recycling','robotics','the human brain','coffee','chess','dinosaurs','the Olympic Games','solar eclipse','earthquakes','privacy online','fake news'];
+Promise.all([Promise.all(langs.map(get)),hn]).then(function(r){
+var w=[];r[0].forEach(function(arr,i){w=w.concat(arr.slice(0,i?3:5));});trendWiki=w;
+trendTech=(trendTech&&trendTech.length&&!r[1].length)?trendTech:r[1].slice(0,6);
+if(!trendWiki.length&&!trendTech.length){var h=Math.floor(Date.now()/3600000),o=[];for(var i=0;i<8;i++)o.push(EVER[(h*3+i*3)%EVER.length]);trendWiki=o;trendTip='Popular topic';}else trendTip='';
+}).then(renderTrending);
+if(!trendTimer)trendTimer=setInterval(function(){if(!document.hidden)loadTrending();},600000);
+}
+loadTrending();
+function measureBars(){
+var h=document.querySelector('.header'),sb=document.querySelector('.search-header'),root=document.documentElement.style;
+if(h)root.setProperty('--hh',h.offsetHeight+'px');
+if(sb)root.setProperty('--sh',sb.offsetHeight+'px');
+}
+measureBars();
+if(window.ResizeObserver){var barsRO=new ResizeObserver(measureBars);barsRO.observe(document.querySelector('.header'));barsRO.observe(document.querySelector('.search-header'));}
+else window.addEventListener('resize',measureBars);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSummary();});
+(function(){var btn=document.getElementById('backToTopBtn');
+var ticking=false,shown=false;
+function upd(){ticking=false;var want=window.scrollY>400;if(want!==shown){shown=want;btn.classList.toggle('show',want);}}
+window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(upd);}},{passive:true});upd();})();
+(function(){var z=document.getElementById('fakeDropZone');
+['dragenter','dragover'].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();});});
+z.addEventListener('drop',function(e){e.preventDefault();var f=e.dataTransfer&&e.dataTransfer.files[0];if(f)handleFakeFile(f);});})();
+document.querySelectorAll('.scam-card').forEach(function(c){c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click();}});});
+var API={ok:false,urlCheck:false,site:''};
+function apiFetch(p,o){
+o=Object.assign({credentials:'same-origin'},o||{});if(!cacheOK()&&!o.cache)o.cache='no-store';
+var ctl=window.AbortController?new AbortController():null,t=setTimeout(function(){if(ctl)ctl.abort();},o.timeout||5000);
+var ext=o.signal;delete o.timeout;if(ctl){o.signal=ctl.signal;if(ext){if(ext.aborted)ctl.abort();else ext.addEventListener('abort',function(){ctl.abort();});}}
+return fetch(p,o).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
+}
+function initApi(){
+loadBreaking();
+if(!/^https?:$/.test(location.protocol)||!window.fetch)return;
+apiFetch('/api/config',{timeout:3500}).then(function(r){
+if(!r.ok||!/json/.test(r.headers.get('content-type')||''))throw new Error('no api');return r.json();
+}).then(function(c){API.ok=true;API.urlCheck=!!c.urlCheck;API.country=c.country||'';API.ai=!!c.ai;API.stt=!!c.stt;API.geo=c.geo||null;if(window.wxGeoInit)wxGeoInit();API.done=true;}).catch(function(){API.done=true;});
+}
+function serverUrlCheck(raw,box){
+raw=String(raw).trim();var u;
+try{u=new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)?raw:'http://'+raw);}catch(e){return;}
+if(!API.ok||!API.urlCheck){
+var fw=el('div','rep-ai');fw.appendChild(el('div','rep-note','Online reputation databases are not available from this copy of the site, but all checks above ran on your device. You can also check the link yourself (opens in a new tab; the link is sent to that service only if you press it):'));
+var fl=el('div');[['Google Safe Browsing','https://transparencyreport.google.com/safe-browsing/search?url='+encodeURIComponent(u.href)],['VirusTotal','https://www.virustotal.com/gui/search/'+encodeURIComponent(u.href)]].forEach(function(x){var a=el('a','',x[0]);a.href=x[1];a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='display:inline-block;margin:6px 12px 0 0';fl.appendChild(a);});
+fw.appendChild(fl);box.appendChild(fw);return;}
+var w=el('div','rep-ai');w.appendChild(el('div','rep-note','Checking reputation databases…'));box.appendChild(w);
+apiFetch('/api/check-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:u.href}),timeout:15000}).then(function(r){
+if(r.status===429)throw new Error('Too many checks. Try again later.');
+if(!r.ok)throw new Error('The database check failed.');return r.json();
+}).then(function(d){
+w.textContent='';var ul=el('ul','rep-list'),bad=false;
+function add(sev,t,x){var li=el('li','rep-item sev-'+sev);li.appendChild(el('b','',t));if(x)li.appendChild(el('div','',x));ul.appendChild(li);}
+var sb=d.safeBrowsing||{},vt=d.virusTotal||{};
+if(sb.checked){
+if(sb.threats&&sb.threats.length){bad=true;add('high','Google Safe Browsing flags this link: '+sb.threats.join(', ').toLowerCase().replace(/_/g,' '),'Do not open it or enter anything on it.');}
+else add('ok','Not on Google Safe Browsing lists','New scams are listed only after they are reported, so this is not a guarantee.');
+}
+if(vt.checked){
+if(vt.known===false)add('info','VirusTotal has not seen this link before','Normal for new or rare links. It is neither good nor bad on its own.');
+else if(vt.malicious>0){bad=true;add('high','VirusTotal: '+vt.malicious+' security engine(s) flag it as malicious'+(vt.suspicious?' and '+vt.suspicious+' as suspicious':''),'');}
+else if(vt.suspicious>0)add('med','VirusTotal: '+vt.suspicious+' engine(s) call it suspicious','');
+else add('ok','VirusTotal: no engine flags it','Harmless: '+vt.harmless+', no verdict: '+vt.undetected+'.');
+}
+if(!ul.children.length){w.appendChild(el('div','rep-note','No reputation database answered.'));return;}
+w.appendChild(el('div','rep-note','Reputation databases (checked on the server)'));w.appendChild(ul);
+if(bad){var bd=box.querySelector('.rep-badge');if(bd){bd.className='rep-badge lvl-high';bd.textContent='🚨 Flagged by a reputation database';}}
+}).catch(function(e){w.textContent='';w.appendChild(el('div','rep-note',e&&e.message?e.message:'The database check failed.'));});
+}
+function dnsBuild(name,type){
+var parts=name.replace(/\.$/,'').split('.'),len=12+1+4,i,o=12;
+parts.forEach(function(p){if(!p||p.length>63)throw new Error('bad name');len+=p.length+1;});
+var b=new Uint8Array(len);b[2]=1;b[5]=1;
+parts.forEach(function(p){b[o++]=p.length;for(i=0;i<p.length;i++)b[o++]=p.charCodeAt(i)&127;});
+b[o++]=0;b[o++]=type>>8;b[o++]=type&255;b[o++]=0;b[o++]=1;return b;
+}
+function dnsName(b,o){
+var labels=[],jumped=false,end=o,guard=0;
+while(guard++<64){
+var l=b[o];if(l===undefined)throw new Error('short');
+if(l===0){if(!jumped)end=o+1;break;}
+if((l&0xC0)===0xC0){var ptr=((l&0x3F)<<8)|b[o+1];if(!jumped)end=o+2;jumped=true;o=ptr;continue;}
+labels.push(String.fromCharCode.apply(null,b.subarray(o+1,o+1+l)));o+=l+1;
+}
+return[labels.join('.'),end];
+}
+function dnsParse(b){
+if(b.length<12)throw new Error('short');
+var rcode=b[3]&15,qd=(b[4]<<8)|b[5],an=(b[6]<<8)|b[7],o=12,i,out=[];
+for(i=0;i<qd;i++){o=dnsName(b,o)[1]+4;}
+for(i=0;i<an;i++){
+var nm=dnsName(b,o);o=nm[1];
+var type=(b[o]<<8)|b[o+1],ttl=b[o+4]*16777216+(b[o+5]<<16)+(b[o+6]<<8)+b[o+7],rl=(b[o+8]<<8)|b[o+9],rd=o+10,v;
+if(type===1)v=b[rd]+'.'+b[rd+1]+'.'+b[rd+2]+'.'+b[rd+3];
+else if(type===28){var g=[];for(var k=0;k<8;k++)g.push(((b[rd+2*k]<<8)|b[rd+2*k+1]).toString(16));v=g.join(':');}
+else if(type===15)v=((b[rd]<<8)|b[rd+1])+' '+dnsName(b,rd+2)[0];
+else if(type===2||type===5)v=dnsName(b,rd)[0];
+else v='';
+out.push({type:type,ttl:ttl,v:v});o=rd+rl;
+}
+return{rcode:rcode,answers:out};
+}
+var dnsVia='';
+function dnsQuery(name,type){
+var body=dnsBuild(name,type);
+function direct(url,label){return fetch(url,{method:'POST',headers:{'Content-Type':'application/dns-message',Accept:'application/dns-message'},body:body,credentials:'omit',referrerPolicy:'no-referrer'}).then(function(r){if(!r.ok)throw new Error('no dns');dnsVia=label;return r.arrayBuffer();});}
+return apiFetch('/dns-query',{method:'POST',headers:{'Content-Type':'application/dns-message',Accept:'application/dns-message'},body:body,timeout:7000})
+.then(function(r){
+if(!r.ok||(r.headers.get('content-type')||'').indexOf('dns-message')===-1)throw new Error('no dns');
+dnsVia=r.headers.get('x-doh-upstream')||dnsVia;return r.arrayBuffer();
+}).catch(function(){return direct('https://cloudflare-dns.com/dns-query','your browser → Cloudflare DNS').catch(function(){return direct('https://dns.google/dns-query','your browser → Google DNS');});})
+.then(function(buf){return dnsParse(new Uint8Array(buf));});
+}
+function dnsCheck(raw,box){
+if(!/^https?:$/.test(location.protocol))return;
+raw=String(raw).trim();var u;
+try{u=new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)?raw:'http://'+raw);}catch(e){return;}
+var host=u.hostname;
+if(!host||/^[\d.]+$/.test(host)||host.indexOf(':')!==-1||host.indexOf('.')===-1)return;
+var w=el('div','rep-ai');w.appendChild(el('div','rep-note','Looking up the domain in DNS…'));box.appendChild(w);
+function q(t){return dnsQuery(host,t).catch(function(){return null;});}
+Promise.all([q(1),q(28),q(15),q(2)]).then(function(r){
+w.textContent='';
+if(!r[0]&&!r[1]&&!r[2]&&!r[3]){w.remove();return;}  // no DNS endpoint on this host
+var ul=el('ul','rep-list');
+function add(sev,t,x){var li=el('li','rep-item sev-'+sev);li.appendChild(el('b','',t));if(x)li.appendChild(el('div','',x));ul.appendChild(li);}
+var a=r[0]||{answers:[],rcode:0},aaaa=r[1]||{answers:[]},mx=r[2]||{answers:[]},ns=r[3]||{answers:[]};
+var ips=a.answers.filter(function(x){return x.type===1;}).concat(aaaa.answers.filter(function(x){return x.type===28;}));
+if(a.rcode===3)add('med','This domain name does not exist','DNS says there is no such domain (NXDOMAIN). The link leads nowhere: it may be mistyped, or a scam site that has already been taken down.');
+else if(!ips.length)add('low','The domain has no web address','It exists, but DNS gives no IP address for it, so a website cannot be opened there.');
+else{
+add('info','Resolves to '+ips.slice(0,4).map(function(x){return x.v;}).join(', ')+(ips.length>4?' …':''),'The addresses the domain points to right now.');
+var minTtl=Math.min.apply(null,ips.map(function(x){return x.ttl;}));
+if(minTtl<60)add('low','Very short DNS cache time ('+minTtl+' s)','CDNs use this, but so do throwaway scam sites that change address often.');
+}
+if(a.rcode!==3){
+if(ns.answers.length)add('info','Name servers: '+ns.answers.slice(0,3).map(function(x){return x.v;}).join(', '),'');
+if(!mx.answers.length)add('info','No mail records','The domain is not set up to receive email. Normal for many sites; odd for a company that mails you.');
+}
+w.appendChild(el('div','rep-note','DNS lookup'+(dnsVia?' (via '+dnsVia+')':'')));w.appendChild(ul);
+});
+}
+function purgeCaches(){
+try{if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations)navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){var u=(r.active&&r.active.scriptURL)||(r.waiting&&r.waiting.scriptURL)||(r.installing&&r.installing.scriptURL)||'';if(/[?&]n=1/.test(u))return;r.unregister();});});}catch(e){}
+try{if(window.caches)caches.keys().then(function(ns){ns.forEach(function(n){if(/^aiinfo-|^ai-v9-videos/.test(n))caches.delete(n);});});}catch(e){}
+}
+(function(){
+
+/* ---- version check with a percent bar: streams the newest page from Cloudflare and shows how much is downloaded.
+   It checks again when you come back to the tab and every 5 minutes, so a second new version is noticed too ---- */
+(function(){
+if(!/^https?:$/.test(location.protocol)||!window.fetch||!window.ReadableStream)return;
+function build(t){var m=/<meta name="app-build" content="([^"]*)"/.exec(t);return m?m[1]:'';}
+var cur=(document.querySelector('meta[name="app-build"]')||{}).content||'',known=cur,lastTag='',busy=false,bar=null,hideT=0;
+function mkBar(){var old=document.getElementById('verBar');if(old&&old.parentNode)old.parentNode.removeChild(old);var d=document.createElement('div');d.id='verBar';d.setAttribute('role','status');d.setAttribute('aria-live','polite');d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:100002;max-width:calc(100vw - 24px);box-sizing:border-box;white-space:nowrap;background:var(--bg2,#111);color:var(--text,#fff);border:1.5px solid var(--accent,#0f8);border-radius:999px;padding:5px 12px;font:600 12px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center;overflow:hidden';
+var t=document.createElement('span');t.id='verTxt';d.appendChild(t);var tr=document.createElement('span');tr.style.cssText='width:56px;height:6px;border-radius:4px;background:rgba(128,128,128,.35);overflow:hidden;flex:none';var f=document.createElement('span');f.id='verFill';f.style.cssText='display:block;height:100%;width:0;background:var(--accent,#0f8);transition:width .15s';tr.appendChild(f);d.appendChild(tr);document.body.appendChild(d);return d;}
+function say(txt,pct){clearTimeout(hideT);if(!bar||!bar.parentNode)bar=mkBar();document.getElementById('verTxt').textContent=txt;document.getElementById('verFill').style.width=Math.max(0,Math.min(100,pct||0))+'%';var o=bar.querySelector('button');if(o)o.remove();}
+function hide(ms){clearTimeout(hideT);hideT=setTimeout(function(){if(bar&&bar.parentNode)bar.parentNode.removeChild(bar);bar=null;},ms);}
+function check(first){
+if(busy)return;busy=true;
+var tm=first?setTimeout(function(){say('⬇ Checking… 0%',0);},400):0;
+fetch(location.pathname,{cache:'no-cache',headers:{'x-ver-check':'1'},credentials:'same-origin'}).then(function(res){
+if(!res.ok||!res.body)throw 0;
+var tag=res.headers.get('etag')||'';
+if(!first&&tag&&tag===lastTag){try{res.body.cancel();}catch(e){}return;}
+lastTag=tag;
+var total=Number(res.headers.get('x-page-bytes'))||Number(res.headers.get('content-length'))||0;
+var keep=res.clone(),rd=res.body.getReader(),got=0,parts=[];
+function pump(){return rd.read().then(function(r){
+if(r.done)return;parts.push(r.value);got+=r.value.length;
+if(first||total){var pc=total?Math.min(99,Math.round(got*100/total)):0;if(total)say('⬇ Updating… '+pc+'%',pc);else say('⬇ Updating… '+Math.round(got/1024)+' KB',50);}
+return pump();});}
+return pump().then(function(){
+clearTimeout(tm);tm=0;
+var u=new Uint8Array(got),o=0;parts.forEach(function(x){u.set(x,o);o+=x.length;});
+var nb=build(new TextDecoder().decode(u));
+if(nb&&nb!==cur){
+try{if(window.caches&&typeof cacheOK==='function'&&cacheOK()){caches.keys().then(function(ks){var k=ks.filter(function(x){return /^aiinfo-/.test(x);})[0];if(k)caches.open(k).then(function(c){c.put(new Request(location.origin+'/'),keep);});});}}catch(e){}
+known=nb;try{var oldT=document.getElementById('shareStatus');if(oldT&&/New version/i.test(oldT.textContent)){oldT.style.display='none';}}catch(e){}say('✅ New version ready',100);
+var bt=document.createElement('button');bt.type='button';bt.textContent='Reload';bt.style.cssText='border:0;border-radius:999px;padding:3px 10px;font-weight:700;cursor:pointer;background:var(--accent,#0f8);color:var(--bg,#000)';bt.onclick=function(){location.reload();};bar.appendChild(bt);hide(7000);}
+else if(first){say('✓ Up to date',100);hide(1000);}
+else if(bar)hide(0);
+});
+}).catch(function(){if(tm)clearTimeout(tm);if(bar)hide(0);}).then(function(){busy=false;});
+}
+function start(){check(true);}
+if(document.readyState==='complete')start();else window.addEventListener('load',start);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false);});
+window.addEventListener('online',function(){check(false);});
+setInterval(function(){if(!document.hidden)check(false);},300000);
+})();
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+window.addEventListener('load',function(){try{if(cacheOK())navigator.serviceWorker.register('sw.js').catch(function(){});else purgeCaches();}catch(e){}});
+try{navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='sw-updated'&&typeof toast==='function'&&!document.getElementById('verBar'))toast('New version installed — reload to update','var(--accent)');});}catch(e){}
+}
+var deferred=null,btn=document.getElementById('installBtn');
+if(!btn)return;
+function standalone(){try{return window.matchMedia('(display-mode: standalone)').matches||window.matchMedia('(display-mode: fullscreen)').matches||window.matchMedia('(display-mode: minimal-ui)').matches||window.matchMedia('(display-mode: window-controls-overlay)').matches||navigator.standalone===true||/[?&]source=pwa/.test(location.search);}catch(e){return false;}}
+function installed(){return standalone()||store.get('ai_installed')==='1';}
+function sync(){if(installed()){btn.hidden=true;btn.style.display='none';}}
+sync();
+try{window.matchMedia('(display-mode: standalone)').addEventListener('change',sync);}catch(e){}
+try{if(navigator.getInstalledRelatedApps)navigator.getInstalledRelatedApps().then(function(a){if(a&&a.length){store.set('ai_installed','1');sync();}}).catch(function(){});}catch(e){}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();if(installed())return;deferred=e;btn.hidden=false;});
+btn.title='Note: when the site is updated to a new version, this button may appear again by mistake.';btn.addEventListener('click',function(){if(!deferred)return;try{toast('ℹ️ Note: after a site update this Install button may appear again by mistake, even if the app is already installed.','#b7791f',7000);}catch(e){}deferred.prompt();deferred.userChoice.then(function(c){deferred=null;btn.hidden=true;if(c&&c.outcome==='accepted')store.set('ai_installed','1');});});
+window.addEventListener('appinstalled',function(){store.set('ai_installed','1');btn.hidden=true;btn.style.display='none';});
+if(standalone())store.set('ai_installed','1');
+})();
+initApi();
+window.toggleTheme=toggleTheme;window.hideKeyboard=hideKeyboard;
+window.doSearch=doSearch;window.filterSources=filterSources;window.toggleFavFilter=toggleFavFilter;window.toggleFav=toggleFav;
+window.doSummary=doSummary;window.closeSummary=closeSummary;window.doShare=doShare;window.doExport=doExport;
+window.saveProgress=saveProgress;window.loadProgress=loadProgress;window.loadBreaking=loadBreaking;
+window.openScam=openScam;window.closeScam=closeScam;window.runScam=runScam;
+window.handleFakeFile=handleFakeFile;window.clearFake=clearFake;window.loadTrending=loadTrending;
+/* ===================== v9: core ===================== */
+var V9={bg:false,stack:[]};
+function $(id){return document.getElementById(id);}
+function jget(k,d){try{var v=JSON.parse(store.get(k)||'null');return v==null?d:v;}catch(e){return d;}}
+function jset(k,v){store.set(k,JSON.stringify(v));}
+function country(){
+if(API.country)return API.country;
+var m=/-([A-Za-z]{2})\b/.exec(navigator.language||'');return m?m[1].toUpperCase():'US';
+}
+function xurl(route,q){var p=new URLSearchParams(q||{});p.set('country',country());if(route==='videos'||route==='feed')p.set('qv','2');return '/api/x/'+route+'?'+p.toString();}
+function waitApi(){return new Promise(function(res){var t0=Date.now();(function chk(){if(API.ok||API.done||Date.now()-t0>4000||!/^https?:$/.test(location.protocol))res();else setTimeout(chk,100);})();});}
+var XC={},XCT={define:3600000,videos:600000,feed:300000,digest:300000,article:900000,search:300000};
+function xget(route,q,timeout){
+var ttl=XCT[route],key=ttl?xurl(route,q):'',now=Date.now();
+if(key&&XC[key]){if(XC[key].j&&now-XC[key].t<ttl)return Promise.resolve(XC[key].j);if(XC[key].p)return XC[key].p;}
+var pr=waitApi().then(function(){if(!API.ok)throw new Error('needs-server');return apiFetch(xurl(route,q),{timeout:timeout||12000});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.ok===false)throw new Error(j.error||('http '+r.status));return j;});});
+if(key){XC[key]={t:now,p:pr};pr.then(function(j){XC[key]={t:Date.now(),j:j};},function(){delete XC[key];});}
+return pr;
+}
+function xpost(route,body,timeout,signal){
+return waitApi().then(function(){if(!API.ok)throw new Error('needs-server');return apiFetch('/api/x/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),timeout:timeout||25000,signal:signal});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.ok===false)throw new Error(j.error||('http '+r.status));return j;});});
+}
+function needsServer(box){box.textContent='';box.appendChild(el('div','v9-note','This feature needs the Cloudflare Worker (or the Node server). It is not available in this preview.'));}
+var DL_BUSY={};
+function extOf(type,url){
+var t=String(type||'').toLowerCase(),u=String(url||'').split(/[?#]/)[0].toLowerCase(),m=/\.(mp4|webm|ogv|ogg|mov|m4v)$/.exec(u);
+if(/^image\//.test(t))return/png/.test(t)?'png':/webp/.test(t)?'webp':/gif/.test(t)?'gif':'jpg';if(/webm/.test(t))return'webm';if(/ogg/.test(t))return'ogv';if(/mp4|mpeg4/.test(t))return'mp4';if(/quicktime/.test(t))return'mov';
+return m?(m[1]==='ogg'?'ogv':m[1]):'mp4';
+}
+function saveBlob(b,base){
+var u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=base+'.'+extOf(b.type);a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();
+setTimeout(function(){a.remove();URL.revokeObjectURL(u);},15000);
+}
+function dl(url,base,btn,cachedUrl){
+var key=url;if(DL_BUSY[key])return Promise.resolve();DL_BUSY[key]=1;
+var old=btn?btn.textContent:'';
+function ui(t){if(btn)btn.textContent=t;}
+function done(){delete DL_BUSY[key];setTimeout(function(){ui(old||'⬇️');if(btn)btn.disabled=false;},1200);}
+function fallback(){
+ui('↗');var a=document.createElement('a');a.href=safeUrl(url);a.target='_blank';a.rel='noopener noreferrer';a.style.display='none';document.body.appendChild(a);a.click();a.remove();
+toast('Opened in a new tab. Use the ⋮ menu → Download.','#ffaa00',4500);done();
+}
+if(btn)btn.disabled=true;ui('…');
+if(!cachedUrl&&/^https:\/\/([^\/]+\.)?(wikimedia|archive)\.org\//i.test(url)&&API.ok){
+var pa=document.createElement('a');pa.href='/api/dl?u='+encodeURIComponent(url)+'&n='+encodeURIComponent(base);pa.download=base;pa.style.display='none';document.body.appendChild(pa);pa.click();
+setTimeout(function(){pa.remove();},3000);ui('✓');toast('Download started','var(--accent)',2500);done();return Promise.resolve();
+}
+var src=cachedUrl?fetch(cachedUrl).then(function(r){return r.blob();}).then(function(b){return b;}):
+(function(){
+return fetch(url,{mode:'cors',credentials:'omit'}).then(function(r){
+if(!r.ok)throw 0;
+var len=Number(r.headers.get('content-length'))||0;
+if(len>200*1048576)throw 0; // too big to hold in memory: let the browser download it
+if(!r.body||!r.body.getReader)return r.blob();
+var rd=r.body.getReader(),parts=[],got=0;
+function pump(){return rd.read().then(function(x){
+if(x.done)return new Blob(parts,{type:r.headers.get('content-type')||''});
+parts.push(x.value);got+=x.value.length;
+if(got>200*1048576){try{rd.cancel();}catch(e){}throw 0;}
+ui(len?Math.round(100*got/len)+'%':Math.round(got/1048576)+' MB');return pump();});}
+return pump();
+});
+})();
+return src.then(function(b){
+if(!b||!b.size)throw 0;
+saveBlob(b,base);ui('✓');toast('Saved to your downloads','var(--accent)',2500);done();
+}).catch(fallback);
+}
+function labCard(ic,label,fn,bg){var g=document.querySelector('#scamLabBar .scam-grid');if(!g)return null;var c=el('div','scam-card');c.setAttribute('role','button');c.tabIndex=0;var i=el('div','icon',ic);i.style.background=bg||'color-mix(in srgb,var(--accent) 15%,transparent)';c.appendChild(i);c.appendChild(el('h4','',label));c.onclick=function(){fn();};c.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fn();}};g.appendChild(c);return c;}
+function mkBtn(txt,cls,fn){var b=el('button','v9-btn '+(cls||''),txt);b.type='button';if(fn)b.onclick=fn;return b;}
+/* ---- activity log (feeds EXPORT NEW INFORMATION) ---- */
+var ACT=jget('ai_v9_act',[]);
+function logAct(kind,data){
+ACT.push({t:new Date().toISOString(),k:kind,d:data});if(ACT.length>600)ACT=ACT.slice(-600);
+jset('ai_v9_act',ACT);
+}
+/* ---- panels + Esc ---- */
+function mkPanel(id,title){
+var p=el('div','v9-panel');p.id=id;p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-label',title);
+var h=el('div','v9-ph');h.appendChild(el('h2','',title));
+var x=el('button','v9-x','✕');x.type='button';x.setAttribute('aria-label','Close');x.onclick=function(){closePanel(id);};h.appendChild(x);
+var b=el('div','v9-pb');b.id=id+'Body';p.appendChild(h);p.appendChild(b);document.body.appendChild(p);return b;
+}
+function openPanel(id){
+var p=$(id);if(!p)return;if(V9.stack.indexOf(id)===-1)V9.stack.push(id);
+p.classList.add('open');document.documentElement.style.overflow='hidden';
+var ev=new CustomEvent('v9open');p.dispatchEvent(ev);
+}
+function closePanel(id){
+var p=$(id);if(!p)return;if(p.classList.contains('req'))return;p.classList.remove('open');V9.stack=V9.stack.filter(function(x){return x!==id;});
+if(!V9.stack.length)document.documentElement.style.overflow='';
+p.dispatchEvent(new CustomEvent('v9close'));
+}
+document.addEventListener('keydown',function(e){
+if(e.key!=='Escape')return;
+if(V9.stack.length){closePanel(V9.stack[V9.stack.length-1]);e.preventDefault();return;}
+var w=$('v9Welcome');if(w&&w.style.display==='flex'){v9WelcomeNext();return;}
+var s=$('aiSummary');if(s&&getComputedStyle(s).display!=='none'){closeSummary();return;}
+var o=$('scamLabOutput');if(o&&o.style.display!=='none'){closeScam();return;}
+});
+/* tooltip: hover a close (✕) button for 2 s */
+(function(){
+var tip=el('div');tip.id='v9Hint';document.body.appendChild(tip);var timer=null;
+function isX(t){return t&&t.tagName==='BUTTON'&&(t.classList.contains('v9-x')||/^✕/.test((t.textContent||'').trim())||t.getAttribute('aria-label')==='Close');}
+document.addEventListener('mouseover',function(e){
+var t=e.target.closest&&e.target.closest('button');if(!isX(t))return;clearTimeout(timer);
+timer=setTimeout(function(){var r=t.getBoundingClientRect();tip.textContent='Tip: you can also close this with the Esc key';
+tip.style.display='block';tip.style.left=Math.max(8,Math.min(innerWidth-250,r.left-120))+'px';tip.style.top=(r.bottom+8)+'px';},2000);
+});
+document.addEventListener('mouseout',function(e){var t=e.target.closest&&e.target.closest('button');if(isX(t)){clearTimeout(timer);tip.style.display='none';}});
+document.addEventListener('click',function(){clearTimeout(timer);tip.style.display='none';},true);
+})();
+/* ---- v64: pointer light + tilt on glass ---- */
+(function(){
+if(!window.matchMedia||!matchMedia('(hover:hover) and (pointer:fine)').matches||(window.AI_RMQ&&AI_RMQ()))return;
+var SEL='.v9-card,.scam-card,.fd-post,.vd-card,.tool-card,.std-card,#v9Bar button,.hdr-chip',cur=null,raf=0,ev=null;
+function upd(){raf=0;if(!cur||!ev)return;var r=cur.getBoundingClientRect(),x=(ev.clientX-r.left)/r.width,y=(ev.clientY-r.top)/r.height;
+var big=r.width>260||r.height>200,k=big?2.2:5;
+cur.style.setProperty('--mx',(x*100).toFixed(1)+'%');cur.style.setProperty('--my',(y*100).toFixed(1)+'%');
+cur.style.setProperty('--ry',((x-.5)*k).toFixed(2)+'deg');cur.style.setProperty('--rx',((.5-y)*k).toFixed(2)+'deg');}
+document.addEventListener('pointermove',function(e){if(e.pointerType&&e.pointerType!=='mouse')return;var t=e.target.closest&&e.target.closest(SEL);
+if(t!==cur){if(cur){cur.style.removeProperty('--rx');cur.style.removeProperty('--ry');}cur=t;}
+if(!cur)return;ev=e;if(!raf)raf=requestAnimationFrame(upd);},{passive:true});
+document.addEventListener('pointerleave',function(){if(cur){cur.style.removeProperty('--rx');cur.style.removeProperty('--ry');cur=null;}},true);
+})();
+/* ---- title sun-glint ---- */
+(function(){
+var h=document.querySelector('.header h1');if(!h)return;var n=h.firstChild;if(!n||n.nodeType!==3)return;
+var txt=n.nodeValue.trim(),f=document.createDocumentFragment();
+for(var i=0;i<txt.length;i++){var c=txt[i];if(c===' '){f.appendChild(document.createTextNode(' '));continue;}var s=el('span','ttl-l',c);s.style.setProperty('--i',i);s.setAttribute('aria-hidden','true');f.appendChild(s);}
+h.insertBefore(f,n);h.removeChild(n);h.setAttribute('aria-label',txt);h.setAttribute('data-t',txt);
+})();
+/* ---- welcome (shown once) + greeting ---- */
+function hasCookie(n){return document.cookie.split(';').some(function(c){return c.trim().indexOf(n+'=')===0;});}
+var welcomeSession=false;
+function welcomeSeen(){return welcomeSession||!!(CONS&&CONS.w);}
+try{if(hasCookie('ai_welcome'))document.cookie='ai_welcome=; Max-Age=0; Path=/';}catch(e){}
+function v9WelcomeNext(){
+welcomeSession=true;if(CONS){CONS.w=1;consSave();}
+var w=$('v9Welcome');if(w)w.style.display='none';showGreeting();
+}
+function greetText(){
+var h=new Date().getHours();
+if(h>=5&&h<11)return 'Good morning! Have a great day!';
+if(h>=11&&h<14)return 'Good day! Welcome!';
+if(h>=14&&h<18)return 'Good afternoon! Welcome!';
+if(h>=18&&h<23)return 'Good evening! Enjoy your evening!';
+return 'Good night! Welcome, you are up late.';
+}
+function showGreeting(){
+var g=$('greetCard');if(!g)return;g.textContent='👋 '+greetText();g.style.display='block';
+setTimeout(function(){g.style.display='none';},9000);
+}
+function welcomeSeen(){return welcomeSession||!!(CONS&&CONS.w);}
+function tutorialDone(){welcomeSession=true;if(CONS){CONS.w=1;consSave();}}
+function v9WelcomeNext(){tutorialDone();var w=$('v9Welcome');if(w)w.style.display='none';showGreeting();}
+function openTutorial(){var w=$('v9Welcome');if(w){w.style.display='flex';tutorialRender('choose');}}
+function tutorialTry(mode,index){var actions=[
+function(){openPanel('v9Std');},
+function(){openScam('url');$('scamLabBar').scrollIntoView({behavior:'smooth',block:'start'});},
+function(){openScam('text');$('scamLabBar').scrollIntoView({behavior:'smooth',block:'start'});},
+function(){var x=$('fakeFileInput');if(x)x.click();},
+function(){$('breakingNewsBar').scrollIntoView({behavior:'smooth',block:'start'});},
+function(){openChat();},
+function(){openTip();},
+function(){openWeekly();},
+function(){openVideos();},
+function(){openPanel('v9Tr');},
+function(){openPanel('v9Dict');},
+function(){openPanel('v9Tools');},
+function(){openPanel('v9Weather');},
+function(){openPanel('v9Age');},
+function(){openPanel('v9A11y');},
+function(){openPanel('v9Color');},
+function(){openPanel('v9Cache');},
+function(){openPanel('v9Clear');},
+function(){openPanel('v9Calc');},
+function(){openPanel('v9Remind');},
+function(){openPanel('v9Quiz');},
+function(){openPanel('v9Lang');},
+function(){openPanel('v9Share');},
+function(){openPanel('v9Quote');}
+];tutorialDone();var w=$('v9Welcome');if(w)w.style.display='none';try{actions[index]();}catch(e){toast('Open this feature from its section on the page.','#ffaa00',3500);}}
+function tutorialRender(page){var w=$('v9Welcome');if(!w)return;w.textContent='';var b=el('div','box');w.appendChild(b);
+function btn(label,cls,fn){var x=mkBtn(label,cls,fn);x.style.cssText='width:100%;margin-top:9px;padding:12px;font-size:15px';b.appendChild(x);}
+b.appendChild(el('h2','',page==='choose'?'Welcome to AI INFORMATION':page==='read'?'A guide to the site':'Try the features'));
+if(page==='choose'){
+b.appendChild(el('p','','Explore a search and safety toolkit with sources, news, media, language and everyday tools. Choose how you want to learn. You can skip now and reopen this guide any time with the ? button.'));
+btn('📖 Read the guide','pri',function(){tutorialRender('read');});btn('🖱️ Interactive tour','',function(){tutorialRender('try');});btn('Skip for now','',v9WelcomeNext);
+}else if(page==='read'){
+b.appendChild(el('p','','Use these examples as a quick map. Search results come from public sources; compare them and check important claims at the original pages.'));
+var groups=[
+['Search and research','Classic search checks a broad directory of 1918 sources. Standard Mode searches public sources, images and news, with filters and source comparison. Example: search “renewable energy”, then compare two different sources or search for a quote’s wider context.'],
+['Safety and media','Scam Lab checks URLs and message text with AI. Fake Image Checker can inspect image/video signals; the QR reader is in Tools. Example: paste a suspicious address into URL Scanner. No automated check can guarantee a link is safe.'],
+['News and discovery','LIVE RADAR shows recent tech stories; Feed (with Videos and Posts choices) and Weekly security report offer more to explore. Example: open a headline, then save or share it.'],
+['Chat and learning','AI Chat can answer with an open AI model (such as Google Gemma or Meta Llama on Cloudflare Workers AI, not ChatGPT) together with public sources; if the AI is unavailable it falls back to scripts and cited sources. AI Tips and Security Quiz provide short lessons. Example: ask a factual question and open the cited source.'],
+['Language and everyday tools','Translator, Dictionary, language choice, Calculator and Reminders help with everyday tasks. Example: translate a short phrase or set a reminder.'],
+['Personalization and privacy','Weather, age/content filters, theme and accent colors, accessibility settings, storage consent, cache and quick clear are available. Share, export and Beta are also in the site. Example: adjust text size in Accessibility.']
+];groups.forEach(function(g){b.appendChild(el('h3','',g[0]));b.appendChild(el('p','',g[1]));});
+b.appendChild(el('p','v9-note','For safety results, “no warning found” does not mean a link is guaranteed safe. The chat and summaries can be incomplete; check original sources.'));
+btn('Start using the site','pri',v9WelcomeNext);btn('Back','',function(){tutorialRender('choose');});btn('Skip tutorial','',v9WelcomeNext);
+}else{
+b.appendChild(el('p','','Each card gives a sample use. Press Try to open that feature; the guide will close. Reopen it later with the ? button.'));
+var lessons=[
+['🔎 Search and compare','Search “climate change” across many sources; in Standard Mode select two results to compare, or try Random comparison.',0],
+['🛡️ Check a link','Paste a suspicious URL and review the local and available safety checks.',1],
+['📝 Check a message','Paste a suspicious SMS or email and inspect the warning signs.',2],
+['🖼️ Check media','Choose an image or video to inspect available authenticity signals.',3],
+['📡 Read current news','Browse LIVE RADAR and the feed for recent stories.',4],
+['🤖 Ask the helper','Ask a factual question; check the public sources it returns.',5],
+['💡 Learn a tip','Open a short privacy or security tip.',6],
+['🛡️ Weekly report','Read the weekly security digest and its linked sources.',7],
+['🎬 Find videos','Search video archives and open a result in the player.',8],
+['🌍 Translate','Translate text or a web page.',9],
+['📖 Dictionary','Look up a word and its definitions.',10],
+['🧰 Privacy tools and QR reader','Open Tools for the password generator, PDF/photo checks and QR reader.',11],
+['🌤️ Weather','See current weather information.',12],
+['👶 Age and content settings','Set an age choice and content filter.',13],
+['♿️ Accessibility','Adjust text, contrast and motion settings.',14],
+['🎨 Appearance','Change accent color and theme.',15],
+['💾 Offline cache','Inspect the saved feed/video cache.',16],
+['🧹 Storage and consent','Review storage choices and clear saved data.',17],
+['🧮 Calculator','Try a calculation.',18],
+['⏰ Reminders','Create a reminder or export it to a calendar.',19],
+['🎮 Security quiz','Try a short security knowledge quiz.',20],
+['🌐 Language choice','Choose a language for supported parts of the site.',21],
+['📤 Share and export','Use the page’s Share or Export controls after a search.',22],
+['🔎 Find quote context','Paste any word, phrase or sentence. Search public sources, then inspect readable results for matching wording and surrounding text. Short phrases may be less specific; open the original source for more context.',23]
+];lessons.forEach(function(item){var c=el('div','v9-card');c.style.margin='8px 0';c.appendChild(el('b','',item[0]));c.appendChild(el('p','',item[1]));var x=mkBtn('Try this','',function(){tutorialTry('try',item[2]);});x.style.cssText='padding:8px 14px';c.appendChild(x);b.appendChild(c);});
+btn('Finish tutorial','pri',v9WelcomeNext);btn('Skip tutorial','',v9WelcomeNext);btn('Back','',function(){tutorialRender('choose');});
+}
+w.setAttribute('role','dialog');w.setAttribute('aria-modal','true');}
+function buildWelcome(){var w=el('div');w.id='v9Welcome';var header=document.querySelector('.header');if(header&&!$('tutorialBtn')){var help=mkBtn('? Guide','',openTutorial);help.id='tutorialBtn';help.setAttribute('aria-label','Open tutorial');header.appendChild(help);}document.body.appendChild(w);tutorialRender('choose');return w;}
+/* ---- SHARE ---- */
+function shareText(){
+var lines=['AI Information'+(currentQuery?' – '+currentQuery:''),''];
+if(typeof currentSources!=='undefined'&&currentSources.length){currentSources.slice(0,200).forEach(function(x){lines.push('• '+x.source+': '+x.url);});lines.push('');}
+lines.push(location.href);return lines.join('\n');
+}
+function doShare(){
+hideKeyboard();
+var body=$('v9ShareBody');body.textContent='';
+var mode=store.get('ai_share_mode')||'text';
+body.appendChild(el('div','v9-note','Choose what to send:'));
+var row=el('div','v9-row'),tb=el('button','v9-tab'+(mode==='text'?' on':''),'📝 As text'),fb=el('button','v9-tab'+(mode==='file'?' on':''),'📎 As a file');
+tb.type=fb.type='button';
+function setMode(m){mode=m;store.set('ai_share_mode',m);tb.classList.toggle('on',m==='text');fb.classList.toggle('on',m==='file');}
+tb.onclick=function(){setMode('text');};fb.onclick=function(){setMode('file');};row.appendChild(tb);row.appendChild(fb);body.appendChild(row);
+var ta=el('textarea','v9-in');ta.rows=7;ta.style.width='100%';ta.value=shareText();body.appendChild(ta);
+var r2=el('div','v9-row');
+r2.appendChild(mkBtn('📲 Share to apps…','pri',function(){
+var t=ta.value,nav=navigator;
+if(mode==='file'&&nav.canShare){
+var f=new File([t],'ai-information.txt',{type:'text/plain'});
+if(nav.canShare({files:[f]})){nav.share({files:[f],title:'AI Information'}).then(function(){logAct('share','file');}).catch(function(){});return;}
+}
+if(nav.share){nav.share({title:'AI Information',text:t,url:location.href}).then(function(){logAct('share','text');}).catch(function(){});return;}
+toast('Your browser has no share menu. Use the buttons below.','#ffaa00',4000);
+}));
+r2.appendChild(mkBtn('🔗 Copy link','',function(){
+if(navigator.clipboard)navigator.clipboard.writeText(location.href).then(function(){toast('Link copied');logAct('share','copy link');},function(){toast('Copy failed','#ff4444');});
+}));
+r2.appendChild(mkBtn('📋 Copy text','',function(){if(navigator.clipboard)navigator.clipboard.writeText(ta.value).then(function(){toast('Copied');});}));
+r2.appendChild(mkBtn('⬇️ Download .txt','',function(){saveFile('ai-information-share.txt',ta.value,'text/plain');logAct('share','download');}));
+body.appendChild(r2);
+body.appendChild(el('div','v9-note','Or open a messenger directly (mobile):'));
+var r3=el('div','v9-row'),enc=encodeURIComponent;
+[['Viber',function(){return 'viber://forward?text='+enc(ta.value);}],['Messenger',function(){return 'fb-messenger://share/?link='+enc(location.href);}],['WhatsApp',function(){return 'https://wa.me/?text='+enc(ta.value);}],['Telegram',function(){return 'https://t.me/share/url?url='+enc(location.href)+'&text='+enc(ta.value.slice(0,500));}],['Email',function(){return 'mailto:?subject='+enc('AI Information')+'&body='+enc(ta.value);}]].forEach(function(a){
+r3.appendChild(mkBtn(a[0],'',function(){window.location.href=a[1]();logAct('share',a[0]);}));});
+body.appendChild(r3);
+openPanel('v9Share');
+}
+/* ---- EXPORT NEW INFORMATION ---- */
+function doExport(){
+hideKeyboard();
+var L=[],hr=function(t){L.push('');L.push('=== '+t+' ===');};
+L.push('AI INFORMATION – EXPORT NEW INFORMATION');L.push('Generated: '+new Date().toISOString());L.push('Page: '+location.href);
+hr('Current search');L.push('Query: '+(currentQuery||'(none)'));
+if(currentSources.length){L.push('Sources: '+currentSources.length);currentSources.forEach(function(x){L.push('['+(x.id+1)+'] '+x.source+' ('+x.type+') – '+x.title);L.push('    '+x.url);});}
+hr('Favorites');L.push(favorites.length?favorites.join(', '):'(none)');
+hr('LIVE RADAR (shown now)');
+[].forEach.call(document.querySelectorAll('#breakingNewsScroll a.breaking-item'),function(a){L.push('• '+a.textContent.replace(/\s+/g,' ').trim());L.push('    '+a.href);});
+hr('Saved radar stories');var sv=jget('ai_v9_saved',[]);if(!sv.length)L.push('(none)');sv.forEach(function(s){L.push('• '+s.title+' ('+s.time+')');L.push('    '+s.url);});
+hr('Trending');L.push([].map.call(document.querySelectorAll('#trendingScroll > *'),function(x){return x.textContent.trim();}).join(' | ')||'(none)');
+hr('Scam Lab');var any=false;ACT.forEach(function(a){if(a.k==='scam'){any=true;L.push('['+a.t+'] '+a.d.mode+': '+a.d.input);if(a.d.result)L.push('    Result: '+a.d.result);}});if(!any)L.push('(nothing run)');
+var sr=$('scamResult');if(sr&&sr.textContent.trim()){L.push('Latest result on screen:');L.push(sr.innerText.trim());}
+hr('Fake Image Checker');any=false;ACT.forEach(function(a){if(a.k==='fake'){any=true;L.push('['+a.t+'] '+a.d.name+' ('+a.d.type+', '+fmtBytes(a.d.size)+')');if(a.d.result)L.push('    '+a.d.result);}});if(!any)L.push('(nothing checked)');
+hr('AI Chat');var ch=jget('ai_v9_chat',[]);if(!ch.length)L.push('(no conversation)');ch.forEach(function(m){L.push((m.role==='user'?'You: ':'AI: ')+m.content);});
+hr('AI tips');var tp=jget('ai_v9_tips',[]);if(!tp.length)L.push('(none)');tp.forEach(function(t){L.push('['+t.t+'] ('+t.topic+') '+t.text);});
+hr('Videos / feed / weather');
+ACT.forEach(function(a){if(/^(video|weather|feed|player)$/.test(a.k))L.push('['+a.t+'] '+a.k+': '+(typeof a.d==='string'?a.d:JSON.stringify(a.d)));});
+var wx=$('wxChip');if(wx)L.push('Weather chip: '+wx.textContent.trim());
+hr('Everything you did in this site (newest last)');
+ACT.forEach(function(a){L.push('['+a.t+'] '+a.k+' '+(typeof a.d==='string'?a.d:JSON.stringify(a.d)).slice(0,300));});
+logAct('export','new information');
+saveFile('ai-information-export-'+new Date().toISOString().slice(0,10)+'.txt',L.join('\n'),'text/plain');
+}
+/* ---- hooks that feed the activity log ---- */
+(function(){
+var _s=window.doSearch;window.doSearch=doSearch=function(){var q=(($('q')||{}).value||'').trim();if(q){var rc=jget('ai_v9_recent',[]).filter(function(x){return x.toLowerCase()!==q.toLowerCase();});rc.unshift(q);jset('ai_v9_recent',rc.slice(0,10));}var r=_s.apply(this,arguments);logAct('search',q);return r;};
+var _r=window.runScam;window.runScam=runScam=function(){
+var mode=scamMode,inp=mode==='url'?$('scamInput').value:$('scamText').value.slice(0,300);var r=_r.apply(this,arguments);
+setTimeout(function(){var box=$('scamResult');logAct('scam',{mode:mode,input:inp,result:box?box.innerText.replace(/\s+/g,' ').slice(0,400):''});},2500);
+if(mode==='url'&&String(inp||'').trim())multiScan(inp);return r;};
+var _h=window.handleFakeFile;window.handleFakeFile=handleFakeFile=function(f){
+var r=_h.apply(this,arguments);if(f){setTimeout(function(){var a=$('fakeAnalysis');logAct('fake',{name:f.name,type:f.type,size:f.size,result:a?a.innerText.replace(/\s+/g,' ').slice(0,400):''});},3500);}return r;};
+var _t=window.toggleTheme;window.toggleTheme=toggleTheme=function(){var r=_t.apply(this,arguments);logAct('theme',document.body.classList.contains('light-theme')?'light':'dark');return r;};
+})();
+/* ---- LIVE RADAR: refresh interval + save stories ---- */
+var radarEvery=Math.max(10,parseInt(store.get('ai_radar_every')||'30',10)||30);
+function setRadarEvery(sec){
+radarEvery=Math.max(10,Math.min(86400,sec|0||30));store.set('ai_radar_every',String(radarEvery));
+if(typeof radarTimer!=='undefined'){clearInterval(radarTimer);}
+radarTimer=setInterval(function(){if(!document.hidden)loadBreaking(true);},radarEvery*1000);
+toast('News refresh every '+(radarEvery>=60?(radarEvery/60)+' min':radarEvery+' s'));logAct('radar','interval '+radarEvery+'s');
+}
+function savedStories(){return jget('ai_v9_saved',[]);}
+function saveStory(title,url,meta){
+var s=savedStories();if(s.some(function(x){return x.url===url;})){toast('Already saved','#ffaa00');return;}
+s.push({title:title,url:url,time:meta||new Date().toLocaleString(),saved:new Date().toISOString()});jset('ai_v9_saved',s);
+updSaved();toast('Story saved');logAct('radar','saved '+title);
+}
+function updSaved(){var b=$('radarSaved');if(b)b.textContent='💾 '+'Saved'+' ('+savedStories().length+')';}
+function downloadStories(){
+var s=savedStories();if(!s.length){toast('No saved stories yet','#ff4444');return;}
+var L=['AI INFORMATION – saved stories','Created: '+new Date().toISOString(),'(Browsers cannot read other sites\' article text, so each entry has the title, link, time and score.)',''];
+s.forEach(function(x,i){L.push((i+1)+'. '+x.title);L.push('   Link: '+x.url);L.push('   Time: '+x.time);L.push('   Saved: '+x.saved);L.push('');});
+saveFile('ai-information-saved-stories.txt',L.join('\n'),'text/plain');
+}
+(function(){
+var _rr=window.renderRadar;
+window.renderRadar=renderRadar=function(items,note,markNew){
+_rr.apply(this,arguments);
+[].forEach.call(document.querySelectorAll('#breakingNewsScroll a.breaking-item'),function(a,i){
+if(a.parentNode.className==='ri-wrap')return;
+var h=items[i];if(!h)return;var w=el('div','ri-wrap');w.className='ri-wrap';w.style.cssText='display:flex;gap:4px;align-items:stretch';
+a.parentNode.insertBefore(w,a);w.appendChild(a);a.style.flex='1';
+var sb=el('button','save-btn','💾');sb.type='button';sb.title='Save this story';sb.setAttribute('aria-label','Save story');
+sb.onclick=function(){saveStory(h.t,h.u,(h.a?new Date(h.a*1000).toLocaleString():'')+(h.p>0?' · ▲ '+h.p:''));};w.appendChild(sb);
+});
+};
+var bar=$('breakingNewsBar');if(!bar)return;
+var tools=el('div','radar-tools');
+tools.appendChild(el('span','','Auto-refresh every'));
+var inp=el('input');inp.type='number';inp.min='1';inp.value=radarEvery>=60&&radarEvery%60===0?radarEvery/60:radarEvery;inp.setAttribute('aria-label','Interval');
+var sel=el('select');sel.setAttribute('aria-label','Unit of time');[['s','seconds'],['m','minutes']].forEach(function(o){var op=el('option','',o[1]);op.value=o[0];sel.appendChild(op);});sel.value=radarEvery>=60&&radarEvery%60===0?'m':'s';
+var ok=el('button','','Set');inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();ok.click();}});ok.type='button';ok.onclick=function(){var v=parseFloat(inp.value);if(!(v>0)){toast('?','#ff4444');return;}setRadarEvery(sel.value==='m'?Math.round(v*60):Math.round(v));};
+var sv=el('button','');sv.id='radarSaved';sv.type='button';sv.onclick=downloadStories;
+tools.appendChild(inp);tools.appendChild(sel);tools.appendChild(ok);tools.appendChild(sv);
+bar.insertBefore(tools,$('breakingNewsScroll'));updSaved();
+if(radarEvery!==30)setTimeout(function(){setRadarEvery(radarEvery);},0);
+})();
+/* ---- AI TIP ---- */
+var tipState={topic:store.get('ai_tip_topic')||'security',every:parseInt(store.get('ai_tip_every')||'3600',10)||3600};
+function tipToCard(t){var c=$('tipCard');if(!c)return;c.textContent='';c.appendChild(el('b','','💡 '+'AI tip'));c.appendChild(el('div','',t.text));if(t.source){c.appendChild(el('small','',t.source));}c.style.display='block';}
+/* ===== shared AI helper: one "Ask AI" block for every tool (server task names are fixed on the server) ===== */
+
+
+
+
+
+/* ---- Features menu: switch whole features off and on (hidden and stopped) ---- */
+var FT={mem:null,
+off:function(){if(!FT.mem){FT.mem={};try{var a=jget('ai_v9_ftoff',[]);(Array.isArray(a)?a:[]).forEach(function(k){if(/^[a-z0-9]{2,20}$/.test(String(k)))FT.mem[k]=1;});}catch(e){}}return FT.mem;},
+on:function(id){return !FT.off()[id];},
+set:function(id,v){var o=FT.off();if(v)delete o[id];else o[id]=1;try{jset('ai_v9_ftoff',Object.keys(o));}catch(e){}FT.css();},
+css:function(){var st=document.getElementById('ftStyle');if(!st){st=document.createElement('style');st.id='ftStyle';document.head.appendChild(st);}st.textContent=Object.keys(FT.off()).map(function(k){return'[data-ft~="'+k+'"]{display:none!important}';}).join('\n');},
+rules:[['feed','#feedBar'],['news','#breakingNewsBar'],['trending','#trendingBar'],['weekly','#weeklyCard'],['tip','#tipCard'],['fakeimg','#fakeCheckerBar'],['weather','#wxChip'],
+['chat','#v9Bar button',/AI Chat/],['quote','#v9Bar button',/Quote context/],['compare','#v9Bar button',/Compare/],['weather','#v9Bar button',/Weather/],['dict','#v9Bar button',/Dictionary/],['translator','#v9Bar button',/Translator/],['calc','#v9Bar button',/Calculator/],['reminders','#v9Bar button',/Reminders/],['install','#v9Bar button',/Install/],
+['urlscan','.scam-card',/URL Scanner/],['textan','.scam-card',/Text Analyzer/],['weekly','.scam-card',/Weekly/],['tip','.scam-card',/AI Tip/],['tools','.scam-card',/Tools/],['quiz','.scam-card',/Quiz/]],
+tag:function(){FT.rules.forEach(function(r){[].forEach.call(document.querySelectorAll(r[1]),function(e){if(r[2]&&!r[2].test(e.getAttribute('data-ft-txt')||e.textContent))return;if(r[2]&&!e.getAttribute('data-ft-txt'))e.setAttribute('data-ft-txt',e.textContent);var c=(e.getAttribute('data-ft')||'').split(' ').filter(Boolean);if(c.indexOf(r[0])<0){c.push(r[0]);e.setAttribute('data-ft',c.join(' '));}});});}};
+window.FT=FT;
+
+
+/* aiBlock(label, task, getReq, opts): getReq() returns {text,extra,question,image} or a string (a message to show instead);
+   opts.render(el,res) draws a custom result, opts.auto runs at once, opts.hint is a small note under the button */
+
+
+function imgToDataUrl(file){
+return new Promise(function(res,rej){
+if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type))return rej(new Error('Use a PNG, JPEG, WebP or GIF image.'));
+var u=URL.createObjectURL(file),im=new Image();
+im.onload=function(){try{var m=Math.max(im.naturalWidth,im.naturalHeight)||1,sc=Math.min(1,1024/m),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*sc));c.height=Math.max(1,Math.round(im.naturalHeight*sc));var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+var q=0.85,d=c.toDataURL('image/jpeg',q);while(d.length>1600000&&q>0.4){q-=0.15;d=c.toDataURL('image/jpeg',q);}URL.revokeObjectURL(u);if(d.length>1650000)rej(new Error('The image is too large.'));else res(d);}catch(e){URL.revokeObjectURL(u);rej(e);}};
+im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('This image could not be opened.'));};
+im.src=u;});
+}
+var TEXTEXT=/\.(txt|md|csv|tsv|json|xml|html?|css|js|mjs|ts|py|sh|bat|cmd|ps1|vbs|php|rb|pl|java|c|cpp|h|cs|go|rs|sql|ini|cfg|conf|yml|yaml|toml|log|eml|reg|inf|lnk|url|desktop|svg)$/i;
+/* read a file in the browser only to show it to the AI: it is never run, opened as a page or sent anywhere else */
+function fileForAi(file){
+if(!file)return Promise.reject(new Error('No file.'));
+if(file.size>8*1048576)return Promise.reject(new Error('The file is bigger than 8 MB.'));
+if(/^image\/(png|jpeg|webp|gif)$/.test(file.type))return imgToDataUrl(file).then(function(d){return{task:'chat_image',image:d,name:file.name,kind:'image'};});
+if(/^text\//.test(file.type)||/json|xml|javascript|x-sh|x-python/.test(file.type)||TEXTEXT.test(file.name))
+return file.slice(0,24000).text().then(function(t){return{task:'chat_file',text:'File name: '+file.name+' ('+file.size+' bytes)\n'+t,name:file.name,kind:'text'};});
+return file.arrayBuffer().then(function(buf){
+var u8=new Uint8Array(buf),head=Array.prototype.slice.call(u8.slice(0,16)).map(function(x){return('0'+x.toString(16)).slice(-2);}).join(' ');
+var strs=[],cur='';for(var i=0;i<Math.min(u8.length,2*1048576);i++){var c=u8[i];if(c>=32&&c<127){cur+=String.fromCharCode(c);}else{if(cur.length>=6)strs.push(cur);cur='';}if(strs.length>=700)break;}if(cur.length>=6)strs.push(cur);
+var st=strs.join('\n').slice(0,16000);
+return(crypto&&crypto.subtle?crypto.subtle.digest('SHA-256',buf).then(function(h){return Array.prototype.map.call(new Uint8Array(h),function(x){return('0'+x.toString(16)).slice(-2);}).join('');}):Promise.resolve('n/a')).then(function(sha){
+return{task:'chat_file',text:'BINARY FILE (not opened or run; the AI only sees these facts)\nName: '+file.name+'\nType: '+(file.type||'unknown')+'\nSize: '+file.size+' bytes\nSHA-256: '+sha+'\nFirst 16 bytes (hex): '+head+'\nReadable strings found inside:\n'+st,name:file.name,kind:'binary'};});
+});
+}
+
+/* ===== AI video finder: the AI only CHOOSES among videos our own script found in Internet Archive / Wikimedia; the script then caches and plays them ===== */
+var VID_OK=/archive\.org|wikimedia|wikipedia|commons/i;
+
+
+
+
+
+var tipTimer=null;
+
+/* ---- LIVE SEARCH (VERIFY) ---- */
+function liveSearch(q,box){
+box.textContent='';box.appendChild(el('div','v9-note','🌐 Searching the internet live…'));
+function esc2(x){return String(x||'');}
+function browserSearch(){
+var out=[];
+var w=fetch('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srlimit=4&srsearch='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){((j.query||{}).search||[]).forEach(function(x){out.push({title:x.title,url:'https://en.wikipedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),source:'Wikipedia',text:String(x.snippet||'').replace(/<[^>]+>/g,'')});});}).catch(function(){});
+var h=fetch('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=4&query='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){(j.hits||[]).forEach(function(x){if(x.title)out.push({title:x.title,url:x.url||('https://news.ycombinator.com/item?id='+x.objectID),source:'Hacker News',text:''});});}).catch(function(){});
+var g=fetch('https://api.gdeltproject.org/api/v2/doc/doc?mode=artlist&format=json&maxrecords=5&sort=datedesc&query='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){(j.articles||[]).forEach(function(x){out.push({title:x.title,url:x.url,source:x.domain||'News',text:''});});}).catch(function(){});
+return Promise.all([w,h,g]).then(function(){return{results:out,browser:true};});
+}
+var lk=q.toLowerCase().trim(),saved=(jget('ai_v9_live',{})[lk])||null;
+var src=netUp()?xget('search',{q:q},20000).catch(browserSearch):Promise.resolve({results:[]});
+src.then(function(j){
+box.textContent='';
+var rs=(j&&j.results)||[],off=false;
+if(rs.length){var all=jget('ai_v9_live',{});all[lk]={t:Math.floor(Date.now()/1000),r:rs.slice(0,12)};var ks=Object.keys(all);if(ks.length>30)ks.slice(0,ks.length-30).forEach(function(k){delete all[k];});jset('ai_v9_live',all);}
+else if(saved){rs=saved.r;off=true;}
+box.appendChild(el('b','','🌐 Live search results'));
+if(off)box.appendChild(el('div','v9-note','Showing the results saved '+ago(saved.t)+' (no live connection).'));
+if(!rs.length){box.appendChild(el('div','v9-note',netUp()?'No live results found (sources may be unreachable right now). Use the source buttons below.':'You are offline and this search has no saved results yet.'));return;}
+rs.slice(0,12).forEach(function(r){
+var u=safeUrl(r.url);if(!u)return;
+var d=el('div','');d.style.cssText='margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)';
+var a=el('a','',esc2(r.title));a.href=u;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='font-weight:700;color:var(--accent)';d.appendChild(a);
+d.appendChild(el('div','v9-note',esc2(r.source)));if(r.text)d.appendChild(el('div','',esc2(r.text).slice(0,260)));
+box.appendChild(d);});
+logAct('search','live: '+q);
+}).catch(function(){box.textContent='Live search failed. Use the source buttons below.';});
+}
+/* ---- LOW DATA MODE ---- */
+function LOW(){return store.get('ai_lowdata')==='1';}
+function setLow(on){store.set('ai_lowdata',on?'1':'0');document.body.classList.toggle('lowdata',!!on);var b=$('lowBtn');if(b){b.classList.toggle('on',!!on);b.textContent=on?'📶 Low data: ON':'📶 Low data';}}
+(function(){var c=navigator.connection;if(store.get('ai_lowdata')===null&&c&&(c.saveData||/(^|-)2g$/.test(c.effectiveType||'')))store.set('ai_lowdata','1');document.body.classList.toggle('lowdata',LOW());})();
+/* ---- WEEKLY SECURITY REPORT ---- */
+function weekKey(d){d=d||new Date();var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);var y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return t.getUTCFullYear()+'-W'+Math.ceil(((t-y)/864e5+1)/7);}
+function weeklyDue(d){d=d||new Date();var g=d.getDay();return(g===6||g===0)&&store.get('ai_weekly_seen')!==weekKey(d);}
+var WK_TITLES={scams:'🎣 Scams & phishing',vulns:'🐛 Vulnerabilities, breaches & malware',privacy:'🔒 Privacy'};
+function weeklyFetch(){
+return xget('digest',{},25000).catch(function(){
+var now=Math.floor(Date.now()/1000),from=now-7*86400;
+var qs={scams:'phishing scam',vulns:'vulnerability CVE breach ransomware',privacy:'privacy tracking'};
+var out={from:from,to:now,sections:{scams:[],vulns:[],privacy:[]},sources:['Hacker News'],total:0,fallback:true};
+return Promise.all(Object.keys(qs).map(function(k){
+return fetch('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=6&numericFilters='+encodeURIComponent('created_at_i>'+from)+'&query='+encodeURIComponent(qs[k])).then(function(r){return r.json();}).then(function(j){
+(j.hits||[]).forEach(function(h){if(h.title)out.sections[k].push({title:h.title,url:h.url||('https://news.ycombinator.com/item?id='+h.objectID),text:'',t:h.created_at_i,source:'Hacker News'});});
+}).catch(function(){});
+})).then(function(){out.total=out.sections.scams.length+out.sections.vulns.length+out.sections.privacy.length;if(!out.total)throw new Error('none');return out;});
+});
+}
+function weeklyText(d){
+var f=function(t){return new Date(t*1000).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};
+var o='WEEKLY SECURITY REPORT\n'+f(d.from)+' - '+f(d.to)+'\n\n'+(d.ai?d.ai+'\n\n':'');
+Object.keys(WK_TITLES).forEach(function(k){o+=WK_TITLES[k]+'\n';var a=(d.sections&&d.sections[k])||[];if(!a.length)o+='  (nothing found this week)\n';a.forEach(function(x){o+='  - '+x.title+' ['+x.source+']\n    '+x.url+'\n';});o+='\n';});
+return o+'Sources: '+((d.sources||[]).join(', ')||'-')+'\nHeadlines are quoted from these sites and were not verified by this tool.\n';
+}
+var CMP_STOP={};'the and for that with this from have were been their which would there about after other also into than then them these those will more most over such only some what when where while your you are was has had not but can may its our out all any one two new said says say'.split(' ').forEach(function(w){CMP_STOP[w]=1;});
+var CMP_EMO='shocking,shocked,outrage,outrageous,disaster,disastrous,catastrophe,catastrophic,horrific,terrifying,devastating,stunning,explosive,bombshell,scandal,furious,slams,blasts,destroys,massive,huge,crisis,chaos,panic,nightmare,unbelievable,incredible,миг,шок,шокиращ,скандал,ужас,катастрофа,бомба,кошмар,невероятен,драма,паника,хаос,разгром,срам'.split(',');
+var CMP_ABS='always,never,everyone,nobody,completely,totally,absolutely,undeniable,undeniably,proven,obviously,certainly,all,none,винаги,никога,всички,никой,напълно,абсолютно,доказано,очевидно,безспорно'.split(',');
+var CMP_HEDGE='reportedly,allegedly,may,might,could,possibly,apparently,suggests,suggested,likely,unclear,claims,claimed,според,твърди,твърдят,може,вероятно,предполага,привидно,уж'.split(',');
+var CMP_ATTR=['said','says','told','according to','announced','confirmed','stated','reported','заяви','каза','според','съобщи','потвърди'];
+function cmpWords(t){return(String(t).toLowerCase().match(/[\p{L}\p{N}]{2,}/gu)||[]);}
+function cmpSentences(t){return String(t).replace(/\s+/g,' ').split(/(?<=[.!?…])\s+(?=[\p{Lu}\p{N}"„«(])/u).map(function(x){return x.trim();}).filter(function(x){return x.length>=30&&x.length<=400;});}
+function cmpNums(t){
+var out={},m,re=/(?:[$€£]\s?)?\d[\d.,]*\d|\d/g;
+var src=String(t);
+while((m=re.exec(src))){
+var raw=m[0],after=src.slice(m.index+raw.length,m.index+raw.length+14).toLowerCase(),before=src.slice(Math.max(0,m.index-1),m.index);
+var unit=/^\s?(%|percent|per cent|million|billion|trillion|thousand|млн|млрд|хил|лв|евро|долар|euro|dollar|usd|eur|bgn|km|kg|years?|години|души|people|deaths|killed|жертви)/.exec(after);
+var digits=raw.replace(/\D/g,'');
+if(!unit&&!/^[$€£]/.test(raw)&&digits.length<3)continue;
+if(/^\d{4}$/.test(raw)&&Number(raw)>=1900&&Number(raw)<=2100&&!unit)continue;
+var norm=raw.replace(/[$€£\s]/g,'').replace(/[.,]$/,'').replace(/,/g,'.')+(unit?unit[1].replace(/\s/g,''):'');
+out[norm]=1;
+}
+return out;
+}
+function cmpEntities(t){
+var out={},m,re=/\p{Lu}[\p{L}'’-]{2,}(?:\s+\p{Lu}[\p{L}'’-]{2,}){0,3}/gu,bad={the:1,this:1,that:1,these:1,those:1,they:1,when:1,what:1,where:1,while:1,after:1,before:1,here:1,there:1,some:1,many:1,also:1,but:1,and:1,for:1,with:1,from:1,his:1,her:1,she:1,monday:1,tuesday:1,wednesday:1,thursday:1,friday:1,saturday:1,sunday:1,това:1,този:1,тази:1,които:1,когато:1,след:1,преди:1,както:1};
+var lowTxt=String(t);while((m=re.exec(t))){var k=m[0].trim();if(bad[k.toLowerCase()]||k.length<4)continue;if(k.indexOf(' ')===-1){if(k===k.toUpperCase())continue;var lw=k.toLowerCase();if(new RegExp('(?<![\\p{L}])'+lw+'(?![\\p{L}])','u').test(lowTxt))continue;if(m.index===0||/[.!?…]\s*$/.test(lowTxt.slice(Math.max(0,m.index-3),m.index)))continue;}out[k]=(out[k]||0)+1;}
+return out;
+}
+function cmpTone(text){
+var w=cmpWords(text),n=Math.max(1,w.length),low=String(text).toLowerCase(),cnt=function(list){var c=0;list.forEach(function(x){var m=low.match(new RegExp('(?<![\\p{L}])'+x+'(?![\\p{L}])','gu'));if(m)c+=m.length;});return c;};
+var letters=String(text).replace(/[^\p{L}]/gu,''),up=0;for(var i=0;i<letters.length;i++){var ch=letters.charAt(i);if(ch!==ch.toLowerCase()&&ch===ch.toUpperCase())up++;}
+var per=function(c){return Math.round(c*10000/n)/10;};
+return{words:w.length,emo:per(cnt(CMP_EMO)),abs:per(cnt(CMP_ABS)),hedge:per(cnt(CMP_HEDGE)),attr:per(cnt(CMP_ATTR)),excl:(String(text).match(/!/g)||[]).length,caps:letters.length?Math.round(up*100/letters.length):0};
+}
+function cmpTopics(text){
+var f={};cmpWords(text).forEach(function(w){if(w.length<5||CMP_STOP[w]||/^\d+$/.test(w))return;f[w]=(f[w]||0)+1;});
+return Object.keys(f).filter(function(k){return f[k]>=2;}).sort(function(a,b){return f[b]-f[a];}).slice(0,25);
+}
+function cmpOverlap(a,b){
+var wa=cmpWords(a).slice(0,6000),wb=cmpWords(b).slice(0,6000);if(wa.length<20||wb.length<20)return null;
+function sh(w){var s={};for(var i=0;i+2<w.length;i++)s[w[i]+' '+w[i+1]+' '+w[i+2]]=1;return s;}
+var A=sh(wa),B=sh(wb),inter=0,na=0,nb=0,k;for(k in A){na++;if(B[k])inter++;}for(k in B)nb++;
+var uni=na+nb-inter;return uni?Math.round(inter*100/uni):0;
+}
+function cmpSets(a,b){var both=[],onlyA=[],onlyB=[];Object.keys(a).forEach(function(k){(b[k]?both:onlyA).push(k);});Object.keys(b).forEach(function(k){if(!a[k])onlyB.push(k);});return{both:both,a:onlyA,b:onlyB};}
+function cmpConflicts(ta,tb){
+var sa=cmpSentences(ta).slice(0,120),sb=cmpSentences(tb).slice(0,120),res=[];
+var pre=function(s){var w={};cmpWords(s).forEach(function(x){if(x.length>=4&&!CMP_STOP[x]&&!/^\d+$/.test(x))w[x]=1;});return w;};
+var pb=sb.map(function(s){return{s:s,w:pre(s),n:Object.keys(cmpNums(s))};});
+sa.forEach(function(s){
+var na=Object.keys(cmpNums(s));if(!na.length)return;var wa=pre(s),wl=Object.keys(wa).length;if(wl<4)return;
+var best=null,bs=0;
+pb.forEach(function(o){if(!o.n.length)return;var c=0;for(var k in wa)if(o.w[k])c++;var sc=c/Math.max(wl,Object.keys(o.w).length);if(sc>bs){bs=sc;best=o;}});
+if(best&&bs>=0.3){var shared=na.filter(function(x){return best.n.indexOf(x)!==-1;});if(!shared.length)res.push({a:s,b:best.s,score:bs});}
+});
+res.sort(function(x,y){return y.score-x.score;});return res.slice(0,4);
+}
+function cmpUnique(text,otherNums,otherEnts){
+var out=[];
+cmpSentences(text).forEach(function(s){
+var n=Object.keys(cmpNums(s)).filter(function(x){return !otherNums[x];}),e=Object.keys(cmpEntities(s)).filter(function(x){return !otherEnts[x];});
+if(n.length||e.length>=2)out.push({s:s,w:n.length*2+e.length});
+});
+out.sort(function(x,y){return y.w-x.w;});var seen={};return out.filter(function(x){if(seen[x.s])return false;seen[x.s]=1;return true;}).slice(0,4).map(function(x){return x.s;});
+}
+function compareTexts(ta,tb){
+var na=cmpNums(ta),nb=cmpNums(tb),ea=cmpEntities(ta),eb=cmpEntities(tb);
+var nums=cmpSets(na,nb),ents=cmpSets(ea,eb);
+var tpa=cmpTopics(ta),tpb=cmpTopics(tb);
+return{overlap:cmpOverlap(ta,tb),nums:nums,ents:ents,conflicts:cmpConflicts(ta,tb),uniqA:cmpUnique(ta,nb,eb),uniqB:cmpUnique(tb,na,ea),toneA:cmpTone(ta),toneB:cmpTone(tb),topicsBoth:tpa.filter(function(x){return tpb.indexOf(x)!==-1;}).slice(0,10)};
+}
+function cmpKey(text){
+var ss=cmpSentences(text),pick=[],seen={};
+function add(s){if(s&&!seen[s]&&pick.length<4){seen[s]=1;pick.push(s);}}
+ss.filter(function(s){return s.length>=60;}).slice(0,2).forEach(add);
+ss.map(function(s){return{s:s,w:Object.keys(cmpNums(s)).length*2+Object.keys(cmpEntities(s)).length};}).sort(function(a,b){return b.w-a.w;}).slice(0,3).forEach(function(x){if(x.w>0)add(x.s);});
+return pick;
+}
+function cmpAgree(ta,tb){
+var sa=cmpSentences(ta).slice(0,120),sb=cmpSentences(tb).slice(0,120),res=[],used={};
+sa.forEach(function(s){
+var na=Object.keys(cmpNums(s));if(!na.length)return;
+for(var i=0;i<sb.length;i++){var nb=cmpNums(sb[i]);if(na.some(function(x){return nb[x];})){if(!used[i]){used[i]=1;res.push({a:s,b:sb[i]});}break;}}
+});
+return res.slice(0,3);
+}
+function wikiClient(link){
+var m=/^https?:\/\/([a-z-]{2,12})\.(?:m\.)?wikipedia\.org\/wiki\/([^?#]+)/i.exec(link);if(!m)return null;
+return fetch('https://'+m[1].toLowerCase()+'.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&format=json&origin=*&titles='+m[2]).then(function(r){return r.json();}).then(function(j){
+var p=j.query&&j.query.pages,k=p&&Object.keys(p)[0],pg=p&&p[k];if(!pg||!pg.extract||pg.extract.length<200)throw new Error('empty');
+return{title:pg.title+' · Wikipedia',text:pg.extract.slice(0,20000),url:link,via:'page'};});
+}
+
+function cmpDays(){
+var box=el('div','v9-card');box.setAttribute('data-ft','aibtn');box.style.cssText='margin:16px 0;padding:12px;line-height:1.5';
+box.appendChild(el('b','','📅 Same topic, two different days (AI)'));
+box.appendChild(el('div','v9-note','When you search in Standard Search, this device keeps the top results of each topic for each day (only on your device, up to 8 days and 25 topics). Pick a topic and two days, and an AI model tells what changed. Search the same topic on two different days to use it.'));
+var S=jget('ai_v9_snaps',{}),topics=Object.keys(S||{}).filter(function(k){return Object.keys(S[k]||{}).length>=2;});
+if(!topics.length){box.appendChild(el('div','v9-note','Nothing to compare yet: no topic has been searched on two different days.'));return box;}
+function sel(){var x=document.createElement('select');x.style.cssText='width:100%;box-sizing:border-box;padding:10px;margin:6px 0;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text)';return x;}
+var ts=sel(),da=sel(),db=sel();ts.setAttribute('aria-label','Topic');da.setAttribute('aria-label','Earlier day');db.setAttribute('aria-label','Later day');
+topics.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;ts.appendChild(o);});
+function fillDays(){var ds=Object.keys(S[ts.value]||{}).sort();[da,db].forEach(function(x,j){x.textContent='';ds.forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=(j?'Later: ':'Earlier: ')+d;x.appendChild(o);});});da.value=ds[0];db.value=ds[ds.length-1];}
+ts.onchange=fillDays;fillDays();box.appendChild(ts);box.appendChild(da);box.appendChild(db);
+function blk(L,d){var a=(S[ts.value]||{})[d]||[];return 'Day '+L+' ('+d+'):\n'+a.map(function(r,i){return(i+1)+'. '+r[0]+' — '+r[1]+' ['+r[2]+']';}).join('\n');}
+box.appendChild(aiBlock('📅 Compare the two days','compare_days',function(){var a=da.value,b2=db.value;if(!a||!b2||a===b2)return 'Pick two different days.';var x=a<b2?a:b2,y=a<b2?b2:a;return{text:'Topic: '+ts.value+'\n\n'+blk('A',x)+'\n\n'+blk('B',y)};},{hint:'The AI reads only the saved titles and short descriptions. It can be wrong and does not decide what is true.'}));
+return box;
+}
+function openCompare(){
+var b=$('v9CmpBody');openPanel('v9Cmp');
+if(b.dataset.ready){var f0=b.querySelector('textarea');if(f0)f0.focus();return;}b.dataset.ready='1';b.textContent='';
+var warn=el('div','');warn.style.cssText='margin:0 0 10px;padding:12px;border-radius:10px;border:1.5px solid #ffaa00;background:var(--bg2);font-size:13px;line-height:1.55';
+var wb=el('b','','⚠️ Paste the exact link to an article, not a website home page.');warn.appendChild(wb);
+warn.appendChild(el('div','','Good: https://site.com/news/2026/title-of-the-story'));warn.appendChild(el('div','','Not good: https://site.com (the front page changes all day and mixes many topics).'));
+var w3=el('div','','If you do paste a home page or a section page, the tool shows a general overview of what that page lists right now instead of a story-by-story comparison.');w3.style.marginTop='4px';warn.appendChild(w3);b.appendChild(warn);
+b.appendChild(el('div','v9-note','Paste two links about the same topic and press Enter. The page reads both, quotes the key passages and shows what they agree on and where they differ. You can paste article text instead of a link. It does not decide which one is right.'));
+var ta=[],st=[];
+['A','B'].forEach(function(L){
+var l=el('div','v9-note','Link '+L);l.style.cssText='margin:14px 0 10px;font-weight:700;line-height:1.3';b.appendChild(l);
+var t=el('textarea');t.rows=2;t.maxLength=20000;t.placeholder='https://… (or paste text)';t.autocapitalize='off';t.spellcheck=false;t.setAttribute('enterkeyhint','go');t.setAttribute('aria-label','Link '+L);t.style.cssText='display:block;box-sizing:border-box;width:100%;margin:0 0 6px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;resize:vertical';
+t.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();run();}});
+b.appendChild(t);ta.push(t);var s=el('div','v9-note','');b.appendChild(s);st.push(s);
+});
+var go=mkBtn('⚖️ Compare','pri',run);go.style.marginTop='10px';b.appendChild(go);
+var out=el('div');out.style.marginTop='12px';b.appendChild(out);
+b.appendChild(cmpDays());
+var busy=false;
+function isLink(v){v=v.trim();return v.length<1000&&!/\s/.test(v)&&(/^https?:\/\//i.test(v)||v.indexOf('.')>0);}
+function load(i){
+var v=ta[i].value.trim(),L='AB'.charAt(i);
+if(!v)return Promise.reject(new Error('Fill in both fields.'));
+if(!isLink(v)){if(v.length<200)return Promise.reject(new Error('Link '+L+' does not look like a web address, and the text is too short. Paste a link starting with https:// or at least a few paragraphs.'));st[i].textContent='Pasted text ('+cmpWords(v).length+' words)';return Promise.resolve({title:'Text '+L,text:v,pasted:true});}
+var link=/^https?:\/\//i.test(v)?v:'https://'+v;
+st[i].textContent='⏳ Reading the page…';
+function fail(e){
+var msg=e&&e.message;
+if(msg==='needs-server')return new Error('This link needs the Worker or server to be read. Only Wikipedia links work without it. Paste the article text instead.');
+return new Error('Link '+L+': '+(msg&&msg!=='Failed to fetch'?msg:'could not read the page')+'. Paste the article text instead.');
+}
+return xget('article',{url:link},45000).then(function(j){st[i].textContent=(j.kind==='index'?'ℹ️ Home or section page: ':'✓ ')+(j.title||j.url)+(j.via&&j.via!=='page'?' (read from '+(j.via==='archive'?'a saved copy':'a text reader')+')':'');return{title:j.title||j.url,text:j.text,url:j.url,via:j.via,kind:j.kind,overview:j.overview};}).catch(function(e){
+var w=wikiClient(link);
+if(w)return w.then(function(r){st[i].textContent='✓ '+r.title;return r;},function(){throw fail(e);});
+throw fail(e);
+});
+}
+function run(){
+if(busy)return;busy=true;go.disabled=true;out.textContent='';try{document.activeElement&&document.activeElement.blur();}catch(e){}
+out.appendChild(el('div','v9-note','⏳ Reading both sources… this can take up to 30 seconds.'));
+Promise.all([load(0),load(1)]).then(function(r){out.textContent='';render(r[0],r[1],compareTexts(r[0].text,r[1].text));logAct('compare',r[0].title+' vs '+r[1].title);
+var ab=aiBlock('🤖 Compare with AI','compare',function(){return{text:'Source A ('+String(r[0].title||'').slice(0,120)+'):\n'+String(r[0].text||'').slice(0,2800)+'\n\nSource B ('+String(r[1].title||'').slice(0,120)+'):\n'+String(r[1].text||'').slice(0,2800)};},{hint:'AI mode: an AI model reads the start of both sources and says where they agree and differ. It does not decide which one is true.'});out.appendChild(ab);
+}).catch(function(e){out.textContent='';out.appendChild(el('div','v9-note','⚠️ '+e.message));}).then(function(){busy=false;go.disabled=false;});
+}
+function sec(title,color){var h=el('h3','',title);h.style.cssText='margin:18px 0 6px;color:'+(color||'var(--accent2)');out.appendChild(h);}
+function chips(list){var d=el('div');d.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px';list.slice(0,14).forEach(function(x){var c=el('span','v9-note',x);c.style.cssText='padding:4px 9px;border:1px solid var(--border2);border-radius:14px;background:var(--bg2)';d.appendChild(c);});if(!list.length)d.appendChild(el('span','v9-note','none'));return d;}
+function quote(t,label){var c=el('div','v9-card');if(label){var lb=el('b','',label);lb.style.fontSize='12px';c.appendChild(lb);}var q=el('div','',t);q.style.cssText='margin-top:3px;line-height:1.55;font-size:14px;border-left:3px solid var(--accent);padding-left:10px;font-style:italic;word-break:break-word';c.appendChild(q);c.style.marginBottom='6px';return c;}
+function linkTo(x,txt){var a=el('a','',txt);a.href=safeUrl(x);a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='display:inline-block;margin:2px 0 6px;color:var(--accent2)';return a;}
+function render(A,B,r){
+out.textContent='';
+var box=el('div');box.style.cssText='background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px';out.appendChild(box);
+var tmp=out;out=box;
+var hd=el('h3','','📖 Summary of both sources');hd.style.cssText='margin:0 0 4px;color:var(--accent2)';out.appendChild(hd);
+if(r.overlap!==null)out.appendChild(el('div','v9-note','The two texts share about '+r.overlap+'% of their wording. Low overlap is normal for independent reports.'));
+if(A.kind==='index'||B.kind==='index'){var iw=el('div','','⚠️ '+(A.kind==='index'&&B.kind==='index'?'Both links are home or section pages.':'Link '+(A.kind==='index'?'A':'B')+' is a home or section page.')+' The comparison below is general: it covers what the page lists today, not one story. For a precise comparison paste the exact link of an article.');iw.style.cssText='margin:8px 0;padding:10px;border-radius:8px;border:1.5px solid #ffaa00;font-size:13px;line-height:1.5';out.appendChild(iw);}
+[['A',A],['B',B]].forEach(function(x){
+if(x[1].kind==='index'){
+sec('ℹ️ '+x[0]+': general overview of '+String(x[1].title||x[1].url||'this page').slice(0,80),'var(--gold)');
+var ov=x[1].overview||{},hl=(ov.headlines||[]).slice(0,6);
+if(ov.description)out.appendChild(quote(ov.description,'What the site says about itself'));
+if(hl.length){out.appendChild(el('div','v9-note','Headlines on the page right now'));hl.forEach(function(h){out.appendChild(quote(h));});}
+else if(!ov.description)cmpKey(x[1].text).forEach(function(s){out.appendChild(quote(s));});
+out.appendChild(el('div','v9-note','A home page changes all day. Treat this as a snapshot of what the page shows now.'));
+if(x[1].url)out.appendChild(linkTo(x[1].url,'Open page '+x[0]+' ↗'));
+return;}
+sec('📰 '+x[0]+': '+String(x[1].title||'').slice(0,90),'var(--gold)');
+cmpKey(x[1].text).forEach(function(s){out.appendChild(quote(s));});
+if(x[1].url)out.appendChild(linkTo(x[1].url,'Open source '+x[0]+' ↗'));
+});
+var ag=cmpAgree(A.text,B.text);
+sec('✅ What both report','var(--accent)');
+if(ag.length){ag.forEach(function(p){var w=el('div');w.appendChild(quote(p.a,'A'));w.appendChild(quote(p.b,'B'));out.appendChild(w);});}
+else out.appendChild(el('div','v9-note','No sentence with the same figure appears in both.'));
+if(r.nums.both.length){out.appendChild(el('div','v9-note','Figures in both'));out.appendChild(chips(r.nums.both));}
+if(r.ents.both.length){out.appendChild(el('div','v9-note','Names and places in both'));out.appendChild(chips(r.ents.both));}
+sec('⚠️ Where they differ','#ff8800');
+if(r.conflicts.length){out.appendChild(el('div','v9-note','Similar sentences with different figures:'));r.conflicts.forEach(function(c){var w=el('div');w.appendChild(quote(c.a,'A says'));w.appendChild(quote(c.b,'B says'));out.appendChild(w);});}
+[['A',r.nums.a,r.ents.a,r.uniqA],['B',r.nums.b,r.ents.b,r.uniqB]].forEach(function(x){
+if(!x[1].length&&!x[2].length&&!x[3].length)return;
+var h=el('div','v9-note','Only in '+x[0]);h.style.cssText='font-weight:700;margin-top:10px';out.appendChild(h);
+if(x[1].length){out.appendChild(el('div','v9-note','Figures'));out.appendChild(chips(x[1]));}
+if(x[2].length){out.appendChild(el('div','v9-note','Names and places'));out.appendChild(chips(x[2]));}
+x[3].slice(0,2).forEach(function(s){out.appendChild(quote(s,'Only '+x[0]+' says'));});
+});
+sec('🎭 Wording','var(--accent2)');
+var ta2=r.toneA,tb2=r.toneB,note=[];
+if(ta2.emo>=tb2.emo*2&&ta2.emo>=1)note.push('A uses noticeably more emotional wording.');if(tb2.emo>=ta2.emo*2&&tb2.emo>=1)note.push('B uses noticeably more emotional wording.');
+if(ta2.attr>=tb2.attr*2&&ta2.attr>=2)note.push('A names its sources more often.');if(tb2.attr>=ta2.attr*2&&tb2.attr>=2)note.push('B names its sources more often.');
+if(ta2.hedge>=tb2.hedge*2&&ta2.hedge>=2)note.push('A is more cautious ("may", "reportedly").');if(tb2.hedge>=ta2.hedge*2&&tb2.hedge>=2)note.push('B is more cautious ("may", "reportedly").');
+out.appendChild(el('div','v9-note',note.length?note.join(' '):'The wording of both is similar in tone.'));
+var dt=document.createElement('details');dt.style.marginTop='6px';var sm=document.createElement('summary');sm.textContent='Show the numbers';sm.style.cursor='pointer';dt.appendChild(sm);
+var rows=[['Words',ta2.words,tb2.words],['Emotional words /1000',ta2.emo,tb2.emo],['Absolute words /1000',ta2.abs,tb2.abs],['Cautious words /1000',ta2.hedge,tb2.hedge],['Attributions /1000',ta2.attr,tb2.attr],['Exclamation marks',ta2.excl,tb2.excl],['Capital letters %',ta2.caps,tb2.caps]];
+var tb=document.createElement('table');tb.style.cssText='width:100%;border-collapse:collapse;font-size:13px;margin-top:6px';
+var hr=document.createElement('tr');['','A','B'].forEach(function(t){var th=document.createElement('th');th.textContent=t;th.style.cssText='text-align:left;padding:6px;border-bottom:1px solid var(--border2)';hr.appendChild(th);});tb.appendChild(hr);
+rows.forEach(function(r0){var tr=document.createElement('tr');r0.forEach(function(c,i){var td=document.createElement('td');td.textContent=c;td.style.cssText='padding:6px;border-bottom:1px solid var(--border2)';tr.appendChild(td);});tb.appendChild(tr);});
+dt.appendChild(tb);out.appendChild(dt);
+var nt=el('div','v9-note','Note: the text above is quoted from the two pages you gave. This tool counts words and numbers, so it finds differences, not truth. Check which report is first-hand and open both before drawing a conclusion.');nt.style.cssText='background:var(--bg3);border-left:3px solid var(--accent);padding:10px;border-radius:8px;margin-top:14px';out.appendChild(nt);
+out=tmp;
+}
+}
+function initTools(){
+var body=mkPanel('v9Tools','🧰 Tools');
+var tabs=el('div','v9-row'),pane=el('div');pane.style.marginTop='14px';
+body.appendChild(tabs);body.appendChild(pane);
+var cur='';
+function tab(id,label,fn){var b=mkBtn(label,'',function(){cur=id;[].forEach.call(tabs.children,function(x){x.classList.remove('on');x.setAttribute('aria-pressed','false');});b.classList.add('on');b.setAttribute('aria-pressed','true');pane.textContent='';fn(pane);});b.setAttribute('aria-pressed','false');tabs.appendChild(b);return b;}
+function field(){var i=document.createElement('input');i.style.cssText='width:100%;box-sizing:border-box;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:15px';return i;}
+function note(t){var n=el('div','v9-note',t);n.style.marginTop='10px';return n;}
+// ---------- 1. password generator ----------
+function gen(p){
+var sets={lower:'abcdefghijkmnopqrstuvwxyz',upper:'ABCDEFGHJKLMNPQRSTUVWXYZ',digits:'23456789',symbols:'!@#$%^&*()-_=+[]{};:,.?'};
+var full={lower:'abcdefghijklmnopqrstuvwxyz',upper:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',digits:'0123456789',symbols:sets.symbols};
+var opt={lower:true,upper:true,digits:true,symbols:true,clear:true},len=20;
+var out=el('div','');out.style.cssText='font-family:monospace;font-size:17px;word-break:break-all;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:14px;min-height:24px';
+out.setAttribute('aria-live','polite');
+var meta=el('div','v9-note','');meta.style.marginTop='8px';
+function rnd(n){var lim=Math.floor(4294967296/n)*n,a=new Uint32Array(1);do{crypto.getRandomValues(a);}while(a[0]>=lim);return a[0]%n;}
+function make(){
+var src=opt.clear?sets:full,pools=['lower','upper','digits','symbols'].filter(function(k){return opt[k];});
+if(!pools.length){out.textContent='Choose at least one kind of character.';meta.textContent='';return;}
+var all=pools.map(function(k){return src[k];}).join(''),chars=[];
+pools.forEach(function(k){chars.push(src[k].charAt(rnd(src[k].length)));});
+while(chars.length<len)chars.push(all.charAt(rnd(all.length)));
+for(var i=chars.length-1;i>0;i--){var j=rnd(i+1),t=chars[i];chars[i]=chars[j];chars[j]=t;}
+out.textContent=chars.join('');
+var bits=Math.round(len*Math.log(all.length)/Math.LN2);
+meta.textContent=bits+' bits of randomness · '+(bits>=100?'excellent':bits>=75?'strong':bits>=55?'okay':'weak');
+}
+var lr=el('div','');lr.style.cssText='display:flex;align-items:center;gap:10px;margin:12px 0';
+var ll=el('label','','Length: '+len);var sl=document.createElement('input');sl.type='range';sl.min=8;sl.max=64;sl.value=len;sl.style.flex='1';sl.setAttribute('aria-label','Password length');
+sl.oninput=function(){len=Number(sl.value);ll.textContent='Length: '+len;make();};lr.appendChild(ll);lr.appendChild(sl);
+var row=el('div','');row.style.cssText='display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px';
+[['lower','a-z'],['upper','A-Z'],['digits','0-9'],['symbols','!@#'],['clear','No look-alikes (0/O, 1/l)']].forEach(function(o){
+var l=el('label','');l.style.cssText='display:flex;align-items:center;gap:6px;font-size:13px';var c=document.createElement('input');c.type='checkbox';c.checked=opt[o[0]];c.onchange=function(){opt[o[0]]=c.checked;make();};l.appendChild(c);l.appendChild(document.createTextNode(o[1]));row.appendChild(l);});
+var br=el('div','v9-row');
+br.appendChild(mkBtn('↻ New','',make));
+br.appendChild(mkBtn('⧉ Copy','',function(){var t=out.textContent;if(!t||/^Choose/.test(t))return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('Copied');},function(){toast('Could not copy. Select the text and copy it.','#ff4444');});else toast('Could not copy. Select the text and copy it.','#ff4444');}));
+p.appendChild(out);p.appendChild(meta);p.appendChild(lr);p.appendChild(row);p.appendChild(br);
+var pwBox=el('div','v9-card');pwBox.style.cssText='margin:10px 0;padding:10px';p.appendChild(pwBox);
+pwBox.appendChild(el('b','','🔎 Rate my password with AI'));
+pwBox.appendChild(el('div','v9-note','Type a password to rate. The password itself is never sent: only its length and shape (how many lowercase, uppercase, digits, symbols, repeats and simple sequences) go to the AI. A stronger one is then made in your browser.'));
+var pwi=document.createElement('input');pwi.type='password';pwi.autocomplete='off';pwi.setAttribute('aria-label','Password to rate');pwi.style.cssText='width:100%;margin-top:8px;padding:8px';pwBox.appendChild(pwi);
+function pwShape(w){var c={lower:0,upper:0,digit:0,symbol:0};for(var i=0;i<w.length;i++){var ch=w[i];if(/[a-z]/.test(ch))c.lower++;else if(/[A-Z]/.test(ch))c.upper++;else if(/[0-9]/.test(ch))c.digit++;else c.symbol++;}
+var rp=0,seq=0;for(var j=1;j<w.length;j++){if(w[j]===w[j-1])rp++;if(Math.abs(w.charCodeAt(j)-w.charCodeAt(j-1))===1)seq++;}
+var uniq=new Set(w.split('')).size;var m=w.slice(0,64).replace(/[a-z]/g,'l').replace(/[A-Z]/g,'U').replace(/[0-9]/g,'d').replace(/[^lUd]/g,'s');
+return 'Length: '+w.length+'. Lowercase: '+c.lower+', uppercase: '+c.upper+', digits: '+c.digit+', symbols: '+c.symbol+'. Distinct characters: '+uniq+'. Repeated neighbours: '+rp+'. Neighbouring sequence steps: '+seq+'. Shape (l=lowercase, U=uppercase, d=digit, s=symbol): '+m+'. Starts with an uppercase letter: '+(/^[A-Z]/.test(w)?'yes':'no')+'. Ends with digits: '+(/[0-9]+$/.test(w)?'yes':'no')+'.';}
+var pwOut=el('div','');
+pwBox.appendChild(aiBlock('🔎 Rate with AI','pw_rate',function(){var w=pwi.value;if(!w)return 'Type a password first.';return{text:pwShape(w)};},{hint:'AI mode: only the shape described above is sent, never the password. The AI cannot know if it was leaked or is a common word; never reuse a password you rate here.',render:function(out,res,redraw){aiRiskRender(out,res,redraw);var b=mkBtn('✨ Make a stronger one for me','pri',function(){var cs='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*-_=+',o='';for(var i=0;i<18;i++)o+=cs[rnd(cs.length)];pwOut.textContent='';var t=el('div','');t.style.cssText='font-family:monospace;word-break:break-all;margin:8px 0';t.textContent=o;pwOut.appendChild(t);pwOut.appendChild(mkBtn('⧉ Copy','',function(){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(o).then(function(){toast('Copied');},function(){toast('Could not copy. Select it by hand.');});}));pwOut.appendChild(el('div','v9-note','Made in your browser with the secure random generator (18 characters). Save it in a password manager.'));});b.type='button';out.appendChild(b);}}));
+pwBox.appendChild(pwOut);
+p.appendChild(aiBlock('🤖 Ask AI for memorable passphrases','passphrase',function(){return{text:'Make five passphrases.'};},{hint:'AI mode: nothing about your passwords is sent. The AI only writes example passphrases from common words. AI text is not truly random, so for important accounts use the generator above.'}));
+p.appendChild(note('Made in your browser with the secure random generator. Nothing is sent or saved anywhere. Use a different password for every account and keep them in a password manager.'));
+make();
+}
+// ---------- 3. PDF metadata ----------
+function pdfStr(raw){
+var s;
+if(raw.charAt(0)==='('){
+s=raw.slice(1,-1).replace(/\\([nrtbf()\\]|[0-7]{1,3}|\r?\n)/g,function(m,c){if(c==='n')return'\n';if(c==='r')return'\r';if(c==='t')return'\t';if(c==='b')return'\b';if(c==='f')return'\f';if(/^[0-7]/.test(c))return String.fromCharCode(parseInt(c,8)&255);if(/^\r?\n$/.test(c))return'';return c;});
+}else{
+var h=raw.slice(1,-1).replace(/\s+/g,'');if(h.length%2)h+='0';s='';for(var i=0;i<h.length;i+=2)s+=String.fromCharCode(parseInt(h.slice(i,i+2),16));
+}
+if(s.charCodeAt(0)===254&&s.charCodeAt(1)===255){var o='';for(var k=2;k+1<s.length;k+=2)o+=String.fromCharCode((s.charCodeAt(k)<<8)|s.charCodeAt(k+1));return o;}
+return s;
+}
+function pdfDate(v){var m=/^D:(\d{4})(\d\d)?(\d\d)?(\d\d)?(\d\d)?(\d\d)?/.exec(v);if(!m)return v;return m[1]+'-'+(m[2]||'01')+'-'+(m[3]||'01')+(m[4]?' '+m[4]+':'+(m[5]||'00'):'');}
+function inspectPdf(txt,size){
+var info={},keys=['Title','Author','Subject','Keywords','Creator','Producer','CreationDate','ModDate'];
+var re=/\/(Title|Author|Subject|Keywords|Creator|Producer|CreationDate|ModDate)\s*(\((?:\\[\s\S]|[^\\)])*\)|<[0-9A-Fa-f\s]*>)/g,m;
+while((m=re.exec(txt)))info[m[1]]=pdfStr(m[2]);   // the last one wins (edits are appended)
+var xmp=function(tag){var r=new RegExp('<'+tag+'[^>]*>([\\s\\S]{0,400}?)</'+tag+'>').exec(txt);return r?r[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim():'';};
+var x={creatorTool:xmp('xmp:CreatorTool'),producer:xmp('pdf:Producer'),author:xmp('dc:creator'),created:xmp('xmp:CreateDate'),modified:xmp('xmp:ModifyDate')};
+var flags=[];
+if(/\/(JavaScript|JS)\b/.test(txt))flags.push(['high','Contains JavaScript','PDF scripts can run actions when opened. Only open this from a source you trust.']);
+if(/\/Launch\b/.test(txt))flags.push(['high','Can launch other programs','A /Launch action is rarely needed in a normal document.']);
+if(/\/OpenAction\b/.test(txt))flags.push(['med','Runs something when opened','An /OpenAction is set.']);
+if(/\/EmbeddedFile\b/.test(txt))flags.push(['med','Has attached files inside','The PDF carries other files.']);
+if(/\/Encrypt\b/.test(txt))flags.push(['info','Encrypted','Some details may be hidden from this check.']);
+var pages=(txt.match(/\/Type\s*\/Page(?![A-Za-z])/g)||[]).length;
+return{info:info,x:x,flags:flags,pages:pages,version:(/^%PDF-(\d\.\d)/.exec(txt)||[])[1]||''};
+}
+function pdfTab(p){
+p.appendChild(el('div','v9-note','See what a PDF reveals about you before you share it: author name, the software used and dates. The file is read in your browser and never uploaded.'));
+var f=document.createElement('input');f.type='file';f.accept='application/pdf,.pdf';f.style.cssText='margin-top:12px;width:100%';f.setAttribute('aria-label','Choose a PDF');
+var res=el('div','');res.style.marginTop='12px';res.setAttribute('aria-live','polite');
+f.onchange=function(){
+var file=f.files&&f.files[0];res.textContent='';if(!file)return;
+if(file.size>30*1048576){res.textContent='This file is too large to check here (max 30 MB).';return;}
+res.textContent='⏳ Reading…';
+var rd=new FileReader();rd.onerror=function(){res.textContent='Could not read this file.';};
+rd.onload=function(){
+var txt=rd.result;
+if(!/^%PDF-/.test(txt.slice(0,1024))){res.textContent='This does not look like a PDF file.';return;}
+var r=inspectPdf(txt,file.size);res.textContent='';
+var rows=[['Title',r.info.Title],['Author',r.info.Author||r.x.author],['Subject',r.info.Subject],['Keywords',r.info.Keywords],['Created with',r.info.Creator||r.x.creatorTool],['PDF software',r.info.Producer||r.x.producer],['Created',r.info.CreationDate?pdfDate(r.info.CreationDate):r.x.created],['Last modified',r.info.ModDate?pdfDate(r.info.ModDate):r.x.modified],['Pages (approx.)',r.pages?String(r.pages):''],['PDF version',r.version],['File',String(file.name).slice(0,80)+' · '+fmtBytes(file.size)]];
+var shown=0,tb=document.createElement('table');tb.style.cssText='width:100%;border-collapse:collapse;font-size:13px';
+rows.forEach(function(x){if(!x[1])return;shown++;var tr=document.createElement('tr');var a=document.createElement('td'),b=document.createElement('td');a.textContent=x[0];b.textContent=String(x[1]).slice(0,200);a.style.cssText='padding:6px;border-bottom:1px solid var(--border2);opacity:.7;white-space:nowrap;vertical-align:top';b.style.cssText='padding:6px;border-bottom:1px solid var(--border2);word-break:break-word';tr.appendChild(a);tr.appendChild(b);tb.appendChild(tr);});
+res.appendChild(tb);
+var personal=r.info.Author||r.x.author||r.info.Creator||r.info.Producer;
+var _pf=rows.filter(function(x){return x[1];}).map(function(x){return x[0]+': '+String(x[1]).slice(0,200);}).concat(r.flags.map(function(g){return 'Flag: '+g[1]+' - '+g[2];}));
+if(r.flags.length){var ul=el('ul','rep-list');r.flags.forEach(function(g){var li=el('li','rep-item sev-info');li.appendChild(el('b','',g[1]));li.appendChild(el('div','',g[2]));ul.appendChild(li);});res.appendChild(ul);}
+res.appendChild(aiRisk('pdf',function(){return{text:_pf.join('\n').slice(0,5000)};}));
+res.appendChild(el('div','rep-note','To remove personal details: open the PDF, choose Print, then "Save as PDF" (this writes a new file with fresh details), or use "Sanitize" in a PDF editor. Some PDFs store details in compressed sections that a browser check cannot read, so a clean result is not a guarantee.'));
+};
+rd.readAsText(file.size>12*1048576?file.slice(0,6*1048576):file,'latin1');
+};
+p.appendChild(f);p.appendChild(res);
+}
+// ---------- 4. photo location ----------
+function exifFind(b){
+var i,len,m;
+if(b[0]===0xFF&&b[1]===0xD8){
+i=2;
+while(i+4<b.length){
+if(b[i]!==0xFF){i++;continue;}
+m=b[i+1];
+if(m===0xD8||m===0x01||(m>=0xD0&&m<=0xD7)){i+=2;continue;}
+if(m===0xD9||m===0xDA)break;
+len=(b[i+2]<<8)|b[i+3];
+if(m===0xE1&&String.fromCharCode(b[i+4],b[i+5],b[i+6],b[i+7])==='Exif')return i+10;
+i+=2+len;
+}
+return -1;
+}
+if(b[0]===0x89&&b[1]===0x50&&b[2]===0x4E&&b[3]===0x47){
+var dv=new DataView(b.buffer,b.byteOffset,b.byteLength);i=8;
+while(i+12<=b.length){len=dv.getUint32(i);var ty=String.fromCharCode(b[i+4],b[i+5],b[i+6],b[i+7]);if(ty==='eXIf')return i+8;if(ty==='IEND')break;i+=12+len;}
+return -1;
+}
+if(b[0]===0x52&&b[1]===0x49&&b[2]===0x46&&b[3]===0x46&&b[8]===0x57&&b[9]===0x45&&b[10]===0x42&&b[11]===0x50){
+i=12;
+while(i+8<=b.length){var t=String.fromCharCode(b[i],b[i+1],b[i+2],b[i+3]),l=(b[i+4]|(b[i+5]<<8)|(b[i+6]<<16)|(b[i+7]<<24))>>>0,d=i+8;
+if(t==='EXIF')return String.fromCharCode(b[d],b[d+1],b[d+2],b[d+3])==='Exif'?d+6:d;
+i=d+l+(l&1);}
+return -1;
+}
+return -2;
+}
+function exifRead(b,off){
+var le=b[off]===0x49&&b[off+1]===0x49;
+if(!le&&!(b[off]===0x4D&&b[off+1]===0x4D))return null;
+var dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+function u16(o){return dv.getUint16(o,le);}
+function u32(o){return dv.getUint32(o,le);}
+if(u16(off+2)!==42)return null;
+var SZ={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8};
+function ifd(o){var n=Math.min(u16(o),300),r=[];for(var i=0;i<n;i++){var e=o+2+i*12;if(e+12>b.length)break;r.push({tag:u16(e),type:u16(e+2),count:u32(e+4),e:e});}return r;}
+function ptr(en){var sz=(SZ[en.type]||1)*en.count;return sz>4?off+u32(en.e+8):en.e+8;}
+function str(en){var p=ptr(en),s='';for(var k=0;k<Math.min(en.count,128);k++){var c=b[p+k];if(!c)break;s+=String.fromCharCode(c);}return s.trim();}
+function rats(en){var p=ptr(en),r=[];for(var k=0;k<Math.min(en.count,3);k++){var d=u32(p+k*8+4);r.push(d?u32(p+k*8)/d:0);}return r;}
+function find(list,tag){for(var i=0;i<list.length;i++)if(list[i].tag===tag)return list[i];return null;}
+var out={},i0=ifd(off+u32(off+4)),t;
+if((t=find(i0,0x010F)))out.make=str(t);
+if((t=find(i0,0x0110)))out.model=str(t);
+if((t=find(i0,0x0131)))out.software=str(t);
+if((t=find(i0,0x8769))){var ex=ifd(off+u32(t.e+8));
+if((t=find(ex,0x9003)))out.taken=str(t);
+if((t=find(ex,0xA430)))out.owner=str(t);
+if((t=find(ex,0xA431)))out.serial=str(t);
+if((t=find(ex,0xA434)))out.lens=str(t);
+}
+if((t=find(i0,0x8825))){var g=ifd(off+u32(t.e+8)),la=find(g,2),lo=find(g,4),lr=find(g,1),or=find(g,3),al=find(g,6),ar=find(g,5),gd=find(g,29);
+if(la&&lo&&la.count>=3&&lo.count>=3){
+var a=rats(la),o=rats(lo),lat=a[0]+a[1]/60+a[2]/3600,lon=o[0]+o[1]/60+o[2]/3600;
+if(lr&&str(lr).charAt(0)==='S')lat=-lat;
+if(or&&str(or).charAt(0)==='W')lon=-lon;
+if(isFinite(lat)&&isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180&&(lat!==0||lon!==0))out.gps={lat:lat,lon:lon};
+}
+if(al){var p2=ptr(al),d2=u32(p2+4);if(d2){out.alt=u32(p2)/d2*(ar&&b[ar.e+8]===1?-1:1);}}
+if(gd)out.gpsDate=str(gd);
+out.hasGpsBlock=true;
+}
+return out;
+}
+function photoTab(p){
+p.appendChild(el('div','v9-note','See what a photo reveals before you share it: the place it was taken, the camera and the date. The photo is read in your browser and never uploaded.'));
+var f=dualPick(p,'Choose a photo');
+var res=el('div','');res.style.marginTop='12px';res.setAttribute('aria-live','polite');
+p.appendChild(res);
+var run=0;
+f.onchange=function(){
+var file=f.files&&f.files[0];if(!file)return;
+var my=++run;res.textContent='⏳ Reading…';
+if(!/^image\//.test(file.type)){res.textContent='Please choose an image file.';return;}
+file.slice(0,Math.min(file.size,6*1048576)).arrayBuffer().then(function(ab){
+if(my!==run)return;
+var b=new Uint8Array(ab),off=exifFind(b),ex=null;
+try{if(off>=0)ex=exifRead(b,off);}catch(e){ex=null;}
+var items=[],gps=ex&&ex.gps;
+if(gps){
+var c=gps.lat.toFixed(5)+', '+gps.lon.toFixed(5);
+items.push({sev:'high',title:'Location found: '+c,detail:'Anyone who gets this file can see where it was taken, often to within a few metres.'});
+if(ex.alt!=null&&isFinite(ex.alt))items.push({sev:'low',title:'Altitude: '+Math.round(ex.alt)+' m',detail:''});
+}else if(off===-2){
+items.push({sev:'info',title:'This format cannot be read here',detail:'Only JPEG, PNG and WebP are checked. Photos in HEIC format often carry a location too; export or share them as JPEG to check.'});
+}else{
+items.push({sev:'ok',title:'No location data found',detail:off<0?'The file has no embedded metadata block.':'The photo carries no GPS position.'});
+}
+if(ex){
+if(ex.make||ex.model)items.push({sev:'info',title:'Camera: '+[ex.make,ex.model].filter(Boolean).join(' '),detail:'The device model is stored in the file.'});
+if(ex.taken)items.push({sev:'info',title:'Taken: '+ex.taken,detail:'The date and time the photo was shot.'});
+if(ex.gpsDate&&!ex.taken)items.push({sev:'info',title:'GPS date: '+ex.gpsDate,detail:''});
+if(ex.owner)items.push({sev:'med',title:'Owner name: '+ex.owner,detail:'A personal name is stored in the file.'});
+if(ex.serial)items.push({sev:'med',title:'Camera serial number: '+ex.serial,detail:'A serial number can link photos to one device.'});
+if(ex.lens)items.push({sev:'info',title:'Lens: '+ex.lens,detail:''});
+if(ex.software)items.push({sev:'info',title:'Software: '+ex.software,detail:''});
+}
+var risky=!!(gps||(ex&&(ex.owner||ex.serial)));
+var rep={level:gps?'high':risky?'medium':'low',headline:gps?'📍 This photo contains the location where it was taken':risky?'⚠️ This photo contains personal details':off===-2?'❔ This format cannot be checked here':'✅ No location in this photo',score:null,items:items,nodes:[],links:[],
+note:'Messengers and social networks usually remove this data, but email, cloud links and some websites send the file as it is. A copy without any metadata is the safe way to share.'};
+if(gps)rep.links.push({label:'Open this spot on OpenStreetMap',url:'https://www.openstreetmap.org/?mlat='+gps.lat.toFixed(5)+'&mlon='+gps.lon.toFixed(5)+'#map=16/'+gps.lat.toFixed(5)+'/'+gps.lon.toFixed(5)});
+if(off!==-2){
+var box=el('div','');box.style.marginTop='12px';
+var bt=mkBtn('⬇️ Download a copy without location data','',function(){
+if(file.size>40*1048576){toast('This photo is too large to clean in the browser','#ff4444');return;}
+bt.disabled=true;
+createImageBitmap(file).then(function(bm){
+var cv=document.createElement('canvas');cv.width=bm.width;cv.height=bm.height;cv.getContext('2d').drawImage(bm,0,0);
+var type=file.type==='image/png'?'image/png':'image/jpeg';
+return new Promise(function(r){cv.toBlob(r,type,0.92);}).then(function(bl){
+if(!bl)throw new Error('encode');
+var base=String(file.name||'photo').replace(/\.[^.]+$/,'').replace(/[^A-Za-z0-9._-]+/g,'_').slice(0,60)||'photo';
+var u=URL.createObjectURL(bl),a=document.createElement('a');a.href=u;a.download=base+'-clean.'+(type==='image/png'?'png':'jpg');document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},3000);
+toast('Saved a copy with no metadata');
+});
+}).catch(function(){toast('Could not make a clean copy of this file','#ff4444');}).then(function(){bt.disabled=false;});
+});
+box.appendChild(bt);
+box.appendChild(el('div','rep-note','The clean copy is re-drawn from the pixels, so location, camera and date data are all left out. It is saved on your device only.'));
+rep.nodes.push(box);
+}
+if(my!==run)return;
+rep.aiTask='photo';rep.aiText=rep.headline+'\n'+(rep.items||[]).map(function(x){return x.title+(x.detail?': '+x.detail:'');}).join('\n');
+renderReport(res,rep);
+}).catch(function(){res.textContent='Could not read this file.';});
+};
+}
+// ---------- 5. QR code from a photo ----------
+function loadJsQR(){
+return window.jsQR?Promise.resolve(window.jsQR):new Promise(function(res,rej){
+var s=document.createElement('script');s.src='/jsqr.js';s.onload=function(){window.jsQR?res(window.jsQR):rej(new Error('qr'));};s.onerror=function(){rej(new Error('qr'));};document.head.appendChild(s);
+});
+}
+function qrDecode(file){
+return createImageBitmap(file).then(function(bm){
+var det=null;try{if(window.BarcodeDetector)det=new BarcodeDetector({formats:['qr_code']});}catch(e){det=null;}
+var first=det?det.detect(bm).then(function(r){return(r&&r[0]&&r[0].rawValue)||'';}).catch(function(){return '';}):Promise.resolve('');
+return first.then(function(v){
+if(v)return v;
+return loadJsQR().then(function(jsQR){
+var sizes=[1600,1100,700,450],last='';
+for(var i=0;i<sizes.length;i++){
+var sc=Math.min(1,sizes[i]/Math.max(bm.width,bm.height)),w=Math.max(1,Math.round(bm.width*sc)),h=Math.max(1,Math.round(bm.height*sc)),key=w+'x'+h;
+if(key===last)continue;last=key;
+var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+var cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(bm,0,0,w,h);
+var d=cx.getImageData(0,0,w,h),r=jsQR(d.data,w,h,{inversionAttempts:'attemptBoth'});
+if(r&&r.data)return r.data;
+}
+return '';
+});
+});
+});
+}
+function dualPick(p,label){
+var f={files:null,onchange:null},row=el('div','');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px';
+function mk(txt,cam){var i=document.createElement('input');i.type='file';i.accept='image/*';if(cam)i.setAttribute('capture','environment');i.style.display='none';i.setAttribute('aria-label',label+(cam?' (camera)':' (file)'));
+i.onchange=function(){f.files=i.files;if(f.onchange)f.onchange();};
+var b=mkBtn(txt,'',function(){i.value='';i.click();});b.type='button';row.appendChild(i);row.appendChild(b);}
+mk('📷 Take a photo',true);mk('🖼️ Choose a file',false);p.appendChild(row);return f;}
+function ocrTab(p){
+p.appendChild(el('div','v9-note','Take or choose a photo of printed text (sign, menu, label, document). An AI model reads the text and translates it. When you press the button, a smaller copy of the photo is sent to an AI model run by Cloudflare. Handwriting, blur and dark photos may be read wrongly.'));
+var f=dualPick(p,'Photo with text');
+var sel=document.createElement('select');sel.setAttribute('aria-label','Translate into');sel.style.cssText='margin:10px 0;width:100%;padding:8px';
+['Bulgarian','English','German','French','Spanish','Italian','Russian','Turkish','Greek','Romanian','Serbian','Ukrainian','Polish','Dutch','Portuguese','Arabic','Chinese','Japanese'].forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+sel.value=aiLang();if(!sel.value)sel.value='English';
+var holder=el('div','');var img=document.createElement('img');img.alt='';img.style.cssText='display:none;max-width:100%;max-height:220px;border-radius:8px;margin-top:6px';
+p.appendChild(el('div','v9-note','Translate into:'));p.appendChild(sel);p.appendChild(img);p.appendChild(holder);
+var url=null;
+f.onchange=function(){holder.textContent='';if(url){URL.revokeObjectURL(url);url=null;}var file=f.files&&f.files[0];if(!file)return;url=URL.createObjectURL(file);img.src=url;img.style.display='block';
+holder.appendChild(aiBlock('🔤 Read and translate','photo_text',function(){return imgToDataUrl(file).then(function(d){return{image:d,question:'Read the text in this photo and translate it.',extra:{to:sel.value}};});},{auto:true,hint:'AI mode: a smaller copy of the photo is sent to an AI model when the check starts. Check names, prices, doses and legal text at the original.'}));};
+}
+function qrTab(p){
+p.appendChild(el('div','v9-note','Take or choose a photo of a QR code. The code is read in your browser and the photo is never uploaded. You see what is inside before anything opens.'));
+var f=dualPick(p,'Photo of a QR code');
+var res=el('div','');res.style.marginTop='12px';res.setAttribute('aria-live','polite');
+p.appendChild(res);
+var run=0;
+f.onchange=function(){
+var file=f.files&&f.files[0];if(!file)return;
+var my=++run;res.textContent='⏳ Reading the code…';
+if(!/^image\//.test(file.type)){res.textContent='Please choose an image file.';return;}
+if(file.size>25*1048576){res.textContent='This photo is too large (max 25 MB).';return;}
+qrDecode(file).then(function(text){
+if(my!==run)return;
+if(!text){res.textContent='';res.appendChild(el('div','rep-badge lvl-unknown','❔ No QR code found'));res.appendChild(el('div','rep-note','Try again with the code filling most of the photo, sharp and evenly lit. Do not use a photo of a screen with glare.'));return;}
+var raw=String(text).slice(0,2000),rep,nodes=[];
+var box=el('div','');box.style.cssText='margin-top:10px;padding:10px;border:1px dashed var(--border2);border-radius:10px;background:var(--bg3);font-family:monospace;font-size:13px;word-break:break-all;white-space:pre-wrap';
+box.textContent=raw;
+var cap=el('div','rep-note','Exact content of the code:');
+nodes.push(cap);nodes.push(box);
+if(/^https?:\/\//i.test(raw)||/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(raw)&&!/\s/.test(raw)){
+var url=/^https?:\/\//i.test(raw)?raw:'https://'+raw;
+rep=analyzeUrl(url)||{level:'unknown',headline:'Link',score:null,items:[],links:[],note:''};
+rep.headline='🔗 This code opens a web link. '+rep.headline;
+rep.nodes=nodes;
+
+}else{
+var kind='Plain text',sev='info',level='low',detail='This code only holds text.';
+if(/^WIFI:/i.test(raw)){var ssid=(raw.match(/S:((?:\\.|[^;])*)/i)||[])[1]||'';kind='Wi-Fi login'+(ssid?' for "'+ssid.replace(/\\(.)/g,'$1').slice(0,40)+'"':'');level='medium';sev='med';detail='Scanning it can join your phone to that network. Only join networks you trust.';}
+else if(/^(tel|sms|smsto|mms):/i.test(raw)){kind='Phone call or text message';level='medium';sev='med';detail='It can start a call or fill in a message. Premium-rate numbers and text scams use this.';}
+else if(/^mailto:/i.test(raw)){kind='New email';level='low';detail='It fills in an email for you to send. Read it before sending.';}
+else if(/^(bitcoin|ethereum|litecoin|monero|ripple|solana):/i.test(raw)){kind='Crypto payment';level='high';sev='high';detail='A payment request. Crypto transfers cannot be reversed, so check the address and amount yourself.';}
+else if(/^BEGIN:VCARD/i.test(raw)){kind='Contact card';detail='It adds a contact to your phone.';}
+else if(/^(geo):/i.test(raw)){kind='Map location';detail='A place on the map.';}
+else if(/^(MECARD|BEGIN:VEVENT|BEGIN:VCALENDAR)/i.test(raw)){kind='Contact or calendar entry';detail='It adds an entry to your phone.';}
+else if(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)){kind='Link of another type ('+raw.split(':')[0]+')';level='medium';sev='med';detail='This is not a normal web address. It may open an app. Do not continue unless you know what it is.';}
+rep={level:level,headline:'📄 '+kind,score:null,items:[{sev:sev,title:kind,detail:detail}],links:[],nodes:nodes,note:'The code may also contain text that looks like instructions. Never follow instructions found in a QR code without checking where they came from.'};
+}
+rep.aiTask='qr';rep.aiText='QR code content: '+String(raw).slice(0,1500)+'\nKind: '+rep.headline;
+renderReport(res,rep);
+}).catch(function(){if(my===run)res.textContent='Could not read this photo. Try another one.';});
+};
+}
+var t1=tab('gen','🔑 Password generator',gen);tab('pdf','📄 PDF details',pdfTab);tab('photo','📍 Photo location',photoTab);tab('qr','▦ QR from photo',qrTab);tab('ocr','🔤 Translate from photo',ocrTab);
+labCard('🧰','Tools',function(){if(!cur)t1.click();openPanel('v9Tools');},'rgba(160,100,255,0.16)');
+}
+function initQuiz(){
+var BANK=[
+["A text says your bank account is blocked and asks you to tap a link to unlock it. What is the best move?", ["Ignore the link and open your bank's official app, or type its address yourself", "Tap the link and sign in quickly before it closes", "Reply with your card number to prove it is you", "Forward the text to friends to ask what they think"], "Banks do not ask you to sign in through links in messages. Scammers copy their look to steal logins.", "Always reach your bank through its app or the address you type yourself. If you are unsure, call the number printed on your card."],
+["Which password is the hardest to crack?", ["A long random passphrase of several unrelated words", "Summer2024!", "P@ssw0rd", "12345678"], "Length matters most. Common words with swapped letters are in every cracking list.", "Use a password manager to create a long unique password for every account."],
+["What does the padlock (HTTPS) in the address bar tell you?", ["The connection is encrypted, but it does not prove the site is honest", "The site is safe and run by a real company", "The site has no viruses", "The site was checked by the government"], "Scam sites can use HTTPS too. The padlock only protects the data on its way.", "Judge a site by its exact address and what it asks you for, not by the padlock."],
+["Which kind of two-step login is the strongest?", ["An authenticator app or a security key", "A code sent by SMS", "A security question like \"mother's maiden name\"", "A second password sent to the same email"], "Apps and keys cannot be redirected by swapping your SIM card, and answers to security questions can be found online.", "Turn on two-step login first for your email, because it can reset all your other accounts."],
+["You find an unknown USB stick in a car park. What should you do?", ["Do not plug it in. Hand it to security or IT", "Plug it into your work computer to find the owner", "Plug it into your home computer instead", "Format it first, then use it"], "USB sticks can carry malware that runs the moment they are connected. Attackers leave them on purpose.", "Treat any unknown device as unsafe. Never plug it into a computer you care about."],
+["A caller says they are from your bank's fraud team and asks for the code you just got by SMS. What should you do?", ["Hang up and call the number on your card", "Read out the code to prove who you are", "Ask them to read the code to you first", "Give them only the first three digits"], "The code protects you. A real bank never needs it from you, and scammers use it to approve payments.", "Never share one-time codes with anyone. Call back using a number you trust."],
+["You are in a cafe on public Wi-Fi. What is the safest habit?", ["Avoid banking and sensitive logins, or use mobile data", "Bank freely if the Wi-Fi has a password", "Turn off your screen lock", "Share the Wi-Fi password in a public post"], "Other people on the same network can try to watch or tamper with your traffic. A shared password does not make the network private.", "Use your mobile data for anything sensitive, and keep your device updated."],
+["Why is it risky to reuse one password on many sites?", ["One leak lets attackers try it on all your other accounts", "It makes the sites slower", "Browsers do not allow it", "It expires sooner"], "Attackers test leaked passwords on popular services automatically. This is called credential stuffing.", "Use a different password for every account. A password manager makes it easy."],
+["Which sender address is suspicious?", ["support@paypa1.com (a digit \"1\" instead of \"l\")", "support@paypal.com", "no-reply@paypal.com", "service@paypal.com"], "Look-alike domains swap letters for similar characters to fool a quick glance.", "Read the domain slowly, letter by letter, before trusting a message."],
+["Which is a typical sign of a phishing message?", ["Urgent threats with a deadline and a link", "Addressed to your name by a company you use", "A newsletter you signed up for", "A receipt for something you bought"], "Pressure stops you from thinking and checking. It is the most common trick.", "If a message rushes you, slow down and check it another way."],
+["Why should you install software updates?", ["They fix security holes that attackers use", "They only change the colours", "They slow down your device on purpose", "They are only needed after a problem"], "Many attacks use holes that were fixed months ago on devices that never updated.", "Turn on automatic updates for your phone, computer and browser."],
+["A sticker with a QR code on a parking meter asks you to pay online. What should you do?", ["Check it is not stuck over the original, and use the official app if unsure", "Scan it right away", "It is always safe", "It is only risky at night"], "Scammers paste fake QR stickers over real ones to steal card details.", "Look for signs of tampering and prefer the official app or the official website."],
+["You get a message saying you won a lottery you never entered. What should you do?", ["Ignore it. You cannot win a contest you did not enter", "Pay the small fee to claim the prize", "Send a copy of your ID to prove who you are", "Share it so friends can win too"], "Fake prizes lead to fees or stolen documents, and the prize never arrives.", "Never pay money or send documents to receive a \"prize\"."],
+["Where is the best place to keep your passwords?", ["A reputable password manager", "A note on your phone called \"passwords\"", "The same password in your head for everything", "A text message to yourself"], "A manager creates strong passwords, fills them in only on the right sites, and encrypts what it stores.", "Protect the manager with a long passphrase and two-step login."],
+["Your files are locked and a message demands payment to unlock them. What is the best first step?", ["Disconnect the device from the network and do not pay", "Pay quickly before the price rises", "Restart it again and again", "Delete your backups so they cannot be locked"], "Paying does not guarantee your files back and it funds more attacks. Disconnecting stops it spreading.", "Keep an offline backup. It is the only reliable cure for ransomware."],
+["What is the \"3-2-1\" backup rule?", ["3 copies, on 2 kinds of storage, with 1 kept in another place", "3 passwords, 2 devices, 1 email", "3 antivirus programs, 2 firewalls, 1 router", "Back up at 3, 2 and 1 o'clock"], "Several copies in different places mean fire, theft or a virus cannot wipe out everything.", "Test restoring one file now and then to be sure the backup works."],
+["A message from \"your child\" on an unknown number says their phone broke and asks for money. What should you do?", ["Call your child on the number you already know", "Send the money right away", "Ask for their bank details", "Send half now and half later"], "This scam copies a family member to create panic. The real person is easy to reach another way.", "Agree on a family code word that a scammer could not know."],
+["A link is shortened (like bit.ly/abc). How can you tell where it leads?", ["Use a link checker or ask for the full address", "Open it quickly and see", "Shorter links are safer", "Add \"www\" in front"], "A short link hides its destination until you open it, which is why scammers like them.", "Prefer messages with a full, readable address, and check unknown links before opening."],
+["What is \"phishing\"?", ["Tricking you into giving away information by pretending to be someone trusted", "A virus that deletes files", "A way to cool a computer", "A tool for cracking passwords"], "Phishing is about fooling people, not about breaking in with code.", "Check who is really asking before you give away any information."],
+["A flashlight app asks for access to your contacts and microphone. What should you do?", ["Deny it. A flashlight does not need them", "Allow everything", "Allow only the microphone", "Allow only the contacts"], "Extra permissions can mean the app collects data it has no reason to touch.", "Review app permissions and remove the ones that do not match what the app does."],
+["Why is posting a photo of your boarding pass risky?", ["The barcode can reveal your booking and personal details", "It is not risky", "It is only risky on Mondays", "Blurring the name makes it fully safe"], "The barcode holds the same data as the booking, so others can use it to see or change it.", "Share the trip, not the ticket. Delete the boarding pass photo after travel."],
+["You get spam you never asked for and it has an \"Unsubscribe\" link. What is the safest action?", ["Mark it as spam and delete it", "Click Unsubscribe so they remove you", "Reply with STOP", "Forward it to friends"], "With real spam, clicking can confirm your address is active and bring even more.", "Only use \"Unsubscribe\" in messages from companies you actually signed up with."],
+["How should you give a guest access to your Wi-Fi?", ["Use a separate guest network with its own password", "Post the password on social media", "Remove the password completely", "Use 12345678"], "A guest network keeps visitors away from your own devices.", "Change the Wi-Fi password if you ever shared it widely."],
+["Who should you ever tell your two-step login code to?", ["No one. A real service never asks for it", "A bank agent who calls you", "Your boss", "A support agent in a chat"], "That code is the last line of defence. Anyone asking for it is trying to get into your account.", "If someone asks for a code, hang up and contact the service yourself."],
+["Does antivirus software alone make you safe?", ["No. Updates, strong passwords and careful habits matter as well", "Yes, you are fully protected", "Yes, so updates are not needed", "Yes, so passwords are not needed"], "Antivirus catches known threats, but most scams trick the person rather than the computer.", "Use antivirus as one layer, not the only one."],
+["A pop-up says your computer is infected and tells you to call a number. What should you do?", ["Close the tab or browser and do not call", "Call the number immediately", "Download the tool it offers", "Type your password to verify"], "Real browsers and Windows do not show support phone numbers in warnings. This is a scam.", "If the page will not close, restart the browser. Never give remote access to a caller."],
+["What is \"smishing\"?", ["Phishing done through SMS text messages", "A type of firewall", "A password manager", "Encrypting your email"], "The name joins SMS and phishing. Fake parcel and bank texts are common examples.", "Treat links in unexpected texts the same way as links in suspicious emails."],
+["An online shop has prices far below everyone else, takes only bank transfer and lists no company address. What should you do?", ["Be careful: these are signs of a fake shop", "Buy quickly before it sells out", "Pay with gift cards to be safe", "Send a copy of your ID"], "Fake shops copy products and prices, take payment and never send anything.", "Check the company details and reviews, and pay by card, which gives you a way to dispute."],
+["You must use a public computer in a library. What is best?", ["Avoid sensitive logins; if you must, log out and clear everything after", "Log in to your bank and tick \"remember me\"", "Let the browser save your passwords", "Use an administrator account"], "Other people use the same computer after you and may find what you left behind.", "Never save passwords or stay signed in on a shared computer."],
+["In an email's details, SPF or DKIM shows \"fail\". What does that usually mean?", ["The sender was not authorised or the message was altered, so be suspicious", "The email is certainly spam", "The email is encrypted", "The email arrived late"], "These checks help show whether the message really came from the domain it claims.", "Open the full headers in your mail app (Show original) to see these results."],
+["A photo you share online can contain hidden details. What might they include?", ["The place it was taken, the device and the date", "Only the picture", "Your passwords", "Nothing at all"], "Many photos carry location and device data unless it is removed.", "Use Photo location in Tools to check and remove it before sharing."],
+["What is the risk of a free public USB charging station?", ["Data can be stolen or malware installed through the cable", "There is none", "It charges more slowly", "It is required to use it"], "A cable that carries power can also carry data. This is called \"juice jacking\".", "Use your own charger and plug, or a data-blocking cable."],
+["You get a password-reset email you did not ask for. What should you do?", ["Do not use the link. Go to the site yourself and check your account", "Click the link to cancel it", "Reply with your password", "Forward it to a friend"], "It can mean someone is trying to get in, or it can be a fake designed to steal your login.", "Change your password if you are worried, and turn on two-step login."],
+["A caller sounds exactly like a relative and urgently asks for money. What should you do?", ["Hang up and call them back on their known number", "Trust it, since the voice is exactly theirs", "Send money now and ask later", "Ask them to send a photo"], "Voices can be copied from a few seconds of audio.", "Agree on a family code word and use it when money is asked for."],
+["Your browser says \"Not secure\" on a login page. What should you do?", ["Do not enter your password", "Continue as normal", "Reload the page three times", "Turn off your antivirus first"], "It means what you type is not encrypted and can be read on the way.", "Only sign in on pages that load over HTTPS from the correct address."],
+["What is \"social engineering\"?", ["Manipulating people to get access or information", "Breaking into computers with code", "Building social websites", "Encrypting disks"], "Attackers often find it easier to trick a person than to break the technology.", "Slow down when someone creates urgency, fear or an offer that seems too good."],
+["How do you best judge whether a link in a message is safe?", ["Read the real domain and, if unsure, type the site address yourself", "Check how professional the message looks", "Count the words in it", "See whether it has emoji"], "Messages and logos are easy to copy, but the real address in the link is hard to fake.", "When in doubt, do not tap. Open the service yourself."],
+["What should you do with an old phone before selling it?", ["Back it up, sign out of your accounts and do a factory reset", "Nothing", "Remove only the SIM", "Delete the photos app"], "Leftover data and linked accounts can let the next owner see your life or lock you out.", "Also remove the device from your account's list of trusted devices."],
+["A message says your parcel is held and asks for a 1.99 fee through a link. What should you do?", ["Check the tracking in the courier's official app or site", "Pay it, since it is small", "Send your card details by reply", "Share it with others"], "A tiny fee is a trick to get your card number, which is then used for large payments.", "Parcels you expect can be tracked on the courier's own site."],
+["Why turn on two-factor authentication?", ["A stolen password alone is not enough to get into your account", "It makes the website load faster", "It removes the need for passwords forever", "It hides your IP address"], "The second step, like an app code or a security key, stops most account takeovers even after a leak."],
+["Your boss emails: 'Urgent, buy gift cards and send me the codes.' What do you do?", ["Call your boss on a known number to check", "Buy them right away", "Reply with the codes", "Ask for the boss's personal bank account"], "Gift card requests are a classic scam. Check through a second channel before any money moves."],
+["A link shows paypal.com.account-verify.xyz. Whose website is it?", ["Whoever owns account-verify.xyz", "PayPal", "Google", "A bank"], "Read the address from the right side of the main part: the owner is the name right before .xyz, not the words at the start."],
+["A caller says they are tech support and asks you to install a remote-control app. What now?", ["Hang up. Real support does not call you out of the blue", "Install it, they know your name", "Give them your password to prove you trust them", "Ask them to call again and then allow it"], "Remote access lets them empty your accounts. Never allow it on an unexpected call."],
+["You receive a verification code you never asked for. What does it mean?", ["Someone may be trying to get into your account. Never share the code and change your password", "The service is giving you a gift", "You should reply to confirm it", "Nothing, it can be shared safely"], "Codes prove that it is you. Anyone who asks for one, even a friend or 'support', is after your account."],
+["Which attachment is the riskiest from a stranger?", ["invoice.pdf.exe", "notes.txt", "photo.png", "song.mp3"], "The real file type is the last part. An .exe is a program, even if the name starts with .pdf."],
+["You lose your phone. What is the smartest first step?", ["Lock or erase it with the find-my-device service and change key passwords", "Wait a week and see", "Post about it on social media", "Buy a new one and forget it"], "Locking it fast keeps your accounts and photos safe."],
+["Which backup best protects against ransomware?", ["A copy kept offline or on a separate account", "A copy on the same computer", "A copy in the same folder", "No backup, antivirus is enough"], "Ransomware also locks connected drives. A separate copy lets you restore."],
+["Your password appeared in a data leak. What now?", ["Change it everywhere you used it and turn on two-factor authentication", "Do nothing", "Delete your browser", "Wait for the site to email you"], "Attackers try leaked passwords quickly. Act at once."],
+["Attackers sometimes move your phone number to their SIM. What helps most?", ["Use an authenticator app instead of SMS codes and set a PIN with your carrier", "Change your wallpaper", "Turn off your phone at night", "Use a longer phone case"], "SMS codes can be stolen by SIM swapping. App codes stay with your device."],
+["An unknown person sends you a file by Bluetooth or AirDrop. What do you do?", ["Decline it", "Accept to see what it is", "Accept, then check later", "Forward it to others"], "Unwanted files can be used for harassment or malware."],
+["The email name says 'Microsoft Support' but the address ends with @gmail.com. What do you think?", ["Suspicious: company support does not use free mail addresses", "Fine, Gmail is secure", "Safe, because the name is right", "A sign it is official"], "Anyone can type any display name. Look at the address."],
+["A stranger messages your child online. What should the child do?", ["Not reply, save the messages and tell a trusted adult", "Reply politely and share a photo", "Send their address", "Keep it a secret"], "Talk about this in advance so a child knows they will not be in trouble for telling."],
+["Which browser extensions should you keep?", ["Only a few you trust, from the official store", "As many as possible", "Any from a link in an email", "Ones that ask for all your data"], "Extensions can read what you browse. Remove those you do not use."],
+["A match from a dating app, who you never met, asks for money for an emergency. What is this?", ["A romance scam, do not send money", "A real emergency", "A test of trust", "A normal request"], "Scammers build trust first and then invent a crisis."],
+["You have old accounts you no longer use. What is best?", ["Close or delete them", "Leave them forever", "Share them with friends", "Use the same password for all"], "Forgotten accounts get breached silently and hold your data."],
+["What does private (incognito) mode do?", ["Does not keep history on that device, but sites and networks can still see you", "Makes you anonymous online", "Blocks all trackers", "Hides you from your employer's network"], "It only stops your local history. For privacy online you need more."],
+["What does a VPN protect you from?", ["Others on the same network seeing your traffic, and it hides your IP from sites", "Phishing and malware", "All scams", "Every kind of tracking"], "A VPN does not make a scam site safe. It only changes who can see your connection."]
+];
+var body=mkPanel('v9Quiz','🎮 Security quiz');
+var N=10,st=null;
+function best(){var b=parseInt(store.get('ai_quiz_best')||'0',10);return isFinite(b)?b:0;}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function qkey(i){var t=BANK[i][0],h=5381;for(var k=0;k<t.length;k++)h=((h<<5)+h+t.charCodeAt(k))|0;return(h>>>0).toString(36);}
+function loadSeen(){try{var a=JSON.parse(store.get('ai_quiz_seen')||'[]');return Array.isArray(a)?a.filter(function(x){return typeof x==='string';}).slice(-400):[];}catch(e){return [];}}
+function pick(){
+var seen=loadSeen(),all=BANK.map(function(_,i){return i;}),fresh=all.filter(function(i){return seen.indexOf(qkey(i))===-1;}),chosen;
+if(fresh.length>=N){chosen=shuffle(fresh).slice(0,N);seen=seen.concat(chosen.map(qkey));}
+else{var rest=shuffle(all.filter(function(i){return fresh.indexOf(i)===-1;})).slice(0,N-fresh.length);chosen=shuffle(fresh.concat(rest));seen=chosen.map(qkey);}
+store.set('ai_quiz_seen',JSON.stringify(seen));
+return shuffle(chosen);
+}
+function start(){st={ids:pick(),i:0,score:0,streak:0,top:0,missed:[]};ask();}
+function box(){body.textContent='';}
+function ask(){
+box();
+var q=BANK[st.ids[st.i]];
+var hd=el('div','');hd.style.cssText='display:flex;justify-content:space-between;gap:8px;font-size:13px;opacity:.9;margin-bottom:10px';
+hd.appendChild(el('span','','Question '+(st.i+1)+' of '+N));
+hd.appendChild(el('span','','Score '+st.score+(st.streak>1?' · 🔥 '+st.streak:'')));
+body.appendChild(hd);
+var bar=el('div','');bar.style.cssText='height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-bottom:14px';
+var fill=el('div','');fill.style.cssText='height:100%;background:var(--accent);width:'+Math.round(st.i/N*100)+'%';bar.appendChild(fill);body.appendChild(bar);
+var qe=el('div','',q[0]);qe.style.cssText='font-size:17px;font-weight:bold;line-height:1.5;margin-bottom:14px';qe.setAttribute('role','heading');qe.setAttribute('aria-level','3');body.appendChild(qe);
+var opts=shuffle(q[1].map(function(t,i){return{t:t,ok:i===0};}));
+var list=el('div','');list.setAttribute('role','group');list.setAttribute('aria-label','Answers');
+var fb=el('div','');fb.setAttribute('aria-live','polite');fb.style.marginTop='14px';
+var done=false,btns=[];
+opts.forEach(function(o,idx){
+var b=el('button','',String.fromCharCode(65+idx)+'. '+o.t);b.type='button';
+b.style.cssText='display:block;width:100%;text-align:left;padding:13px 14px;margin:8px 0;background:var(--bg2);color:var(--text);border:1.5px solid var(--border2);border-radius:12px;font-size:15px;line-height:1.45;cursor:pointer';
+b.style.animation='v28pop .4s cubic-bezier(.2,.8,.2,1) '+(idx*0.07)+'s both';
+b.onclick=function(){
+if(done)return;done=true;
+btns.forEach(function(x){x.b.disabled=true;x.b.style.cursor='default';});
+if(o.ok){
+st.score++;st.streak++;st.top=Math.max(st.top,st.streak);
+b.style.borderColor='var(--accent)';b.style.background='var(--bg3)';b.textContent='✅ '+b.textContent;b.classList.add('v28-ok');
+var ok=el('div','rep-badge lvl-low','✅ Correct!');fb.appendChild(ok);
+fb.appendChild(el('div','v9-note',q[2]));
+}else{
+st.streak=0;st.missed.push(st.ids[st.i]);
+b.style.borderColor='#ff4444';b.style.background='rgba(255,68,68,.12)';b.textContent='❌ '+b.textContent;b.classList.add('v28-bad');
+btns.forEach(function(x){if(x.ok){x.b.style.borderColor='var(--accent)';x.b.style.background='var(--bg3)';x.b.textContent='✅ '+x.b.textContent;}});
+var no=el('div','rep-badge lvl-high','❌ Not quite.');fb.appendChild(no);
+fb.appendChild(el('div','v9-note',q[3]?q[2]:'💡 Tip: '+q[2]));
+if(q[3]){var tip=el('div','');tip.style.cssText='margin-top:10px;padding:12px;border-left:3px solid var(--gold);background:var(--bg3);border-radius:8px;line-height:1.55;font-size:14px';
+var th=el('b','','💡 Tip: ');tip.appendChild(th);tip.appendChild(document.createTextNode(q[3]));fb.appendChild(tip);}
+}
+var nx=mkBtn(st.i+1<N?'Next question →':'See my result →','on',function(){st.i++;if(st.i<N)ask();else finish();});nx.style.marginTop='14px';fb.appendChild(nx);
+var rightT=(opts.filter(function(x){return x.ok;})[0]||{}).t||'';
+fb.appendChild(aiBlock('🤖 Explain with AI','quiz_explain',function(){return{text:'Question: '+q[0]+'\nCorrect answer: '+rightT+'\nThe visitor chose: '+o.t};},{hint:'Optional: an AI model explains this answer in its own words.'}));
+try{nx.focus();}catch(e){}
+};
+btns.push({b:b,ok:o.ok});list.appendChild(b);
+});
+st.cur=btns.map(function(x){return x.b;});
+body.appendChild(list);body.appendChild(fb);
+}
+function finish(){
+st.cur=null;
+box();
+var pb=best(),isBest=st.score>pb;if(isBest)store.set('ai_quiz_best',String(st.score));
+var msg=st.score>=9?'🏆 Security expert':st.score>=7?'🛡️ Well prepared':st.score>=5?'👍 Good start':'🌱 Keep learning';
+var h=el('div','',msg);h.style.cssText='font-size:22px;font-weight:bold;margin-bottom:6px';body.appendChild(h);
+var sc=el('div','rep-badge '+(st.score>=7?'lvl-low':st.score>=5?'lvl-medium':'lvl-high'),'You scored '+st.score+' out of '+N+(isBest&&st.score>0?' · new best!':' · best: '+Math.max(pb,st.score)));body.appendChild(sc);
+body.appendChild(el('div','v9-note','Longest streak this round: '+st.top+' in a row.'));
+if(st.missed.length){
+var mh=el('h3','','Review: what to remember');mh.style.margin='16px 0 6px';body.appendChild(mh);
+st.missed.forEach(function(id){
+var q=BANK[id],c=el('div','');c.style.cssText='padding:10px 12px;margin:8px 0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;font-size:13px;line-height:1.55';
+var a=el('div','',q[0]);a.style.fontWeight='bold';c.appendChild(a);
+var r=el('div','','✅ '+q[1][0]);r.style.marginTop='4px';c.appendChild(r);
+var t=el('div','','💡 '+(q[3]||q[2]));t.style.cssText='margin-top:4px;opacity:.9';c.appendChild(t);body.appendChild(c);
+});
+}else body.appendChild(el('div','v9-note','No mistakes this round. Nicely done!'));
+var row=el('div','v9-row');row.style.marginTop='14px';
+row.appendChild(mkBtn('↻ Play again','on',start));
+row.appendChild(mkBtn('⧉ Copy my result','',function(){var t='I scored '+st.score+'/'+N+' on the AI INFORMATION security quiz.';if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('Copied');},function(){toast('Could not copy','#ff4444');});else toast('Could not copy','#ff4444');}));
+body.appendChild(row);
+}
+function intro(){
+box();
+var h=el('div','','Test what you know');h.style.cssText='font-size:20px;font-weight:bold;margin-bottom:8px';body.appendChild(h);
+body.appendChild(el('div','v9-note','Answer '+N+' short questions about staying safe online. If you pick a wrong answer, you will see the right one and a tip you can use. Questions never repeat until you have seen them all. On a keyboard you can press 1 to 4. Nothing is sent anywhere.'));
+var b0=best();if(b0)body.appendChild(el('div','v9-note','Your best score: '+b0+' out of '+N+'.'));
+var s=mkBtn('▶ Start the quiz','on',start);s.style.marginTop='14px';body.appendChild(s);
+var aq=aiBlock('🤖 Play one AI question','quiz_new',function(){return{text:'Write a new question now. Seed: '+Math.random().toString(36).slice(2,8)};},{hint:'AI mode: an AI model writes a brand-new question every time. AI questions can contain mistakes, so they do not count toward your best score.',
+render:function(out,res){out.textContent='';var z=res.quiz;if(!z)return;out.style.whiteSpace='normal';out.appendChild(el('b','',z.question));var fbk=el('div','');fbk.style.marginTop='8px';var done=false;
+z.options.forEach(function(t,i){var b=el('button','',String.fromCharCode(65+i)+'. '+t);b.type='button';b.style.cssText='display:block;width:100%;text-align:left;padding:11px 12px;margin:6px 0;background:var(--bg2);color:var(--text);border:1.5px solid var(--border2);border-radius:12px;font-size:15px;cursor:pointer';
+b.onclick=function(){if(done)return;done=true;b.style.borderColor=i===z.answer?'var(--accent)':'#ff4444';fbk.textContent='';fbk.appendChild(el('div','rep-badge '+(i===z.answer?'lvl-low':'lvl-high'),i===z.answer?'✅ Correct!':'❌ Not quite. Right answer: '+String.fromCharCode(65+z.answer)));if(z.explanation)fbk.appendChild(el('div','v9-note',z.explanation));};out.appendChild(b);});out.appendChild(fbk);}});
+aq.style.marginTop='14px';body.appendChild(aq);
+}
+document.addEventListener('keydown',function(e){var pn=$('v9Quiz');if(!pn||!pn.classList.contains('open')||!st||!st.cur||e.ctrlKey||e.metaKey||e.altKey)return;var n=Number(e.key);if(n>=1&&n<=4&&st.cur[n-1])st.cur[n-1].click();});
+labCard('🎮','Quiz',function(){if(!st||st.i>=N)intro();openPanel('v9Quiz');},'rgba(255,90,120,0.16)');
+intro();
+}
+function initClear(){
+var body=mkPanel('v9Clear','🧹 Quick clear');
+var SEARCH=/^(ai_v9_(recent|snaps|feedsum|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites)$/;
+var VIDEO=/^ai_v9_vidx$/;
+function keys(){var o=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0)o.push(k);}}catch(e){}return o;}
+function groups(){var g={search:[],video:[],settings:[]};keys().forEach(function(k){if(VIDEO.test(k))g.video.push(k);else if(SEARCH.test(k))g.search.push(k);else g.settings.push(k);});return g;}
+function cacheFiles(){if(!window.caches)return Promise.resolve({names:[],n:0});return caches.keys().then(function(ns){ns=ns.filter(function(n){return n.indexOf('aiinfo-')!==0;});return Promise.all(ns.map(function(n){return caches.open(n).then(function(c){return c.keys();}).then(function(k){return k.length;}).catch(function(){return 0;});})).then(function(a){return{names:ns,n:a.reduce(function(x,y){return x+y;},0)};});}).catch(function(){return{names:[],n:0};});}
+var chk={},armed=false,armT=0,go,status;
+function render(){
+body.textContent='';armed=false;clearTimeout(armT);
+body.appendChild(el('div','v9-note','Removes data this site saved on this device. Nothing is sent anywhere. Pick what to clear, then confirm.'));
+var g=groups();
+cacheFiles().then(function(cf){
+var rows=[
+['search','Searches and saved items','Recent searches, saved results, AI chat history, tips, favourites and the activity log.',g.search.length+' saved item'+(g.search.length===1?'':'s')],
+['video','Videos and feed cache','Downloaded videos and cached pictures. They download again when you watch.',cf.n+' cached file'+(cf.n===1?'':'s')],
+['settings','Settings and preferences','Theme, text size, low data mode, weather place, tip timing and the welcome screen. They go back to the defaults.',g.settings.length+' setting'+(g.settings.length===1?'':'s')]
+];
+rows.forEach(function(r){
+if(chk[r[0]]===undefined)chk[r[0]]=true;
+var l=el('label','');l.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:12px;margin-top:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;cursor:pointer';
+var c=document.createElement('input');c.type='checkbox';c.checked=chk[r[0]];c.style.marginTop='3px';c.onchange=function(){chk[r[0]]=c.checked;};
+var t=el('div','');var h=el('div','',r[1]);h.style.fontWeight='bold';var d=el('div','',r[2]);d.style.cssText='font-size:12px;opacity:.85;margin-top:2px;line-height:1.5';var n=el('div','',r[3]);n.style.cssText='font-size:12px;margin-top:4px;color:var(--accent)';
+t.appendChild(h);t.appendChild(d);t.appendChild(n);l.appendChild(c);l.appendChild(t);body.appendChild(l);
+});
+go=mkBtn('🧹 Clear selected','',function(){
+if(!chk.search&&!chk.video&&!chk.settings){status.textContent='Choose at least one item.';return;}
+if(!armed){armed=true;go.textContent='⚠️ Tap again to confirm';go.classList.add('on');status.textContent='This cannot be undone.';armT=setTimeout(function(){armed=false;go.textContent='🧹 Clear selected';go.classList.remove('on');status.textContent='';},5000);return;}
+clearTimeout(armT);go.disabled=true;status.textContent='⏳ Clearing…';
+var gg=groups(),removed=0;
+['search','video','settings'].forEach(function(k){if(chk[k])gg[k].forEach(function(key){try{localStorage.removeItem(key);removed++;}catch(e){}});});
+var p=Promise.resolve(0);
+if(chk.video&&window.caches){p=cacheFiles().then(function(cf){return Promise.all(cf.names.map(function(n){return caches.delete(n);})).then(function(){return cf.n;});}).catch(function(){return 0;});}
+p.then(function(files){
+status.textContent='✅ Done: '+removed+' saved item'+(removed===1?'':'s')+(chk.video?' and '+files+' cached file'+(files===1?'':'s'):'')+' removed. Reloading…';
+setTimeout(function(){try{location.reload();}catch(e){}},1400);
+});
+});
+go.style.marginTop='16px';
+status=el('div','');status.style.cssText='margin-top:10px;font-size:13px';status.setAttribute('aria-live','polite');
+body.appendChild(go);body.appendChild(status);
+body.appendChild(el('div','v9-note','The page keeps its own offline copy so it still opens without a connection.'));
+});
+}
+var btn=el('button','','🧹 Quick clear');btn.type='button';btn.onclick=function(){render();openPanel('v9Clear');};
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+}
+/* ===================== v38: dictionary (any language) + site language (any language) ===================== */
+function initDict(){
+var body=mkPanel('v9Dict','📖 Dictionary');
+var note=el('div','v9-note','Look up any word in any language. Definitions come from Wiktionary. Offensive and vulgar words are never shown.');
+var row=el('div','v9-row');var inp=el('input','v9-in');inp.placeholder='Type a word… (any language)';inp.maxLength=60;inp.setAttribute('aria-label','Word');inp.setAttribute('autocapitalize','none');inp.setAttribute('autocomplete','off');inp.setAttribute('translate','no');
+var go=mkBtn('Look up','pri',function(){run();});row.appendChild(inp);row.appendChild(go);
+var out=el('div');out.style.marginTop='10px';
+var CTRY=[['','Auto (all countries and languages)',''],['United States','United States','English'],['United Kingdom','United Kingdom','English'],['Australia','Australia','English'],['Canada','Canada','English'],['Bulgaria','Bulgaria','Bulgarian'],['Germany','Germany','German'],['France','France','French'],['Spain','Spain','Spanish'],['Italy','Italy','Italian'],['Portugal','Portugal','Portuguese'],['Brazil','Brazil','Portuguese'],['Netherlands','Netherlands','Dutch'],['Poland','Poland','Polish'],['Romania','Romania','Romanian'],['Serbia','Serbia','Serbian'],['Greece','Greece','Greek'],['Turkey','Turkey','Turkish'],['Russia','Russia','Russian'],['Ukraine','Ukraine','Ukrainian'],['Japan','Japan','Japanese'],['China','China','Chinese'],['India','India','Hindi']];
+var cr=el('div','v9-row');cr.appendChild(el('span','','🌍 Country:'));
+var csel=el('select','v9-sel');csel.setAttribute('aria-label','Country');CTRY.forEach(function(c){var o=document.createElement('option');o.value=c[0];o.textContent=c[1];csel.appendChild(o);});
+var _c0=jget('ai_v9_dict_country','');csel.value=typeof _c0==='string'?_c0:'';if(csel.value!==_c0)csel.value='';
+csel.onchange=function(){jset('ai_v9_dict_country',csel.value);};cr.appendChild(csel);
+var chint=el('div','v9-note','Pick a country instead of leaving it on automatic: its language is shown first in the dictionary, and the AI explains how the word is used there.');
+body.appendChild(note);body.appendChild(row);body.appendChild(cr);body.appendChild(chint);body.appendChild(out);
+var dictAi=aiBlock('🤖 Define with AI','define',function(){var w=inp.value.trim().replace(/\s+/g,' ');if(!w){inp.focus();return 'Type a word first.';}if(w.length>60||/[\/\\?#<>|{}\[\]^`"]/.test(w))return 'Type one word or a short phrase without special symbols.';return{text:w,extra:csel.value?{country:csel.value}:{}};},{hint:'AI mode: an AI model writes the definition and tells you how the word is used in the chosen country. Check important meanings in the dictionary above.'});
+body.appendChild(dictAi);
+inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();run();}});
+var seq=0;
+function msg(t){out.textContent='';out.appendChild(el('div','v9-note',t));}
+function run(){
+var w=inp.value.trim().replace(/\s+/g,' ');
+if(!w){msg('Type a word first.');return;}
+if(w.length>60||/[\/\\?#<>|{}\[\]^`"]/.test(w)){msg('Type one word or a short phrase without special symbols.');return;}
+var me=++seq;msg('Looking up…');
+xget('define',{word:w},20000).then(function(j){
+if(me!==seq)return;out.textContent='';
+if(!j.found){msg('No entry found for this word.');return;}
+if(!j.entries||!j.entries.length){msg(j.hidden?'This word is not shown because the dictionary marks it as offensive or vulgar.':'No definition is available for this word.');return;}
+var groups={},order=[];
+j.entries.forEach(function(e){var k=e.name||e.lang;if(!groups[k]){groups[k]=[];order.push(k);}groups[k].push(e);});
+var want=(CTRY.filter(function(c){return c[0]===csel.value;})[0]||['','',''])[2];
+if(want)order.sort(function(a,b){return(b===want)-(a===want);});
+order.forEach(function(k){
+var card=el('div','v9-card');var h=el('b','',k+(want&&k===want?'  ·  '+csel.value:''));card.appendChild(h);
+groups[k].forEach(function(e){
+if(e.pos){var p=el('div','v9-note',e.pos);p.style.marginTop='8px';card.appendChild(p);}
+var ol=document.createElement('ol');ol.style.cssText='margin:4px 0 0 18px;padding:0;line-height:1.5';
+e.defs.forEach(function(d){var li=document.createElement('li');li.appendChild(document.createTextNode(d.t));
+if(d.ex&&d.ex[0]){var x=el('div','v9-note','“'+d.ex[0]+'”');x.setAttribute('translate','no');x.style.fontStyle='italic';li.appendChild(x);}
+ol.appendChild(li);});
+card.appendChild(ol);
+});
+out.appendChild(card);
+});
+var hw=el('div','v9-note','');hw.style.marginTop='8px';
+var a=el('a','','Open “'+w+'” on Wiktionary ↗');a.setAttribute('translate','no');a.href='https://en.wiktionary.org/wiki/'+encodeURIComponent(w.replace(/ /g,'_'));a.target='_blank';a.rel='noopener noreferrer';hw.appendChild(a);
+hw.appendChild(document.createTextNode(' · Text from Wiktionary, CC BY-SA.'));
+out.appendChild(hw);
+if(j.hidden)out.appendChild(el('div','v9-note','Some meanings are not shown because the dictionary marks them as offensive.'));
+logAct('dict',w);
+}).catch(function(e){if(me!==seq)return;msg(/needs-server/.test(String(e&&e.message))?'The dictionary needs the site server (the Worker). It is not available on this kind of hosting.':'The dictionary could not be reached. Try again in a moment.');});
+}
+var btn=mkBtn('📖 Dictionary','',function(){openPanel('v9Dict');setTimeout(function(){try{inp.focus();}catch(e){}},300);});
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+}
+
+function initLang(){
+var CODES=('af sq am ar hy as ay az bm eu be bn bho bs bg ca ceb ny zh zh-TW co hr cs da dv doi nl eo et ee fil fi fr fy gl ka de el gn gu ht ha haw he hi hmn hu is ig ilo id ga it ja jv kn kk km rw gom ko kri ku ckb ky lo la lv ln lt lg lb mk mai mg ms ml mt mi mr lus mn my ne no or om ps fa pl pt pa qu ro ru sm sa gd nso sr st sn sd si sk sl so es su sw sv tg ta tt te th ti ts tr tk ak uk ur ug uz vi cy xh yi yo zu '+
+'aa ab ae av bi br ce ch cr cu cv gv ho hz ia ie ii ik io iu kg ki kj kl kr ks kv kw li mh na nb nd ng nn nr nv oc oj os pi rm rn sc se sg ss tn to tw ty ve vo wa wo').split(' ');
+var RTL={ar:1,he:1,fa:1,ur:1,ps:1,sd:1,yi:1,dv:1,ug:1,ckb:1,ks:1};
+var SKIP='script,style,noscript,textarea,input,select,code,pre,svg,[translate=no],.notranslate,#v9Lang,#v9LangBody,#result,#liveBox,#wikiBox,#chatLog,.vd-card,.fd-post,.rl-s,.rl-menu';
+var cur=store.get('ai_ui_lang')||'en',cache={},budget=2500,tracked=[],orig=new WeakMap(),applied=new WeakMap(),attrOrig=new WeakMap(),engine=null,busy=false,pend=[],timer=0,obs=null;
+function loadCache(c){cache=jget('ai_tr_'+c,{})||{};}
+function saveCache(){try{var k=Object.keys(cache);if(k.length>3000)k.slice(0,k.length-3000).forEach(function(x){delete cache[x];});jset('ai_tr_'+cur,cache);}catch(e){}}
+function latin(t){var l=(t.match(/[A-Za-z]/g)||[]).length,o=(t.match(/[^\sA-Za-z0-9.,:;!?'"()\-–—%&\/+*@#$_=<>|\\[\]{}~^`0-9]/g)||[]).length;return l>=2&&l>=o*2;}
+function okText(s){s=s.trim();return s.length>=2&&s.length<=480&&latin(s);}
+function name(code,inEnglish){try{return new Intl.DisplayNames([inEnglish?'en':code],{type:'language'}).of(code)||code;}catch(e){return code;}}
+function collect(root,list){
+if(!root)return;
+if(root.nodeType===3){if(root.parentElement&&!root.parentElement.closest(SKIP)){var s=orig.has(root)&&applied.get(root)===root.nodeValue?orig.get(root):root.nodeValue;if(okText(s))list.push({n:root,s:s,cv:root.nodeValue});}return;}
+if(root.nodeType!==1||root.closest(SKIP))return;
+var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;return p&&!p.closest(SKIP)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}}),n;
+while((n=w.nextNode())){var s2=orig.has(n)&&applied.get(n)===n.nodeValue?orig.get(n):n.nodeValue;if(okText(s2))list.push({n:n,s:s2,cv:n.nodeValue});}
+[].forEach.call((root.matches&&root.matches('[placeholder],[title],[aria-label]')?[root]:[]).concat([].slice.call(root.querySelectorAll('[placeholder],[title],[aria-label]'))),function(e){
+if(e.closest(SKIP))return;['placeholder','title','aria-label'].forEach(function(a){var v=e.getAttribute(a);if(!v)return;var o=attrOrig.get(e);var base=o&&o[a]&&o['_'+a]===v?o[a]:v;if(okText(base))list.push({e:e,a:a,s:base});});});
+}
+function tmo(p,ms){return new Promise(function(res){var t=setTimeout(function(){res(null);},ms);Promise.resolve(p).then(function(v){clearTimeout(t);res(v);},function(){clearTimeout(t);res(null);});});}
+function chromeEngine(code){
+if(!('Translator' in self))return Promise.resolve(null);
+var act=function(){return !!(navigator.userActivation&&navigator.userActivation.isActive);};
+return tmo(self.Translator.availability({sourceLanguage:'en',targetLanguage:code}),1200).then(function(av){
+if(av!=='available')return null;
+return tmo(self.Translator.create({sourceLanguage:'en',targetLanguage:code}),4000);
+}).then(function(t){
+if(!t)return null;
+return function(texts){return Promise.all(texts.map(function(x){return tmo(t.translate(x),15000);}));};
+}).catch(function(){return null;});
+}
+/* v41: translation straight from the browser (Google web translator, then MyMemory); the site server is only a spare */
+function anyTr(texts,from,to){
+/* all translations come from our own server (open translation services and AI models), asked 12 texts at a time */
+var out=texts.map(function(){return null;}),chunks=[];for(var c=0;c<texts.length;c+=12)chunks.push(c);
+var sq=Promise.resolve();
+chunks.forEach(function(c){sq=sq.then(function(){return xpost('translate',{from:from,to:to,texts:texts.slice(c,c+12)},50000).then(function(j){if(j.engine&&lastSrc.indexOf(j.engine)<0)lastSrc+=(lastSrc?' + ':'')+j.engine;(j.out||[]).forEach(function(v,k){if(v)out[c+k]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});});});
+return sq.then(function(){if(!out.some(Boolean))throw new Error('no translator could be reached (check the internet connection)');return out;});
+}
+function serverEngine(code){return function(texts){return anyTr(texts,'en',code);};}
+function combine(local,remote){
+if(!local)return remote;
+return function(texts){return local(texts).then(function(out){
+var miss=[],mi=[];out.forEach(function(v,i){if(!v||typeof v!=='string'){miss.push(texts[i]);mi.push(i);}});
+if(!miss.length)return out;
+return remote(miss).then(function(r){r.forEach(function(v,j){out[mi[j]]=v;});return out;}).catch(function(){return out;});
+});};
+}
+var lastErr='',lastSrc='';
+function translateTexts(texts,cb){
+var res=new Array(texts.length),need=[],idx=[];
+texts.forEach(function(t,i){if(cache[t]){res[i]=cache[t];}else{need.push(t);idx.push(i);}});
+if(cb&&need.length<texts.length)cb(res,true);
+if(!need.length)return Promise.resolve(res);
+if(need.length>budget)return Promise.resolve(res);
+budget-=need.length;
+var chunks=[];for(var i=0;i<need.length;i+=30)chunks.push(need.slice(i,i+30));
+var k=0;
+function next(){
+if(k>=chunks.length)return Promise.resolve();
+var ch=chunks[k],base=k*30;k++;
+return engine(ch).then(function(out){out.forEach(function(v,j){if(v&&typeof v==='string'){cache[ch[j]]=v;res[idx[base+j]]=v;}});if(cb)cb(res);},function(e){lastErr=String(e&&e.message||e||'');}).then(next);
+}
+return next().then(function(){saveCache();return res;});
+}
+function apply(items,res){
+items.forEach(function(it,i){var v=res[i];if(!v)return;
+if(it.n){if(!it.n.parentNode||it.n.nodeValue!==it.cv)return;var s=it.n.nodeValue,lead=(s.match(/^\s*/)||[''])[0],trail=(s.match(/\s*$/)||[''])[0];
+if(!orig.has(it.n)||applied.get(it.n)!==it.n.nodeValue){orig.set(it.n,it.s);tracked.push(it.n);}
+var nv=lead+v+trail;applied.set(it.n,nv);it.n.nodeValue=nv;}
+else if(it.e){var o=attrOrig.get(it.e)||{};o[it.a]=it.s;o['_'+it.a]=v;attrOrig.set(it.e,o);tracked.push(it.e);it.e.setAttribute(it.a,v);}
+});
+}
+function pass(root){
+if(cur==='en'||!engine)return Promise.resolve();
+var items=[];collect(root||document.body,items);
+if(!items.length)return Promise.resolve();
+var vis=function(it){var e=it.n?it.n.parentElement:it.e;return e&&e.offsetParent!==null?0:1;};items.sort(function(a,b){return vis(a)-vis(b);});
+var uniq=[],seen={};items.forEach(function(it){if(!seen[it.s]){seen[it.s]=1;uniq.push(it.s);}});
+var done={};
+function flush(r){var m={};uniq.forEach(function(u,i){if(r[i]&&!done[u]){m[u]=r[i];done[u]=1;}});apply(items,items.map(function(it){return m[it.s];}));}
+return translateTexts(uniq,flush).then(function(r){flush(r);});
+}
+function revert(){
+tracked.forEach(function(x){
+if(x.nodeType===3){if(orig.has(x)&&applied.get(x)===x.nodeValue)x.nodeValue=orig.get(x);}
+else if(x.nodeType===1){var o=attrOrig.get(x);if(o)['placeholder','title','aria-label'].forEach(function(a){if(o[a]&&o['_'+a]===x.getAttribute(a))x.setAttribute(a,o[a]);});}
+});
+tracked=[];
+}
+function setDir(code){var d=document.documentElement;d.lang=code==='en'?'en':code;d.dir=RTL[code]?'rtl':'ltr';}
+function watch(on){
+if(obs){obs.disconnect();obs=null;}
+if(!on||!window.MutationObserver)return;
+obs=new MutationObserver(function(ms){
+ms.forEach(function(m){
+if(m.type==='characterData'){if(applied.get(m.target)!==m.target.nodeValue)pend.push(m.target);}
+else m.addedNodes.forEach(function(n){pend.push(n);});
+});
+clearTimeout(timer);timer=setTimeout(function(){var ps=pend;pend=[];if(busy)return;busy=true;
+Promise.all(ps.map(function(n){return pass0(n);})).catch(function(){}).then(function(){busy=false;});},350);
+});
+obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+}
+function pass0(n){if(n.nodeType===3){var l=[];collect(n,l);if(!l.length)return Promise.resolve();return translateTexts([l[0].s]).then(function(r){apply(l,[r[0]]);});}return pass(n);}
+var revBusy=false,revNote=null;
+function revSay(t){if(revNote)revNote.textContent=t;}
+/* v123: a second source translates the same texts and an AI model approves one version per text (or writes a better one) */
+function aiReview(code){
+if(revBusy||code==='en')return;
+var done=jget('ai_trv_'+code,{})||{};
+var keys=Object.keys(cache).filter(function(k){return cache[k]&&cache[k]!==k&&!done[k];}).slice(0,36);
+if(!keys.length){revSay('AI review: all texts on this page were already checked.');return;}
+revBusy=true;revSay('AI review: checking '+keys.length+' texts with a second source…');
+var st={checked:0,agreed:0,changed:0,src:{},model:''},i=0;
+function next(){
+if(i>=keys.length||cur!==code)return Promise.resolve();
+var ch=keys.slice(i,i+12);i+=12;
+return xpost('review',{from:'en',to:code,used:lastSrc.slice(0,300),items:ch.map(function(k){return{s:k,t:cache[k]};})},90000).then(function(j){
+st.checked+=j.checked||0;st.agreed+=j.agreed||0;st.model=j.model||st.model;(j.sources||[]).forEach(function(x){st.src[x]=1;});
+(j.out||[]).forEach(function(v,k){if(v&&typeof v==='string'){cache[ch[k]]=v;st.changed++;}});
+ch.forEach(function(k){done[k]=1;});
+}).then(next);
+}
+next().then(function(){
+jset('ai_trv_'+code,done);saveCache();
+if(st.changed&&cur===code){watch(false);revert();return pass(document.body).then(function(){watch(true);});}
+}).then(function(){
+revSay('AI review: '+st.checked+' texts checked'+(Object.keys(st.src).length?' against '+Object.keys(st.src).join(', '):'')+'; '+st.agreed+' agreed, '+st.changed+' improved'+(st.model?' by '+st.model:'')+'.');
+if(st.changed)toast('🤖 AI improved '+st.changed+' translations','var(--accent)',3000);
+}).catch(function(e){revSay('AI review is not available right now ('+String((e&&e.message)||e).slice(0,60)+'). The translation above is unchanged.');}).then(function(){revBusy=false;});
+}
+function setLang(code,quiet){
+if(code==='en'){watch(false);revert();cur='en';store.set('ai_ui_lang','en');setDir('en');cache={};updBtn();if(!quiet)toast('Language: English');return Promise.resolve(true);}
+lastErr='';
+return (Promise.resolve(cur!=='en'?(watch(false),revert()):0)).then(function(){loadCache(code);cur=code;return chromeEngine(code);}).then(function(ce){
+lastSrc=ce?'Chrome on-device translator':'';engine=combine(ce,serverEngine(code));
+if(!quiet)toast('Translating to '+name(code,true)+'… this can take a while, please wait.','var(--accent)',6000);
+watch(false);
+return pass(document.body);
+}).then(function(){
+var any=tracked.length>0;
+if(!any&&!quiet){toast('This language could not be translated'+(lastErr?' ('+lastErr.slice(0,80)+')':'')+'. Try another language or try again later.','#ffaa00');cur='en';store.set('ai_ui_lang','en');setDir('en');updBtn();return false;}
+store.set('ai_ui_lang',code);setDir(code);watch(true);updBtn();if(!quiet)toast('✓ '+name(code)+(lastSrc?' · '+lastSrc.slice(0,90):''),'var(--accent)',4500);setTimeout(function(){aiReview(code);},1500);return true;
+}).catch(function(e){revert();cur='en';store.set('ai_ui_lang','en');setDir('en');updBtn();if(!quiet)toast('Translation failed. Check the internet connection and try again.','#ffaa00');return false;});
+}
+var body=mkPanel('v9Lang','🌐 Language');
+body.parentNode.id='v9Lang';
+var lw=el('div','v9-card');lw.style.cssText+=';border-color:#ffaa00;background:rgba(255,170,0,.08)';
+lw.appendChild(el('b','','⚠️ Please note'));lw.appendChild(el('div','v9-note','⏳ Translating the whole site can take some time, from several seconds to a minute or more, because it is done by free services and AI models. The visible part is translated first. Please wait and do not close the page.'));
+lw.appendChild(el('div','v9-note','Your language may have much longer words than English, so some buttons, icons and animations may not fit or may look cramped. Also, not everything can always be translated: some texts, names, web results and video titles stay in their original language.'));
+body.appendChild(lw);
+body.appendChild(el('div','v9-note','Choose the language of the site. The text is machine-translated and may contain mistakes. Your own text, web results and video titles are not changed.'));
+var SRC22=['Chrome on-device translator (your browser)', 'LibreTranslate via our server (libretranslate.de)', 'LibreTranslate via our server (translate.terraprint.co)', 'LibreTranslate via our server (lt.vern.cc)', 'LibreTranslate via our server (translate.fedilab.app)', 'LibreTranslate via our server (translate.argosopentech.com)', 'LibreTranslate via our server (libretranslate.eownerdead.dedyn.io)', 'LibreTranslate via our server (translate.flossboxin.org.in)', 'LibreTranslate via our server (lt.blitzw.in)', 'LibreTranslate via our server (translate.cutie.dedyn.io)', 'Apertium via our server (apertium.org)', 'MyMemory via our server', 'AI m2m100 (Cloudflare Workers AI)', 'AI Gemma 4', 'AI Llama 3.1', 'AI Llama 3.2', 'AI Granite 4', 'AI Llama 4 Scout', 'AI GPT-OSS 20B', 'AI GPT-OSS 120B'];
+var dt=document.createElement('details');dt.style.margin='8px 0';var dsm=document.createElement('summary');dsm.textContent=SRC22.length+' translation sources (tap to see)';dsm.style.cursor='pointer';dt.appendChild(dsm);var dol=document.createElement('ol');dol.style.cssText='margin:6px 0 0 18px;padding:0;font-size:12px;line-height:1.5';SRC22.forEach(function(x){dol.appendChild(el('li','',x));});dt.appendChild(dol);dt.appendChild(el('div','v9-note','They are tried in this order. A source that does not answer is skipped for a few minutes. Some of them are free public services that may be busy or unavailable at times.'));body.appendChild(dt);
+revNote=el('div','v9-note','AI review: after a language is chosen, a second source translates the same texts and an AI model approves one version of each text (or writes a better one). It runs in the background.');body.appendChild(revNote);
+var q=el('input','v9-in');q.placeholder='Search a language…';q.setAttribute('aria-label','Search language');q.setAttribute('translate','no');q.style.marginBottom='10px';body.appendChild(q);
+var list=el('div');body.appendChild(list);
+var rows=null;
+function build(){
+rows=[{c:'en',n:'English (original)',e:'English'}].concat(CODES.map(function(c){return{c:c,n:name(c),e:name(c,true)};}).filter(function(r){return r.n&&r.e&&r.e!==r.c||/^(zh|hmn|ckb)/.test(r.c);}).sort(function(a,b){return a.e.localeCompare(b.e);}));
+}
+function show(f){
+f=(f||'').toLowerCase();list.textContent='';
+if(!rows)build();
+rows.forEach(function(r){
+if(f&&(r.n+' '+r.e+' '+r.c).toLowerCase().indexOf(f)===-1)return;
+var b=el('button','',r.n+(r.n!==r.e&&r.c!=='en'?'  ·  '+r.e:''));b.type='button';b.setAttribute('translate','no');b.lang=r.c;
+b.style.cssText='display:block;width:100%;text-align:start;padding:11px 12px;margin:5px 0;background:var(--bg2);color:var(--text);border:1.5px solid '+(r.c===cur?'var(--accent)':'var(--border2)')+';border-radius:10px;font-size:15px;cursor:pointer';
+if(r.c===cur)b.style.background='var(--bg3)';
+b.onclick=function(){closePanel('v9Lang');setLang(r.c).then(function(ok){show(q.value);if(ok&&r.c!=='en')setTimeout(function(){toast('⚠️ Some words may be too long for the buttons, and not everything can be translated.','#ffaa00',5000);},900);});};
+list.appendChild(b);
+});
+if(!list.childNodes.length)list.appendChild(el('div','v9-note','No language found.'));
+}
+q.addEventListener('input',function(){show(q.value);});
+
+/* ---- v40: Translator panel (text + websites) ---- */
+var trP=mkPanel('v9Tr','🌍 Translator');trP.parentNode.id='v9Tr';
+var trTab=el('div');trTab.style.cssText='display:flex;gap:8px;margin-bottom:12px';
+var tText=mkBtn('✍️ Text','pri'),tSite=mkBtn('🌐 Website','');
+trTab.appendChild(tText);trTab.appendChild(tSite);trP.appendChild(trTab);
+function optName(r){return r.c==='en'?'English':r.n+(r.n!==r.e?'  ·  '+r.e:'');}
+function langSel(auto,def){
+var sel=el('select','v9-in');sel.setAttribute('translate','no');if(!rows)build();
+if(auto){var o0=document.createElement('option');o0.value='auto';o0.textContent='Auto-detect';sel.appendChild(o0);}
+rows.forEach(function(r){var o=document.createElement('option');o.value=r.c;o.textContent=optName(r);sel.appendChild(o);});
+sel.value=def;if(sel.value!==def)sel.value=auto?'auto':'en';return sel;}
+var navL=(navigator.language||'en').toLowerCase().split('-')[0];
+var defTo=store.get('ai_trl_to')||(navL!=='en'?navL:'bg');
+function split(t,max){var out=[],pi=0;String(t||'').replace(/\r/g,'').split(/\n/).forEach(function(p){p=p.trim();if(!p){pi++;return;}
+while(p.length>max){var cut=Math.max(p.lastIndexOf('. ',max),p.lastIndexOf('? ',max),p.lastIndexOf('! ',max),p.lastIndexOf('。',max));if(cut<max*0.4)cut=p.lastIndexOf(' ',max);if(cut<1)cut=max;out.push({t:p.slice(0,cut+1).trim(),p:pi});p=p.slice(cut+1).trim();}
+if(p)out.push({t:p,p:pi});pi++;});return out;}
+function trErr(e){var m=String(e&&e.message||e||'');return /needs-server/.test(m)?'No translator could be reached. Check the internet connection.':/timeout|abort/i.test(m)?'The translation took too long. Try a shorter text.':'Translation failed: '+m.slice(0,120);}
+function runTr(pieces,from,to,onProg){
+var out=new Array(pieces.length),k=0;
+function next(){
+if(k>=pieces.length)return Promise.resolve(out);
+var a=k,batch=pieces.slice(k,k+30);k+=30;
+return anyTr(batch.map(function(x){return x.t;}),from,to).then(function(o){
+o.forEach(function(v,i){out[a+i]=v||batch[i].t;});if(onProg)onProg(out);return next();});
+}
+return next();
+}
+function joinOut(pieces,out){var s='',lp=-1;pieces.forEach(function(p,i){if(lp!==-1)s+=(p.p!==lp?'\n':' ');s+=out[i]||p.t;lp=p.p;});return s;}
+function outBox(){var b=el('div');b.setAttribute('translate','no');b.className='notranslate';b.style.cssText='white-space:pre-wrap;word-break:break-word;background:var(--bg2);border:1.5px solid var(--border2);border-radius:10px;padding:12px;margin-top:10px;min-height:48px;display:none;line-height:1.55';return b;}
+function dirOf(b,code){b.dir=RTL[code]?'rtl':'ltr';b.lang=code;}
+/* text tab */
+var pText=el('div');
+var fromS=langSel(true,'auto'),toS=langSel(false,defTo);
+var lr=el('div');lr.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:8px';
+var sw=mkBtn('⇄','',function(){var f=fromS.value,t=toS.value;if(f==='auto')return;fromS.value=t;toS.value=f;});sw.setAttribute('aria-label','Swap languages');sw.style.flex='0 0 auto';
+fromS.style.flex='1';toS.style.flex='1';fromS.style.minWidth='0';toS.style.minWidth='0';
+lr.appendChild(fromS);lr.appendChild(sw);lr.appendChild(toS);pText.appendChild(lr);
+var ta=el('textarea','v9-in');ta.rows=5;ta.maxLength=5000;ta.placeholder='Type or paste text to translate…';ta.setAttribute('aria-label','Text to translate');ta.style.cssText='width:100%;resize:vertical;margin-bottom:8px';pText.appendChild(ta);
+var go=mkBtn('Translate','pri',doText);go.style.width='100%';pText.appendChild(go);
+var ob=outBox();pText.appendChild(ob);
+var cp=mkBtn('📋 Copy','',function(){try{navigator.clipboard.writeText(ob.textContent).then(function(){toast('Copied','var(--accent)');});}catch(e){}});cp.style.cssText='margin-top:8px;display:none';pText.appendChild(cp);
+function doText(){
+var t=ta.value.trim();if(!t){ta.focus();return;}
+var from=fromS.value,to=toS.value;if(from===to){toast('Choose two different languages','#ffaa00');return;}
+store.set('ai_trl_to',to);go.disabled=true;go.textContent='Translating…';ob.style.display='block';dirOf(ob,to);ob.textContent='…';cp.style.display='none';
+var pcs=split(t,800);
+runTr(pcs,from,to,function(o){ob.textContent=joinOut(pcs,o);}).then(function(o){ob.textContent=joinOut(pcs,o);cp.style.display='';}).catch(function(e){ob.textContent=trErr(e);}).then(function(){go.disabled=false;go.textContent='Translate';});
+}
+ta.addEventListener('keydown',function(e){if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();doText();}});
+function langEn(c){if(!rows)build();var r=rows.filter(function(x){return x.c===c;})[0];return r?r.e:'English';}
+pText.appendChild(aiBlock('🤖 Translate with AI','translate_text',function(){var t=ta.value.trim();if(!t){ta.focus();return 'Type or paste some text first.';}return{text:t.slice(0,5000),extra:{to:langEn(toS.value)}};},{hint:'Optional: an AI model translates instead of the free web translators. It can sound more natural, but it can also be wrong.'}));
+trP.appendChild(pText);
+/* website tab */
+var pSite=el('div');pSite.style.display='none';
+var ui=el('input','v9-in');ui.type='url';ui.placeholder='https://example.com/article';ui.setAttribute('aria-label','Web address');ui.setAttribute('autocapitalize','none');ui.setAttribute('autocorrect','off');ui.spellcheck=false;ui.style.cssText='width:100%;margin-bottom:8px';
+var toS2=langSel(false,defTo);toS2.style.cssText='width:100%;margin-bottom:8px';toS2.setAttribute('aria-label','Translate into');
+var go2=mkBtn('Translate the page','pri',doSite);go2.style.width='100%';
+var st2=el('div','v9-note','');st2.style.margin='8px 0';
+var ob2=outBox();
+var lnk=el('div');lnk.style.marginTop='10px';
+var aiL=el('label','v9-note');aiL.style.cssText='display:flex;gap:8px;align-items:center;margin:0 0 8px;cursor:pointer';var aiOn=document.createElement('input');aiOn.type='checkbox';aiOn.checked=jget('ai_v9_trsite_ai',true)!==false;aiOn.onchange=function(){jset('ai_v9_trsite_ai',aiOn.checked);};aiL.appendChild(aiOn);aiL.appendChild(document.createTextNode('🤖 AI manages the whole page: it reads the text and an AI model translates it (turn off to use the free web translators)'));
+var aiM=mkModelRow();aiM.style.margin='0 0 8px';
+pSite.appendChild(ui);pSite.appendChild(toS2);pSite.appendChild(aiL);pSite.appendChild(aiM);pSite.appendChild(go2);pSite.appendChild(st2);pSite.appendChild(ob2);pSite.appendChild(lnk);
+pSite.appendChild(el('div','v9-note','The page text is read by a free text reader (the first part of long pages) and machine-translated by a free web translator. It may contain mistakes. Pages that need a login or block readers cannot be read.'));
+trP.appendChild(pSite);
+function readSite(u){
+return apiFetch('https://r.jina.ai/'+u,{timeout:25000,headers:{Accept:'text/plain'}}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.text();}).then(function(t){
+var title=(/^Title:\s*(.+)$/m.exec(t)||[])[1]||'';
+var body=t.replace(/^[\s\S]*?Markdown Content:\s*/,'').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/[#*_`>|]+/g,' ').replace(/[ \t]+/g,' ').replace(/\n\s*\n+/g,'\n').trim().slice(0,9000);
+if(body.length<80)throw new Error('empty');
+return{title:title,text:body,url:u,via:'reader'};
+}).catch(function(){return xget('article',{url:u},45000);});
+}
+function doSite(){
+var u=ui.value.trim();if(!u){ui.focus();return;}
+if(!/^https?:\/\//i.test(u))u='https://'+u;
+var to=toS2.value;store.set('ai_trl_to',to);
+go2.disabled=true;go2.textContent='Reading the page…';st2.textContent='';ob2.style.display='none';lnk.textContent='';
+readSite(u).then(function(j){
+var title=j.title||'',text=String(j.text||'');
+if(text.length<20)throw new Error('The page has no readable text.');
+if(aiOn.checked){
+go2.textContent='AI is translating…';st2.textContent='Read: '+(title||j.url)+'. The AI model is translating…';ob2.style.display='block';dirOf(ob2,to);ob2.textContent='…';
+var lnk0=function(){lnk.textContent='';var a=el('a','v9-open','Open the original page ↗');a.href=safeUrl(j.url||u);a.target='_blank';a.rel='noopener noreferrer';lnk.appendChild(a);};
+return aiAsk('translate_site',{text:(title?title+'\n':'')+text,extra:{to:langEn(to)}}).then(function(res){
+ob2.textContent=res.answer;st2.textContent='🤖 Translated by an AI model ('+aiShort(res.model)+'). It can be wrong.';lnk0();
+var ot=mkBtn('🔁 Translate with another model','',function(){var nx=AI_ALL[(AI_ALL.indexOf(res.model)+1)%AI_ALL.length];jset('ai_v9_model',nx);doSite();});ot.style.marginTop='8px';lnk.appendChild(document.createElement('br'));lnk.appendChild(ot);
+}).catch(function(e){
+st2.textContent='The AI model could not translate ('+String((e&&e.message)||e).slice(0,100)+'). Using the free web translators instead…';
+var pcs0=split((title?title+'\n':'')+text,700).slice(0,40);dirOf(ob2,to);
+return runTr(pcs0,'auto',to,function(o){ob2.textContent=joinOut(pcs0,o);}).then(function(o){ob2.textContent=joinOut(pcs0,o);lnk0();});
+});
+}
+var pcs=split((title?title+'\n':'')+text,700).slice(0,40);
+go2.textContent='Translating…';st2.textContent='Read: '+(title||j.url)+(j.via&&j.via!=='page'?' (from '+(j.via==='archive'?'a saved copy':'a text reader')+')':'');
+ob2.style.display='block';dirOf(ob2,to);ob2.textContent='…';
+return runTr(pcs,'auto',to,function(o){ob2.textContent=joinOut(pcs,o);}).then(function(o){ob2.textContent=joinOut(pcs,o);
+var a=el('a','v9-open','Open the original page ↗');a.href=safeUrl(j.url||u);a.target='_blank';a.rel='noopener noreferrer';lnk.appendChild(a);
+});
+}).catch(function(e){ob2.style.display='none';st2.textContent=/needs-server/.test(String(e&&e.message))?trErr(e):(/^Translation failed|The page/.test(String(e&&e.message))?e.message:'Could not read or translate this page: '+String(e&&e.message||e).slice(0,140));
+var g=el('a','v9-open','Open it in Google Translate ↗');g.href='https://translate.google.com/translate?sl=auto&tl='+encodeURIComponent(to)+'&u='+encodeURIComponent(u);g.target='_blank';g.rel='noopener noreferrer';lnk.textContent='';lnk.appendChild(g);
+}).then(function(){go2.disabled=false;go2.textContent='Translate the page';});
+}
+ui.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doSite();}});
+function tabTo(site){pText.style.display=site?'none':'';pSite.style.display=site?'':'none';tText.className='v9-btn'+(site?'':' pri');tSite.className='v9-btn'+(site?' pri':'');}
+tText.onclick=function(){tabTo(false);};tSite.onclick=function(){tabTo(true);};
+var trBtn=mkBtn('🌍 Translator','',function(){openPanel('v9Tr');});trBtn.setAttribute('translate','no');
+window.AI_TR={open:function(url){openPanel('v9Tr');if(url){tabTo(true);ui.value=url;doSite();}}};
+var btn=mkBtn('🌐 Language','',function(){openPanel('v9Lang');show(q.value);});
+function updBtn(){btn.textContent='🌐 '+(cur==='en'?'Language':name(cur));btn.setAttribute('translate','no');}
+btn.setAttribute('translate','no');
+var bar=$('v9Bar');if(bar){bar.appendChild(trBtn);bar.appendChild(btn);}
+updBtn();
+window.AI_LANG={get:function(){return cur;},set:setLang};
+if(cur!=='en'){setTimeout(function(){setLang(cur,true).then(function(ok){if(!ok){cur='en';store.set('ai_ui_lang','en');}});},900);}
+}
+
+/* ===================== v49: calculator + reminders ===================== */
+(function(){try{document.querySelectorAll('.scam-card h4').forEach(function(h){h.setAttribute('aria-level','3');});}catch(e){}})();
+function initCalc(){
+var body=mkPanel('v9Calc','🧮 Calculator');body.parentNode.id='v9Calc';
+var deg=true,hist=[];
+function fmt(x){if(!isFinite(x))throw new Error('Not a number');var r=parseFloat(x.toPrecision(12));return String(r);}
+function evalExpr(src){
+var s=String(src).toLowerCase().replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/√/g,'sqrt').replace(/π/g,'pi').replace(/,/g,'.').replace(/\s+/g,'');
+if(!s)throw new Error('Type something');if(s.length>200)throw new Error('Too long');
+var t=s.match(/\d*\.?\d+(?:e[+-]?\d+)?|[a-z]+|[-+*/^%()!]/g);if(!t||t.join('')!==s)throw new Error('Unknown symbol');
+var i=0;function peek(){return t[i];}function nx(){return t[i++];}
+var F={sqrt:Math.sqrt,abs:Math.abs,ln:Math.log,log:Math.log10,exp:Math.exp,floor:Math.floor,ceil:Math.ceil,round:Math.round,
+sin:function(x){return Math.sin(deg?x*Math.PI/180:x);},cos:function(x){return Math.cos(deg?x*Math.PI/180:x);},tan:function(x){return Math.tan(deg?x*Math.PI/180:x);},
+asin:function(x){var r=Math.asin(x);return deg?r*180/Math.PI:r;},acos:function(x){var r=Math.acos(x);return deg?r*180/Math.PI:r;},atan:function(x){var r=Math.atan(x);return deg?r*180/Math.PI:r;}};
+function expr(){var v=term();while(peek()==='+'||peek()==='-'){var o=nx(),r=term();v=o==='+'?v+r:v-r;}return v;}
+function term(){var v=pow();for(;;){var p=peek();if(p==='*'||p==='/'){nx();var r=pow();v=p==='*'?v*r:v/r;}else if(p&&(/^[\d.(]/.test(p)||(/^[a-z]/.test(p)&&p!=='e'||p==='e'&&false))){var r2=pow();v=v*r2;}else break;}return v;}
+function pow(){var b=unary();if(peek()==='^'){nx();return Math.pow(b,pow());}return b;}
+function unary(){if(peek()==='-'){nx();return -unary();}if(peek()==='+'){nx();return unary();}return post();}
+function post(){var v=prim();for(;;){if(peek()==='%'){nx();v=v/100;}else if(peek()==='!'){nx();if(v<0||v>170||Math.floor(v)!==v)throw new Error('Bad factorial');var f=1;for(var k=2;k<=v;k++)f*=k;v=f;}else break;}return v;}
+function prim(){var x=nx();if(x===undefined)throw new Error('Unfinished');
+if(x==='('){var v=expr();if(nx()!==')')throw new Error('Missing )');return v;}
+if(/^[\d.]/.test(x)){var n=parseFloat(x);if(isNaN(n))throw new Error('Bad number');return n;}
+if(x==='pi')return Math.PI;if(x==='e')return Math.E;
+if(F[x]){if(nx()!=='(')throw new Error('Use '+x+'( )');var a=expr();if(nx()!==')')throw new Error('Missing )');return F[x](a);}
+throw new Error('Unknown: '+x);}
+var res=expr();if(i<t.length)throw new Error('Unexpected '+t[i]);return res;}
+var disp=document.createElement('input');disp.className='age-in';disp.style.cssText='font-size:24px;text-align:right;font-family:ui-monospace,monospace';disp.setAttribute('aria-label','Expression');disp.setAttribute('autocomplete','off');disp.setAttribute('inputmode','none');disp.readOnly=true;disp.placeholder='0';
+var out=el('div','v9-note','');out.style.cssText='text-align:right;min-height:22px;font-size:15px';out.setAttribute('aria-live','polite');
+body.appendChild(disp);body.appendChild(out);
+function preview(){var v=disp.value.trim();if(!v){out.textContent='';return;}try{out.textContent='= '+fmt(evalExpr(v));out.style.color='';}catch(e){out.textContent='';}}
+disp.addEventListener('input',preview);
+function equals(){try{var r=fmt(evalExpr(disp.value));hist.unshift(disp.value+' = '+r);hist=hist.slice(0,6);disp.value=r;out.textContent='';showHist();}catch(e){out.textContent=e.message;out.style.color='#ff6b6b';}}
+disp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();equals();}});
+var grid=el('div','');grid.style.cssText='display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0';
+var keys=[['C','clr'],['(','('],[')',')'],['⌫','bk'],['÷','÷'],['sin','sin('],['7','7'],['8','8'],['9','9'],['×','×'],['cos','cos('],['4','4'],['5','5'],['6','6'],['−','-'],['tan','tan('],['1','1'],['2','2'],['3','3'],['+','+'],['√','sqrt('],['0','0'],['.','.'],['%','%'],['=','eq'],['x²','^2'],['π','pi'],['e','e'],['^','^'],['ln','ln('],['log','log(']];
+keys.forEach(function(k){var b=mkBtn(k[0],k[1]==='eq'?'pri':'',function(){var a=k[1];if(a==='clr'){disp.value='';out.textContent='';}else if(a==='bk'){disp.value=disp.value.slice(0,-1);preview();}else if(a==='eq')equals();else{disp.value+=a;preview();}if(!disp.readOnly)disp.focus();});b.style.cssText='padding:14px 0;font-size:17px;min-width:0';b.setAttribute('aria-label',k[0]);grid.appendChild(b);});
+body.appendChild(grid);
+var kbBtn=mkBtn('⌨ Phone keyboard: off','',function(){disp.readOnly=!disp.readOnly;disp.setAttribute('inputmode',disp.readOnly?'none':'decimal');kbBtn.textContent='⌨ Phone keyboard: '+(disp.readOnly?'off':'on');if(!disp.readOnly)disp.focus();else disp.blur();});kbBtn.style.marginRight='8px';body.appendChild(kbBtn);
+var dg=mkBtn('Angles: degrees','',function(){deg=!deg;dg.textContent='Angles: '+(deg?'degrees':'radians');preview();});body.appendChild(dg);
+var hh=el('div','v9-note','');hh.style.marginTop='12px';body.appendChild(hh);
+function showHist(){hh.textContent='';hist.forEach(function(h){var d=el('div','',h);d.style.cssText='cursor:pointer;padding:3px 0';d.onclick=function(){disp.value=h.split(' = ').pop();preview();};hh.appendChild(d);});}
+body.appendChild(el('div','v9-note','The calculator works offline and nothing you type is sent anywhere, unless you press the AI button below. Tap the buttons, or turn on the phone keyboard above.'));
+var aq=el('input','v9-in');aq.placeholder='Or ask in words: e.g. 15% of 240, or a word problem…';aq.maxLength=400;aq.setAttribute('aria-label','Maths question for the AI');aq.style.cssText='width:100%;margin-top:10px';body.appendChild(aq);
+body.appendChild(aiBlock('🤖 Solve with AI','calc',function(){var t=(aq.value.trim()||disp.value.trim());if(!t){aq.focus();return 'Type a question above, or an expression in the display.';}return{text:t.slice(0,400)};},{hint:'AI mode: only the text above is sent to an AI model (when you press the button). AI can make arithmetic mistakes, so check the result with the keys above.'}));
+var btn=mkBtn('🧮 Calculator','',function(){openPanel('v9Calc');});
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+window.AI_CALC=evalExpr;
+}
+function initRemind(){
+var body=mkPanel('v9Remind','⏰ Reminders');body.parentNode.id='v9Remind';
+var list=jget('ai_remind',[]);if(!Array.isArray(list))list=[];
+function save(){jset('ai_remind',list);}
+function pad(n){return String(n).padStart(2,'0');}
+function localIso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());}
+body.appendChild(el('p','lg-p','Write what to remember, pick the time and how you want to be reminded.'));
+var txt=el('input','v9-in');txt.placeholder='Remind me to…';txt.maxLength=140;txt.setAttribute('aria-label','Reminder text');body.appendChild(txt);
+var when=document.createElement('input');when.type='datetime-local';when.className='v9-in';when.style.cssText='margin-top:8px;width:100%';when.setAttribute('aria-label','Date and time');body.appendChild(when);
+var q=el('div','v9-row');q.style.margin='8px 0';
+[['+10 min',10],['+1 hour',60],['Tomorrow 9:00',-1]].forEach(function(x){q.appendChild(mkBtn(x[0],'',function(){var d=new Date();if(x[1]<0){d.setDate(d.getDate()+1);d.setHours(9,0,0,0);}else d=new Date(Date.now()+x[1]*60000);when.value=localIso(d);}));});
+body.appendChild(q);
+function chk(label,on){var l=el('label','lg-p','');l.style.cssText='display:block;margin:6px 0';var c=document.createElement('input');c.type='checkbox';c.checked=!!on;l.appendChild(c);l.appendChild(document.createTextNode(' '+label));body.appendChild(l);return c;}
+var cN=chk('🔔 Notification on this device',true);
+var nst=el('div','v9-note','');nst.style.margin='2px 0 8px';body.appendChild(nst);
+var nbtn=mkBtn('Allow notifications','',function(){askNotif(true);});nbtn.style.marginRight='8px';
+var ntest=mkBtn('Send a test notification','',function(){showNote('⏰ Test','If you can read this, notifications work.','test');});
+var nrow=el('div','v9-row');nrow.appendChild(nbtn);nrow.appendChild(ntest);body.appendChild(nrow);
+function nState(){if(!('Notification' in window))return'unsupported';return Notification.permission;}
+function nUpdate(){var st=nState(),ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+nbtn.style.display=st==='default'?'':'none';ntest.style.display=st==='granted'?'':'none';
+nst.textContent=st==='granted'?'✓ Notifications are allowed. They appear on time while your browser is running; if it was closed, they appear when you open the site again. For a reminder that always rings, also tick the calendar file.':
+st==='denied'?'✗ Notifications are blocked for this site. Open your browser’s site settings (the lock icon next to the address), allow Notifications, then reload this page.':
+st==='default'?'Notifications are not allowed yet. Press “Allow notifications” and choose Allow.':
+'✗ This browser does not support notifications'+(ios?' here. On iPhone/iPad they work only after you add the site to the Home Screen (iOS 16.4 or newer) and open it from there.':'. Use the calendar file instead.');}
+function askNotif(force){if(!('Notification' in window)){nUpdate();return;}if(Notification.permission==='default'||force){try{var pr=Notification.requestPermission(function(){nUpdate();});if(pr&&pr.then)pr.then(nUpdate);}catch(e){}}nUpdate();}
+function swReg(){if(!navigator.serviceWorker||!/^https?:$/.test(location.protocol))return Promise.reject(0);return navigator.serviceWorker.getRegistration().then(function(g){return g||navigator.serviceWorker.register(cacheOK()?'sw.js':'sw.js?n=1');}).then(function(){return navigator.serviceWorker.ready;});}
+function noteIcon(){return new Promise(function(res){var abs='';try{abs=new URL('icon-192.png',location.href).href;}catch(e){res('icon-192.png');return;}
+try{fetch(abs,{credentials:'omit'}).then(function(r){return r.ok?r.blob():null;}).then(function(b){if(!b){res(abs);return;}var f=new FileReader();f.onload=function(){res(String(f.result));};f.onerror=function(){res(abs);};f.readAsDataURL(b);}).catch(function(){res(abs);});}catch(e){res(abs);}});}
+function showNote(title,bodyTxt,tag){if(nState()!=='granted'){toast(title+' '+bodyTxt,'#b7791f',8000);return;}
+noteIcon().then(function(ic){var o={body:bodyTxt,tag:tag,icon:ic,requireInteraction:true};
+return swReg().then(function(g){return g.showNotification(title,o);}).catch(function(){try{new Notification(title,o);}catch(e){toast(title+' '+bodyTxt,'#b7791f',8000);}});});}
+cN.onchange=function(){if(cN.checked&&nState()==='default')askNotif();};
+var cC=chk('📅 Calendar file (.ics) – your calendar app reminds you even when this site is closed',false);
+var cE=chk('✉️ Email draft – open my mail app with the reminder ready to send now',false);
+var em=el('input','v9-in');em.type='email';em.placeholder='Your e-mail address (only for the mail draft)';em.maxLength=120;em.setAttribute('aria-label','E-mail address');em.style.display='none';body.appendChild(em);
+cE.onchange=function(){em.style.display=cE.checked?'block':'none';};
+var msg=el('div','v9-note','');msg.style.margin='8px 0';body.appendChild(msg);var mailBox=el('div');body.appendChild(mailBox);
+[txt,when,em].forEach(function(x){x.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();add.click();}});});
+var add=mkBtn('Add reminder','pri',function(){
+var t=txt.value.trim();if(!t){msg.textContent='Write what to remember.';return;}
+var d=new Date(when.value);if(!when.value||isNaN(d)||d.getTime()<Date.now()-60000){msg.textContent='Pick a time in the future.';return;}
+if(list.length>=50){msg.textContent='You can keep up to 50 reminders.';return;}
+var r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),t:t,at:d.getTime(),n:cN.checked?1:0,done:0};
+list.push(r);list.sort(function(a,b){return a.at-b.at;});save();
+
+if(cN.checked)askNotif();
+if(cC.checked)icsDownload(r);
+mailBox.textContent='';if(cE.checked)mailDraft(r,em.value.trim());
+txt.value='';msg.textContent='Added.';render();});
+body.appendChild(add);
+var note=el('div','v9-note','');note.style.margin='10px 0';body.appendChild(note);
+var ul=el('div','');body.appendChild(ul);
+function icsDownload(r){var u=function(ms){return new Date(ms).toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');};var e=function(s){return String(s).replace(/[\;,]/g,'\\$&').replace(/\n/g,'\\n');};
+var ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//AI INFORMATION//Reminder//EN\r\nBEGIN:VEVENT\r\nUID:'+r.id+'@ai-information\r\nDTSTAMP:'+u(Date.now())+'\r\nDTSTART:'+u(r.at)+'\r\nDTEND:'+u(r.at+900000)+'\r\nSUMMARY:'+e(r.t)+'\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+e(r.t)+'\r\nTRIGGER:PT0S\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n';
+saveFile('reminder-'+r.id+'.ics',ics,'text/calendar');}
+function mailDraft(r,to){var s='Reminder: '+r.t,b=r.t+'\n\nWhen: '+new Date(r.at).toLocaleString()+'\n\n(Created with AI INFORMATION)';
+var ee=encodeURIComponent,tt=/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)?to:'';
+var box=el('div','v9-row');box.style.margin='8px 0';box.appendChild(el('div','v9-note','Open the e-mail draft in:')).style.width='100%';
+var a1=el('a','v9-open','📧 Mail app');a1.href='mailto:'+tt+'?subject='+ee(s)+'&body='+ee(b);
+var a2=el('a','v9-open','Gmail ↗');a2.href='https://mail.google.com/mail/?view=cm&fs=1&to='+ee(tt)+'&su='+ee(s)+'&body='+ee(b);a2.target='_blank';a2.rel='noopener noreferrer';
+var a3=el('a','v9-open','Outlook ↗');a3.href='https://outlook.live.com/mail/0/deeplink/compose?to='+ee(tt)+'&subject='+ee(s)+'&body='+ee(b);a3.target='_blank';a3.rel='noopener noreferrer';
+[a1,a2,a3].forEach(function(a){a.style.marginRight='8px';box.appendChild(a);});
+var cp=mkBtn('Copy text','',function(){try{navigator.clipboard.writeText(s+'\n'+b);toast('Copied');}catch(e){toast('Copy is not available');}});box.appendChild(cp);
+box.appendChild(el('div','v9-note','The site cannot send e-mail by itself. This opens a ready draft; send it now, or use “schedule send” in your mail service to get it at the right time.')).style.width='100%';
+if(mailBox.firstChild)mailBox.textContent='';mailBox.appendChild(box);}
+function fire(r,late){r.done=1;save();var m='⏰ '+r.t+(late?' (missed while the site was closed)':'');
+try{toast(m,'#b7791f',12000);}catch(e){}
+if(r.n)showNote('⏰ '+r.t,late?'Missed while the site was closed':new Date(r.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),r.id);
+render();}
+function tick(){var now=Date.now();list.forEach(function(r){if(!r.done&&r.at<=now)fire(r,now-r.at>120000);});}
+function render(){
+ul.textContent='';
+note.textContent=(CONS&&CONS.prefs)?'Reminders are saved on this device (preferences are allowed). A notification only appears while the site is open in a browser; reminders that came due while it was closed are shown when you open it again.':'Preferences are not allowed, so reminders are kept only until you close or reload this tab. You can allow them in “Cookie settings”.';
+if(!list.length){ul.appendChild(el('div','v9-note','No reminders yet.'));return;}
+list.forEach(function(r){var row=el('div','v9-row');row.style.cssText='justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line)';
+var tx=el('div','',(r.done?'✓ ':'⏳ ')+r.t);var wn=el('div','v9-note',new Date(r.at).toLocaleString());tx.appendChild(wn);tx.style.flex='1';
+row.appendChild(tx);row.appendChild(mkBtn('📅','',function(){icsDownload(r);}));row.appendChild(mkBtn('✕','',function(){list=list.filter(function(x){return x.id!==r.id;});save();render();}));ul.appendChild(row);});
+}
+render();tick();setInterval(tick,15000);document.addEventListener('visibilitychange',function(){if(!document.hidden)tick();});
+var btn=mkBtn('⏰ Reminders','',function(){nUpdate();when.value=when.value||localIso(new Date(Date.now()+3600000));render();openPanel('v9Remind');});
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+}
+
+
+/* ===================== v57: accent colour (background stays the same) ===================== */
+
+function initFeatures(){
+var body=mkPanel('v9Feat','🎛️ Features');body.parentNode.id='v9Feat';
+var G=[['Main tools',[['feed','📰 Feed','Posts and videos'],['news','🚨 Breaking news bar',''],['trending','🔥 Trending bar',''],['chat','🤖 AI Chat','Chat button'],['weather','🌤️ Weather','Button and the chip at the top'],['translator','🌍 Translator',''],['dict','📖 Dictionary',''],['calc','🧮 Calculator',''],['compare','⚖️ Compare',''],['quote','🔎 Quote context',''],['reminders','⏰ Reminders',''],['install','📲 Install','']]],
+['Scam Lab',[['urlscan','🔗 URL Scanner',''],['textan','📝 Text Analyzer',''],['fakeimg','🖼️ Fake image checker',''],['weekly','🛡️ Weekly report',''],['tip','💡 AI Tip',''],['tools','🧰 Tools',''],['quiz','🎮 Quiz','']]],
+['AI helpers',[['aisum','✨ AI Summary of search results','Also stops the automatic request'],['aifeed','📰 AI summary of the day in the Feed','Also stops the automatic request'],['aibtn','🤖 AI buttons inside tools','Explain, translate, check and the two-day comparison'],['foryou','✨ "For you" in Standard Search',''],['aibg','🖼️ AI picture background','Hides the picture; it stays saved']]],
+['Look',[['splash','✨ Start animation','']]]];
+body.appendChild(el('p','lg-p','Switch features off to hide them and stop them from running. Switch them on again here at any time. Nothing is deleted. The choice is saved on this device if you allowed storage.'));
+var boxes={};
+G.forEach(function(g){var h=el('h3','',g[0]);h.style.margin='16px 0 6px';body.appendChild(h);g[1].forEach(function(f){
+var l=el('label','');l.style.cssText='display:flex;gap:10px;align-items:flex-start;padding:8px 10px;margin:4px 0;border:1px solid var(--border2);border-radius:10px;background:var(--bg2);cursor:pointer';
+var c=document.createElement('input');c.type='checkbox';c.style.marginTop='3px';c.checked=FT.on(f[0]);boxes[f[0]]=c;
+c.onchange=function(){FT.set(f[0],c.checked);};
+var t=el('span','');t.appendChild(document.createTextNode(f[1]));if(f[2]){var n=el('small','',f[2]);n.style.cssText='display:block;opacity:.75';t.appendChild(n);}
+l.appendChild(c);l.appendChild(t);body.appendChild(l);});});
+var th=el('h3','','Theme');th.style.margin='16px 0 6px';body.appendChild(th);
+body.appendChild(el('div','v9-note','Let the site pick dark or light for you. It uses the sunrise and sunset and, if you choose, the weather of the place set in Weather (the same data as the weather chip; nothing else is sent). If you press the 🌙/☀️ button yourself, automatic theme turns off.'));
+var trow=el('div','');trow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(trow);
+var tinfo=el('div','v9-note','');tinfo.setAttribute('role','status');
+function tmode(){var m='off';try{m=localStorage.getItem('ai_v9_autotheme')||'off';}catch(e){}return m==='time'||m==='weather'?m:'off';}
+var tb=[];
+function tmark(){var c=tmode();tb.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});var d=c!=='off'&&window.AI_AUTOTHEME_APPLY?AI_AUTOTHEME_APPLY():null;tinfo.textContent=d?'Now: '+(d.light?'light':'dark')+' because '+d.why+'.':'Manual: you choose with the 🌙/☀️ button.';}
+[['off','Manual (default)'],['time','🌗 Day and night'],['weather','🌦️ Day, night and weather']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_autotheme',o[0]);}catch(e){}try{localStorage.setItem('ai_v9_autotheme',o[0]);}catch(e){}if(o[0]==='off'){var sv=store.get('ai_info_theme');var lt=sv==='light';document.body.classList.toggle('light-theme',lt);document.documentElement.style.colorScheme=lt?'light':'dark';document.querySelectorAll('.theme-btn').forEach(function(x){x.textContent=lt?'☀️':'🌙';});}tmark();if(o[0]!=='off'){var dd=window.AI_AUTOTHEME_APPLY&&AI_AUTOTHEME_APPLY();if(dd)toast('Automatic theme on: '+(dd.light?'light':'dark')+' because '+dd.why+'.','var(--accent)',4000);}else toast('Manual theme.','var(--accent)',2000);});b.style.margin='0';b.dataset.v=o[0];tb.push(b);trow.appendChild(b);});
+var mrow=el('div','v9-row');mrow.style.marginTop='8px';mrow.appendChild(el('div','v9-note','Choose by hand (this turns automatic off):')).style.width='100%';
+[['☀️ Light',true],['🌙 Dark',false]].forEach(function(o){var mb=mkBtn(o[0],'',function(){try{store.set('ai_v9_autotheme','off');}catch(e){}try{localStorage.setItem('ai_v9_autotheme','off');}catch(e){}if(document.body.classList.contains('light-theme')!==o[1])toggleTheme();setTimeout(function(){try{store.set('ai_info_theme',o[1]?'light':'dark');}catch(e){}tmark();},700);});mb.style.margin='0';mrow.appendChild(mb);});
+body.appendChild(mrow);
+var prow=el('div','v9-row');prow.style.marginTop='8px';prow.appendChild(el('div','v9-note','Try how it looks (5 seconds, then it returns to automatic):')).style.width='100%';
+[['☀️ Day, clear',true],['🌧️ Day, rain',false],['🌙 Night',false]].forEach(function(o){var pb=mkBtn(o[0],'',function(){var lt=o[1];document.body.classList.toggle('light-theme',lt);document.documentElement.style.colorScheme=lt?'light':'dark';document.querySelectorAll('.theme-btn').forEach(function(x){x.textContent=lt?'☀️':'🌙';});toast('Preview: '+(lt?'light':'dark'),'var(--accent)',2000);clearTimeout(window._atPv);window._atPv=setTimeout(function(){if(tmode()!=='off'&&window.AI_AUTOTHEME_APPLY)AI_AUTOTHEME_APPLY();else{var lt2=store.get('ai_info_theme')==='light';document.body.classList.toggle('light-theme',lt2);document.documentElement.style.colorScheme=lt2?'light':'dark';document.querySelectorAll('.theme-btn').forEach(function(x){x.textContent=lt2?'☀️':'🌙';});}},5000);});pb.style.margin='0';prow.appendChild(pb);});
+body.appendChild(prow);
+body.appendChild(tinfo);window.AI_AUTOTHEME_REFRESH=tmark;tmark();
+var ah=el('h3','','Animations');ah.style.margin='16px 0 6px';body.appendChild(ah);
+body.appendChild(el('div','v9-note','Many animations (the shine around the logo, hover effects, the start animation) are switched off when your device asks to reduce motion. This is often on by default on a computer (Windows: Settings > Accessibility > Visual effects > Animation effects), and usually off on a phone. Here you can choose for this site only.'));
+var arow=el('div','');arow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(arow);
+function curAnim(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
+var abtns=[];
+[['auto','Follow my device (default)'],['on','Always on'],['off','Off']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_anim',o[0]);}catch(e){}if(!store.get('ai_v9_anim'))try{localStorage.setItem('ai_v9_anim',o[0]);}catch(e){}if(window.AI_ANIM_APPLY)AI_ANIM_APPLY();if(window.AI_A11Y_APPLY)AI_A11Y_APPLY();mark();toast(o[0]==='on'?'Animations are on':o[0]==='off'?'Animations are off':'Animations follow your device','var(--accent)',2500);});b.style.margin='0';b.dataset.v=o[0];abtns.push(b);arow.appendChild(b);});
+function mark(){var c=curAnim();abtns.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});}mark();
+var all=mkBtn('Turn everything on','pri',function(){Object.keys(FT.off()).forEach(function(k){FT.set(k,true);});Object.keys(boxes).forEach(function(k){boxes[k].checked=true;});toast('All features are on','var(--accent)',2500);});all.style.marginTop='14px';body.appendChild(all);
+body.appendChild(el('p','v9-note','Always on: Accessibility, Language, Quick clear, Content filter, Colour, and this menu.'));
+var hb=document.querySelector('.hdr-tools');var b=el('button','hdr-chip','🎛️ Features');b.id='ftBtn';b.type='button';b.setAttribute('aria-label','Features: switch features on or off');b.onclick=function(){openPanel('v9Feat');};
+if(hb)hb.appendChild(b);
+FT.css();FT.tag();[400,1500,4000].forEach(function(ms){setTimeout(FT.tag,ms);});
+try{var mo=new MutationObserver(function(){clearTimeout(FT._t);FT._t=setTimeout(FT.tag,200);});['v9Bar','scamLabBar','feedBar'].forEach(function(id){var e=document.getElementById(id);if(e)mo.observe(e,{childList:true,subtree:true});});}catch(e){}
+}
+function initColor(){
+var C=[['Green',null,null],['Red','#ff5c5c','#b3261e'],['Orange','#ff9f43','#a65200'],['Yellow','#ffd93d','#8a6d00'],['Blue','#4da3ff','#0b57d0'],['Indigo','#8a8cff','#3f3fbf'],['Violet','#c084fc','#7b2fbf']];
+var st=document.createElement('style');st.id='accStyle';document.head.appendChild(st);
+var timer=0,idx=0;
+function paint(i){var c=C[i];st.textContent=c[1]?'body{--accent:'+c[1]+';--text2:'+c[1]+'}body.light-theme{--accent:'+c[2]+';--text2:'+c[2]+'}':'';}
+function stop(){clearInterval(timer);timer=0;}
+function set(v){stop();store.set('ai_accent',String(v));
+if(v==='auto'){idx=0;paint(0);timer=setInterval(function(){if(document.hidden)return;idx=(idx+1)%C.length;paint(idx);},7000);if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){stop();}}
+else paint(parseInt(v,10)||0);mark();}
+var body=mkPanel('v9Color','🎨 Accent colour');body.parentNode.id='v9Color';
+body.appendChild(el('p','lg-p','Choose the colour used for buttons, borders and highlights. The background does not change.'));
+var row=el('div','');row.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin:12px 0';body.appendChild(row);
+var btns=[];
+function sw(label,bg,val){var b=el('button','v9-btn',label);b.type='button';b.setAttribute('aria-label',label);b.style.cssText='min-width:96px;padding:12px;border:2px solid '+(bg||'var(--accent)')+';';if(bg&&bg!=='rainbow')b.style.background='color-mix(in srgb,'+bg+' 22%,var(--bg2))';if(bg==='rainbow')b.style.background='linear-gradient(90deg,#ff5c5c33,#ffd93d33,#4da3ff33,#c084fc33)';b.onclick=function(){set(val);};b.dataset.v=String(val);row.appendChild(b);btns.push(b);}
+C.forEach(function(c,i){sw((i?'':'● ')+c[0],c[1]||'#00ff88',i);});
+sw('🌈 Auto','rainbow','auto');
+function mark(){var cur=store.get('ai_accent')||'0';btns.forEach(function(b){b.style.outline=b.dataset.v===cur?'3px solid var(--text)':'none';});}
+body.appendChild(el('p','v9-note','“Auto” slowly goes through all the colours of the rainbow (it stays still if your device asks for reduced motion). Your choice is remembered if you allowed preferences.'));
+body.appendChild(mkBtn('Reset to green','',function(){set(0);}));
+body.appendChild(el('p','v9-note','Reset to green does not change the picture below.'));
+var bgBox=el('div','v9-card');bgBox.style.cssText='margin:14px 0;padding:12px';body.appendChild(bgBox);
+bgBox.appendChild(el('b','','🖼️ AI picture background'));
+bgBox.appendChild(el('p','v9-note','Describe a picture (for example "calm blue mountains at dawn"). An AI image model on Cloudflare Workers AI makes it, and it is shown softly behind the site. Only your description is sent, and only when you press the button. It is stored on this device if you allow storage. AI pictures can look odd.'));
+var bgIn=document.createElement('input');bgIn.type='text';bgIn.maxLength=120;bgIn.placeholder='calm blue mountains at dawn';bgIn.setAttribute('aria-label','Describe the background picture');bgIn.style.cssText='width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);margin:8px 0 10px';bgBox.appendChild(bgIn);
+var POOL=['misty pine forest at sunrise','northern lights over a frozen lake','neon city street in the rain','soft pastel clouds at sunset','deep blue ocean waves','red desert dunes at dusk','galaxy of purple and teal stars','autumn leaves in golden light','snowy mountain peaks at dawn','calm lavender fields','tropical beach with turquoise water','glowing jellyfish in dark water','minimal green gradient waves','cherry blossoms in soft wind','old stone bridge in fog','aurora above a quiet village','abstract geometric shapes in green','waterfall in a mossy jungle','moonlit clouds over the sea','sunflower field under blue sky','paper-cut layered hills','watercolor sky with soft colours','starry desert night','lighthouse on a stormy coast','bamboo forest with morning light','crystal cave with glowing lights','floating islands in the sky','rainy window with city lights','warm sunset over rice terraces','abstract ink flowing in water','low-poly mountain landscape','foggy lake at first light','fireflies in a summer meadow','retro synthwave horizon','glacier with blue ice','quiet library with warm lamps','coral reef full of colour','sakura petals over a river','dark space with a green nebula','hot air balloons at sunrise'];
+function pick6(){var a=POOL.slice(),o=[];while(o.length<6&&a.length){o.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);}return o;}
+var chipRow=el('div','');chipRow.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px';bgBox.appendChild(chipRow);
+function drawChips(list){chipRow.textContent='';list.forEach(function(t){var c=el('button','std-b',t);c.type='button';c.style.cssText='padding:6px 12px;font-size:12px;border-radius:999px;max-width:100%;white-space:normal;text-align:left;border:1px solid var(--accent);background:var(--bg2);color:var(--text);cursor:pointer';c.onclick=function(){bgIn.value=t;};chipRow.appendChild(c);});}
+drawChips(pick6());
+var bgSt=el('div','v9-note','');bgSt.setAttribute('role','status');bgSt.style.marginTop='8px';
+function bgShow(u){var L=document.getElementById('aiBgLayer');if(!u){if(L)L.remove();return;}if(!L){L=document.createElement('div');L.id='aiBgLayer';L.setAttribute('data-ft','aibg');L.setAttribute('aria-hidden','true');document.body.insertBefore(L,document.body.firstChild);}L.style.backgroundImage='url("'+u+'")';}
+var btnRow=el('div','');btnRow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:4px 0';
+var mk=mkBtn('✨ Make the picture','',function(){var t=bgIn.value.trim();if(t.length<3){bgSt.textContent='Write at least 3 letters, or press a theme.';return;}mk.disabled=true;bgSt.textContent='Making the picture… this can take some seconds.';
+aiAsk('bgimage',{text:t}).then(function(j){if(!/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(j.image||''))throw new Error('bad picture');bgShow(j.image);try{store.set('ai_bgimg',j.image);}catch(e){}bgSt.textContent='Done. Made by '+String(j.model||'').replace(/^@cf\//,'')+'.';mk.disabled=false;}).catch(function(e){mk.disabled=false;bgSt.textContent=aiErrText(e);});});
+var more=mkBtn('🎲 New AI themes','',function(){more.disabled=true;bgSt.textContent='The AI is thinking of new themes…';
+aiAsk('bgideas',{text:'Seed: '+Math.random().toString(36).slice(2,10)}).then(function(j){var l=(j.ideas||[]).filter(function(x){return x&&x.length>=3;});if(!l.length)throw new Error('empty');drawChips(l.slice(0,8));bgSt.textContent='New themes from an AI model ('+aiShort(j.model)+'). Press one, then make the picture.';more.disabled=false;}).catch(function(){drawChips(pick6());bgSt.textContent='The AI could not answer, so here are other ready themes.';more.disabled=false;});});
+var rnd=mkBtn('🎲 Surprise me','',function(){var l=[].map.call(chipRow.children,function(c){return c.textContent;});bgIn.value=l[Math.floor(Math.random()*l.length)]||POOL[0];mk.click();});
+var rm=mkBtn('Remove picture','',function(){bgShow('');try{store.set('ai_bgimg','');}catch(e){}bgSt.textContent='Removed.';});
+[mk,rnd,more,rm].forEach(function(x){x.style.margin='0';btnRow.appendChild(x);});bgBox.appendChild(btnRow);bgBox.appendChild(bgSt);
+try{var sv=store.get('ai_bgimg');if(sv&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(sv))bgShow(sv);}catch(e){}
+var hb=document.querySelector('.hdr-tools');var cb=el('button','hdr-chip','🎨 Colour');cb.id='colorBtn';cb.type='button';cb.setAttribute('aria-label','Accent colour');cb.onclick=function(){mark();openPanel('v9Color');};
+if(hb)hb.appendChild(cb);
+var v=store.get('ai_accent');if(v)set(v);else mark();
+}
+
+/* ===================== v47: age check for the whole site ===================== */
+function initAge(){
+function save(g){window.AI_AGE=g;try{if(CONS)localStorage.setItem('ai_age',JSON.stringify({g:g,t:new Date().toISOString()}));}catch(e){}}
+function apply(){document.body.classList.toggle('age-lite',ageG()==='13-15');if(ageG()==='u13')window.AI_SHOWBLOCK();}
+var body=mkPanel('v9Age','🛡️ Content filter');body.parentNode.id='v9Age';
+function build(){
+body.textContent='';
+body.appendChild(el('p','lg-p','Content filter. The site does not ask for your age.'));
+var fcb=document.createElement('input');fcb.type='checkbox';fcb.checked=kidsOn();fcb.id='ageFilterCb';
+var fl=el('label','lg-p','');fl.style.cssText='display:block;margin:14px 0';fl.appendChild(fcb);fl.appendChild(document.createTextNode(' Content filter: hide adult, violent, drug and gambling content (recommended)'));
+var fn=el('span','v9-note','');fn.style.display='block';fn.textContent='It is on by default. The site cannot check anyone\'s age, so you decide here. If a child uses this device, keep it on.';fl.appendChild(fn);
+fcb.onchange=function(){store.set('ai_kids',fcb.checked?'1':'0');if(window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();};
+body.appendChild(fl);
+if(false){var t=el('label','lg-p','');var cb=document.createElement('input');cb.type='checkbox';cb.checked=kidsOn();cb.onchange=function(){store.set('ai_kids',cb.checked?'1':'0');if(window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();};t.appendChild(cb);t.appendChild(document.createTextNode(' Hide adult, violent, drug and gambling content (recommended)'));t.style.display='block';t.style.margin='14px 0';body.appendChild(t);}
+body.appendChild(el('p','v9-note','No filter is perfect: Wikimedia Commons and the Internet Archive do not filter adult material themselves, so this site filters it by category and by words.'));
+}
+var hb=document.querySelector('.hdr-tools');var ab=el('button','hdr-chip','🛡️ Filter');ab.id='ageBtn';ab.type='button';ab.setAttribute('aria-label','Content filter');ab.onclick=function(){build();openPanel('v9Age');};
+if(hb)hb.appendChild(ab);else document.querySelector('.header').appendChild(ab);
+apply();
+window.AI_ASKAGE=function(){};
+}
+/* ===================== v42: legal pages, cookie/storage choices, location explanation, feed cache size ===================== */
+function initLegal(){
+var UPDATED='18 October 2026';
+/* ---- fill these in: they are shown in the Imprint and the Privacy Policy ---- */
+var CONTACT='ai.information.support@gmail.com';
+var OP={
+name:'Георги Бойков Василев (George)',
+address:'[street, postcode, city, country]',
+email:'ai.information.support@gmail.com',
+phone:'[phone number – optional]',
+register:'[company register / VAT number – only if you are a business]',
+country:'Bulgaria'
+};
+var NOTES=[
+'Translations: all translations on this site are made by open translation services and AI models (see the list in the Language panel), not by us. They are machine translations and can be wrong.',
+'No age check: the site does not ask for your age and cannot check it. It is a free, volunteer-made project and has no money or tools for ID checks. It is meant for people aged 13 and over; younger children should use it only with a parent or guardian. A content filter is on by default and you can change it with the Filter button.',
+'No payments: the site has no way to pay and does not ask for money or card details. Everything is free and made voluntarily.',
+'Mistakes: the site is looked after by one person and not everything is perfect. It may break a rule or law by mistake, without the owner knowing. If you tell the owner, it will be looked at and fixed.',
+'Memory: the site cannot promise that everything is remembered. Settings and chats are kept only on your device and only if you allow storage; the server keeps no copy. Clearing browser data, refusing cookies/storage, or a browser that blocks them can erase them, and long chats are cut to the last few messages.',
+'Source files: all the files this site works with are public on GitHub: https://github.com/GeorgeMasterBG/AI-INFORMATION . Anyone can read them. Copies of the site that are not at the official addresses are not run by the owner, so check the address before you trust a copy.',
+'Made with AI help: some parts of the site, including parts of its code, were written with the help of AI. That does not mean those parts use AI while you use the site. Most features use ordinary scripts and fixed answers. A few can use a real AI model, namely AI Chat, AI Tip, voice input and some translations, which run on Cloudflare Workers AI (an open model, not ChatGPT). AI answers are marked “🤖 AI model” and can be wrong.',
+'HTML for bots: most of the site is JavaScript, which many bots and AI assistants cannot run. So the page also contains a plain HTML text, not shown on screen, that describes the whole site. This HTML is the tool by which bots review the site. It changes nothing for visitors.',
+'AI helpers: the optional AI buttons (translator, dictionary, calculator, weather, compare, quote, quiz, Scam Lab tools, video finder, children filter, chat with a picture or file) send only the text, picture or file you choose to our script and on to Cloudflare Workers AI. Nothing is sent for a button you do not press; the automatic summaries send the shown titles and snippets and are off for under-18 profiles. AI answers can be wrong.',
+'Purpose: the site does not want to compete with anyone or win anything. It is just one more small tool that can be useful in everyday life.'
+];
+function sec(body,title,parts){
+body.appendChild(el('h3','lg-h',title));
+parts.forEach(function(p){
+if(typeof p==='string'){body.appendChild(el('p','lg-p',p));return;}
+var ul=el('ul','lg-ul');p.forEach(function(x){var li=el('li','',x);ul.appendChild(li);});body.appendChild(ul);
+});
+}
+function doc(id,title,fn){
+var b=mkPanel(id,title);b.parentNode.id=id;b.classList.add('lg-doc');
+b.appendChild(el('div','v9-note','Last updated: '+UPDATED+'. This text is written in plain English and is a general description of what this site really does. It is not legal advice.'));
+fn(b);
+var ct=el('p','lg-p','✉️ Contact: ');var ca=el('a','',CONTACT);ca.href='mailto:'+CONTACT;ct.appendChild(ca);b.appendChild(ct);
+var close=mkBtn('Close','',function(){closePanel(id);});close.style.cssText='margin:16px 0 4px';b.appendChild(close);
+}
+/* ---------------- Privacy Policy ---------------- */
+doc('v9Privacy','🔒 Privacy Policy',function(b){
+sec(b,'1. Short version',[
+['No ads, no analytics, no tracking cookies, no profiling, no selling of data, no accounts.',
+ 'The site works without giving us your name or e-mail address.',
+ 'Anything saved on your device (settings, offline cache) is saved only after you allow it in the cookie / storage choices, and you can change your mind at any time.']
+]);
+sec(b,'2. Who is responsible',[
+'The operator of this website is Георги Бойков Василев (Georgi Boykov Vasilev, known as George), a private person (not a company), living in Bulgaria. You can contact the operator at the e-mail address in the Imprint (footer link) about anything in this policy.'
+]);
+sec(b,'2a. How this site works, in plain words',[
+['The page you see is a program (JavaScript) that runs inside your own browser, on your own device. It is the same code for everyone and it is only there to run the searches and tools you ask for. It does not read what you type anywhere else, does not ask for passwords or payment details, does not show fake login pages, and does not do anything you did not ask for.',
+ 'The “server” is a small script on Cloudflare. It does two things: it delivers the site files when you open the page (every website needs a host for that, and it is not a sign that data is being taken), and for some features it fetches public information from the internet for the words you searched, then gives the answer back to you. It has no accounts, no database of visitors and does not keep your searches. It may briefly keep a copy of a public answer so the next request is faster.',
+ 'What you type is handled in your browser first. When a feature needs outside information, the words needed for that feature are sent to our script or straight to the public source it names in section 5. Nothing is sent for a feature you do not use.',
+ 'No system is perfectly safe, so we do not promise that the risk is zero. What we do: HTTPS, a strict content-security policy, no third-party scripts, and no ads or trackers. If you notice anything unexpected, write to the e-mail address in the footer.']
+]);
+sec(b,'2b. Optional AI helpers and what they send',[
+'These helpers are optional. Each one sends data only when you press its button (or when you switch on its automatic option): Translator and Dictionary send the text or word you typed; Calculator sends your question; Weather Scout sends the place name you typed or chose (and lets the AI search the internet for it); Compare, Quote, Quiz and the Scam Lab tools send the text, links, e-mail headers or image you give them; AI Chat sends your message and, if you attach one, a picture or file; the video finder sends your wish and the titles of free videos the script found; the children filter sends result titles and short snippets; AI Summary sends the shown titles and snippets; “For you” in Standard Search sends your last searches (kept on your device); the AI summary of the day in the Feed sends the headlines shown in the feed (public news, not your data); the two-day comparison sends the saved titles and short descriptions of one topic you searched; the AI picture background sends your picture description to an AI image model (Workers AI) and keeps the finished picture on your device.',
+'The data goes to our Cloudflare script and from there to Cloudflare Workers AI, which runs the model. Our script does not store it. Pictures and files are read only by the AI model: the site never opens, runs or follows them, and an attached file cannot start anything else on the site. Cloudflare may process it under its own terms. Do not send secrets, passwords or other people\'s private data.',
+'You can switch automatic AI summaries off in the summary box. The AI children filter runs only if you switch it on with the Filter button.',
+'AI answers can be wrong, out of date or made up. They are not advice and not a verdict. Check the sources.'
+]);
+sec(b,'3. What happens when you open the site',[
+'The site is delivered by Cloudflare (Cloudflare Pages / Workers). When your device asks for the page or for data from the site, Cloudflare necessarily processes technical data: your IP address, the time, the address requested, and browser information (user agent). This is needed to deliver the site, keep it secure and stop abuse. The legal basis is our legitimate interest in a secure, working site (Art. 6(1)(f) GDPR). Cloudflare is a separate service provider and keeps its own technical logs under its own privacy policy (cloudflare.com/privacypolicy).',
+'From your IP address Cloudflare tells the site your approximate country, and sometimes your approximate city and coordinates. The site uses this only to pick the right country for the feed and an approximate place for the weather chip. It is not stored by the site and not combined with anything else.'
+]);
+sec(b,'4. What is saved on your device (cookies and similar)',[
+'⚠️ Even if you reject everything here, your browser and the services that deliver this site may still keep their own cache files or set their own cookies. These are not set by the site itself: your browser’s normal HTTP cache keeps copies of site files, and the hosting provider (Cloudflare) can set technical cookies or logs for security and delivery. We do not control them. You can delete them in your browser settings. The Feed cache does not collect personal data: it only stores images so they can be shown faster. If you see a website setting third-party cookies, that comes from that website’s own policy, not from this site.',
+'This site itself sets no cookies. It uses your browser’s storage (localStorage, the Cache API and a service worker). Under EU rules this is treated like cookies, so you choose:',
+['Necessary (always on): one small record of your choice below (ai_consent) so that we do not ask you every time. It holds your choices, the time you made them, and whether you have seen the welcome message.',
+ 'Preferences (only if you allow): language, light/dark theme, video quality, the city you picked for the weather, quiz progress, recent searches, your own activity list and similar settings. Nothing in it is sent to us.',
+ 'Offline cache (only if you allow): the service worker and a cache with the site files, the latest feed/search answers and the videos you or the feed downloaded, up to the size you choose. They never leave your device. You choose the size in the Feed (💾 Cache) and can clear it there.'],
+'If you refuse, the site still works. Your settings are then kept only until you close the tab. You can change your choice any time with “Cookie settings” in the footer, and you can delete all stored data with “Quick clear”. Legal basis for the optional storage: your consent (Art. 5(3) ePrivacy Directive and Art. 6(1)(a) GDPR).'
+]);
+sec(b,'5. Features that contact other services',[
+'Some features only work by asking other services. When that happens, that service can see your IP address and what is sent to it. We do not control them. What is sent, per feature:',
+['Search and source checks: your search words go to our server, which asks public sources (for example Wikipedia and Wikimedia, DuckDuckGo instant answers, Hacker News, GDELT news). In Standard Mode your browser can also ask other free sources directly with your search words: other Wikimedia projects (Wikibooks, Wikisource, Wikinews, Wiktionary, Wikiversity, Wikivoyage, Wikiquote, Wikispecies, Wikidata and other language editions of Wikipedia), Internet Archive, Open Library, Project Gutenberg, Google Books, Library of Congress, Crossref, OpenAlex, Europe PMC, DOAJ, Semantic Scholar, INSPIRE, Zenodo, DataCite, Stack Exchange sites, GitHub, npm, Spaceflight News, GBIF, iNaturalist, Cleveland Museum of Art, MusicBrainz, OpenStreetMap (Nominatim), REST Countries, TheMealDB, Open Food Facts, Openverse, NASA and the Art Institute of Chicago. Their own privacy policies apply to those requests.',
+ 'Feed and videos: our server collects public posts and free-licensed videos from sources such as Wikipedia, Hacker News, Lobsters, DEV, Mastodon, Lemmy, Stack Exchange, news RSS feeds (BBC, NPR, DW, Al Jazeera, NASA and others), Wikimedia Commons, the Internet Archive, NASA and PeerTube servers (and Pexels / Pixabay if the operator added a key). Your browser then loads pictures and videos directly from those hosts, so they see your IP address.',
+ 'Weather: the weather chip at the top loads by itself for an approximate place (found from your network by Cloudflare) or for the city you chose. The coordinates go to Open-Meteo. When you press “My location” your browser asks you for permission first. If it cannot give a location, an approximate one may be looked up from your IP address with ipwho.is.',
+ 'Language and Translator: the texts to translate go from your browser to our server (the Cloudflare Worker that runs this site), which asks free open translation services in turn (LibreTranslate instances such as libretranslate.de, Apertium, MyMemory) and then AI models on Cloudflare Workers AI. If your browser has its own on-device translator (Chrome), it can be used too and stays on your device. The site does not use the unofficial Google Translate interface. After a language is chosen, the original texts and their translations are also sent to our server, which asks a second translation service for the same texts and lets an AI model on Workers AI approve one version. For Language these are the visible texts of the site, not your own input; the Translator sends what you type. The list of sources is shown in the Language panel. If you translate a website with the Translator, its address goes to the text reader r.jina.ai, which fetches the page text.',
+ 'Dictionary: the word goes to our server and then to Wiktionary.',
+ 'AI Summary in Standard Search (the “✨ AI Summary” bubble): after a search the summary is written automatically, unless you turn that off in the bubble or you chose an age group under 18. Your search words and the titles, snippets and links of the results on screen go to our server and to Cloudflare Workers AI, which writes the summary. With automatic summary off, nothing is sent until you press the bubble.',
+ 'AI Chat and AI Tip: your message goes to our server and is processed by Cloudflare Workers AI (an open model such as Google Gemma or Meta Llama), together with public web results. Cloudflare runs the model; the site does not keep the conversation on its server. Do not type personal data into the chat.',
+ 'Scam Lab and link scanner: the address you check goes to our server, which checks it against public security services (for example URLhaus, Google Safe Browsing, VirusTotal and Cloudflare DNS filters), if they are set up on the server.',
+ 'Scam Lab without our server: if our server cannot be reached, your browser may check the domain name directly with public DNS-over-HTTPS services (Cloudflare, and Google as a backup). Only the domain name you entered is sent, and those services see your IP address.',
+ 'Notifications: only if you press the button and allow them in your browser. The reminder is created and shown on your device by the browser; the site does not use a push server and nothing about it is sent to us.',
+ 'Voice input: if you use the microphone, your browser’s speech service (for example Google in Chrome) or Cloudflare Workers AI turns speech into text. Audio is used only while you press the button.',
+ 'Links you open (for example the VirusTotal report, Beta site, Google Translate) lead to other websites with their own privacy policies.'],
+'The legal basis is that you asked for the feature (Art. 6(1)(b) and (f) GDPR). If you do not use a feature, nothing is sent for it.'
+]);
+sec(b,'6. How long',[
+'The site itself keeps no database of visitors. Data on your device stays until you delete it, change your choice, or the browser removes it. Cloudflare and the other services keep their own logs for their own periods.'
+]);
+sec(b,'7. Transfers outside the EU',[
+'Cloudflare, Google and some of the other services named above are based in, or run servers in, the United States. They normally rely on the EU–US Data Privacy Framework or standard contractual clauses for such transfers.'
+]);
+sec(b,'8. Your rights',[
+'You have the right to access, correct, delete, restrict and move your personal data, to object to processing based on legitimate interest, and to withdraw consent at any time (the withdrawal does not affect what was done before). Because the site keeps no account or database about you, most of your data is only on your own device, where you can delete it yourself with “Cookie settings” and “Quick clear”.',
+'You can complain to a data-protection authority. The operator lives in Bulgaria, where the authority is the Commission for Personal Data Protection (cpdp.bg). You can also contact the authority in the country where you live.'
+]);
+sec(b,'9. Children and the content filter',[
+'The site has no age check and does not ask how old you are. It is meant for people aged 13 and over, and children should use it only with a parent or guardian. A content filter that hides adult, violent, drug and gambling content is on by default; the Filter button switches it on or off, and the choice is saved on your own device only. The filter is not perfect. Please do not send us personal data.'
+]);
+sec(b,'10. If you live in the United States (CCPA/CPRA and other state privacy laws, COPPA)',[
+'We do not sell or share your personal information, we do not use it for targeted advertising or profiling, and we do not collect sensitive personal information. The site has no accounts. The only things we may see are the technical data every web server sees (such as your IP address) and the words you type into features that need our server (see section 5).',
+'If a law in your state gives you rights (to know, delete, correct, or opt out), you can use them by writing to the e-mail address below. The data kept on your own device you can see and delete yourself in your browser settings or with the Clear tool on the site.',
+'Opt-out signals: if your browser sends a Global Privacy Control (GPC) signal, we treat it as a request not to allow optional storage. Optional storage stays off unless you choose it yourself in the privacy choices.',
+'Children (COPPA): this site is not directed to children under 13 and does not ask for age or any personal data. We do not knowingly collect personal information from children under 13. If you think a child has given us personal information, write to us and we will delete it.'
+]);
+sec(b,'11. Artificial intelligence',[
+'AI Chat, AI Tip, voice input and some translations can use a real AI model: an open model (Google Gemma, Meta Llama and similar) run by Cloudflare Workers AI. It is not ChatGPT and not made by the site owner. The rest of the site mostly uses ordinary scripts, rules and public sources. Answers from the AI model are marked “🤖 AI model”, can be wrong, and are not professional advice. You are always talking to a machine, not a person. Do not put personal data in the chat. The EU AI Act asks us to tell you when you are dealing with AI, and we do.'
+]);
+sec(b,'12. Security and changes',[
+'The site is delivered over HTTPS and uses a strict content-security policy. We may update this policy when the site changes; the date at the top shows the latest version.'
+]);
+});
+/* ---------------- Terms ---------------- */
+doc('v9Terms','📜 Terms of Use',function(b){
+sec(b,'1. About the service',[
+'AI INFORMATION is a free information tool: it helps you look at where information comes from, scan links, translate text, watch free-licensed videos and read public posts. By using it you accept these terms. If you do not agree, please do not use the site.'
+]);
+sec(b,'2. Information only – no guarantee',[
+'Results come from public third-party sources and from automatic tools (including AI and machine translation). They can be wrong, incomplete or out of date. Source checks, scores and scam warnings are indications, not proof, and are not legal, medical, financial or security advice. Always check important things yourself.'
+]);
+sec(b,'3. Third-party content and licences',[
+'Videos, pictures and posts belong to their authors and are shown with their source and licence. The feed and the video lists show only items with a free licence (for example Creative Commons or public domain); paid, rented, “all rights reserved” or fair-use items are left out. Free licences still have conditions, such as naming the author or not using the work commercially. When you download or share an item, you must follow its licence. Links lead to other websites that we do not control.'
+]);
+sec(b,'4. Acceptable use',[
+['Do not use the site to break the law, harm others, attack or overload the site or the services it uses, or to collect data about private persons.',
+ 'Do not use results to harass, mislead or defraud anyone.',
+ 'Do not try to bypass the technical protections of the site.']
+]);
+sec(b,'5. Reporting illegal content',[
+'The site does not host user-generated content; items come from third parties. If you think something shown here is illegal or breaks your rights, write to the e-mail address in the Imprint with the link to the item, what is wrong and why, and your name and e-mail. We will look at it and, where justified, remove it from the lists.'
+]);
+sec(b,'5a. Copyright notices (DMCA and EU)',[
+'The site does not store or host third-party videos, pictures or texts; it shows excerpts, titles and links from public sources with a free licence. If you are a rights holder and think something shown breaks your copyright, e-mail us with: what the work is, where it is shown here (the link), your name and contact details, a statement that you act in good faith and that your information is correct, and, for a US notice, a statement under penalty of perjury that you are the owner or authorised to act, and your signature (typed is fine). We will remove or hide the item quickly and tell the person who objects, if there is one.'
+]);
+sec(b,'5b. Artificial intelligence',[
+'Most features use ordinary scripts and fixed answers. AI Chat, AI Tip, voice input and some translations can use an open AI model run by Cloudflare Workers AI; its answers are marked “🤖 AI model”. Answers can be wrong or incomplete and are not professional, legal, medical or financial advice. Do not rely on them alone.'
+]);
+sec(b,'6. Availability and changes',[
+'The site is provided “as is” and “as available”. Features can change, stop working or be removed, for example when a free source changes or limits its service. The Beta version can differ from the main version and may have unfinished features.'
+]);
+sec(b,'7. Liability',[
+'We are liable without limit for intent, gross negligence, injury to life, body or health, and wherever the law does not allow a limit, including your mandatory consumer rights. Otherwise, as far as the law allows, we are not liable for losses from using free information, third-party content, or from the site being unavailable.'
+]);
+sec(b,'8. Ownership',[
+'The design, text and code of the site belong to the operator, unless marked otherwise. Names and logos of other services belong to their owners and are used only to say where data comes from.'
+]);
+sec(b,'9. Age limits',[
+'The site is meant for people aged 13 and over; younger children should use it only with a parent or guardian. The site has no age check and cannot verify anyone\'s age. The content filter is on by default but is not perfect, and parents remain responsible for what a child on their device sees.'
+]);
+sec(b,'9a. Honest notes about this project',[NOTES]);
+sec(b,'10. Law and changes',[
+'These terms are governed by the law of '+OP.country+', without taking away the mandatory consumer-protection rules of the country where you live. If one part is invalid, the rest stays valid. We may change these terms; the date at the top shows the latest version. Continued use after a change means you accept it.'
+]);
+});
+/* ---------------- Imprint ---------------- */
+doc('v9Imprint','🏢 Imprint (legal notice)',function(b){
+sec(b,'Service provider',[
+['Operator: '+OP.name+' (a private person, not a company)'],
+['Country: '+OP.country],
+['E-mail: '+OP.email],
+'Postal address of the creator: it is not published. It is given only when an authority asks for it, and only from a request that comes from the e-mail address named above.',
+'Information given under Art. 5 of the EU e-Commerce Directive 2000/31/EC (and similar national rules).'
+]);
+sec(b,'Source files',[
+'All the files this site works with are on GitHub: https://github.com/GeorgeMasterBG/AI-INFORMATION'
+]);
+sec(b,'Content responsibility',[
+'The operator named above is responsible for the content of the site itself. Third-party items (posts, videos, pictures, news) belong to their sources, which are named next to each item.'
+]);
+sec(b,'Hosting',[
+'Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, USA (Cloudflare Pages / Workers).'
+]);
+sec(b,'Contact point for authorities and users (Digital Services Act)',[
+'Authorities and users can reach us in English at the e-mail address above. Reports about illegal content: see “Reporting illegal content” in the Terms.'
+]);
+sec(b,'Accessibility',[
+'The site has an Accessibility panel (text size, contrast, motion) and is built for keyboard and screen-reader use. If you find a barrier, please tell us at the e-mail address above.'
+]);
+});
+/* ---------------- Cookie information ---------------- */
+doc('v9Cookies','🍪 Cookies and storage',function(b){
+sec(b,'What this site stores on your device',[
+'No cookies are set by the site itself. The site uses browser storage, which EU law treats the same as cookies. Here is the complete list:',
+'⚠️ Even if you reject everything here, your browser and the services that deliver this site may still keep their own cache files or set their own cookies. These are not set by the site itself: your browser’s normal HTTP cache keeps copies of site files, and the hosting provider (Cloudflare) can set technical cookies or logs for security and delivery. We do not control them. You can delete them in your browser settings. The Feed cache does not collect personal data: it only stores images so they can be shown faster. If you see a website setting third-party cookies, that comes from that website’s own policy, not from this site.',
+[
+ 'ai_consent (necessary): your choice, the time of your choice, and whether you have seen the welcome message. Kept until you change it.',
+ 'Preferences (if allowed): settings such as language, accent colour, reminders you write, theme, video quality, chosen city, quiz progress, recent searches, activity list. localStorage, kept until you delete it.',
+ 'Notifications (only if you turn them on in Reminders): a small service worker without any cache, so your phone can show the notification.',
+ 'Offline cache (if allowed): service worker, a cache of site files and recent answers, and downloaded videos (you set the maximum size, 150 MB to 9 GB). Kept until you clear it or the limit makes older files go.',
+ 'No advertising, analytics or social-media storage is used.']
+]);
+var go=mkBtn('Change my choices','pri',function(){closePanel('v9Cookies');showConsent(true);});go.style.margin='10px 0';b.appendChild(go);
+});
+
+
+/* ---------------- Accessibility statement ---------------- */
+doc('v9Access','♿️ Accessibility statement',function(b){
+sec(b,'Our goal',['We want everyone to be able to use this site, including people who use screen readers, keyboards only, magnifiers, voice control or who need strong contrast or less motion. We aim to meet WCAG 2.2 level AA, which includes the web part of the European standard EN 301 549 (WCAG 2.1 AA) required by the European Accessibility Act, and WCAG 2.1 AA as used in the US (ADA Title II rule for public bodies, Section 508).']);
+sec(b,'What we did',[['Skip link, page landmarks and a logical heading order.','Colours checked for contrast in the dark and light theme (we ran an automatic checker on the home page and all panels in both themes with no failures).','Everything works with the keyboard; the focus is clearly visible; touch targets are large enough.','Text size, contrast and motion settings in the Accessibility panel. The site also follows your device’s “reduce motion”, “high contrast” and “reduce transparency” settings.','Labels for form fields and buttons; messages that appear are announced to screen readers.']]);
+sec(b,'Known limits',[['Third-party content (videos, pictures, news and web pages we link to) is made by others and may not be accessible.','Machine translation can be wrong.','Automatic checks do not find everything. We tested with an automatic checker, not with every screen reader and phone.']]);
+sec(b,'Tell us about a problem',['If you cannot use something, write to the e-mail address below and tell us the page, what you tried and which device or assistive technology you use. We aim to answer within 14 days. If you are not satisfied, you can contact the national body that enforces accessibility rules in your country.']);
+sec(b,'Status',['This statement was prepared by the site operator itself (self-assessment) and was last updated on '+UPDATED+'.']);
+});
+/* ---------------- Credits ---------------- */
+doc('v9Credits','© Credits and licences',function(b){
+sec(b,'Who owns what',['Everything shown from outside sources belongs to its authors. We show short excerpts, titles and links, with the source next to each item. Videos and pictures are shown only when their licence is free (Creative Commons or public domain); items marked as paid, non-commercial-restricted or all-rights-reserved are filtered out.']);
+sec(b,'Sources and licences',[
+['Wikipedia, Wiktionary, Wikimedia Commons – text CC BY-SA 4.0; each Commons file has its own licence (shown with the item).',
+ 'Internet Archive – only items with a Creative Commons or public-domain licence.',
+ 'NASA – public domain, except third-party material marked as such.',
+ 'PeerTube instances – licence set by each video’s author (free licences only).',
+ 'Open-Meteo.com – weather data, CC BY 4.0.',
+ 'Stack Exchange – posts CC BY-SA, shown with a link to the original and author.',
+ 'Hacker News, Lobsters, Lemmy, Mastodon, DEV and news RSS feeds – headline and link only; the article stays on its own site.',
+ 'GDELT, URLhaus, Google Safe Browsing, VirusTotal – used only to check links and find news; results belong to those services.',
+ 'Translation – Google Translate web service (unofficial, may stop working) and MyMemory; the page reader r.jina.ai. Machine translation can be wrong.',
+ 'Location name lookup – ipwho.is and Open-Meteo geocoding, only after you allow location.']
+]);
+sec(b,'Report a problem',['If something here infringes your rights, e-mail the address in the Imprint with the link and we will remove it.']);
+});
+/* ---------------- footer links ---------------- */
+var foot=$('vtFoot');
+var how=el('div','lg-how');how.style.cssText='margin:10px 0 0;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;font-size:11.5px;line-height:1.55;text-align:left';
+var hh=el('b','','🔎 How this site works');how.appendChild(hh);
+['The site is a program that runs in your own browser, on your own device, only to run the searches and tools you ask for. It does not steal what you type, does not phish and does not do anything you did not ask for.','The Cloudflare “server” delivers the site files (every website needs a host) and, for some features, fetches public information from the internet for your search words and gives it back to you. It has no accounts, no visitor database and does not keep your searches. It is not a sign that data is being taken.','Details and the list of outside services: Privacy Policy, section 2a and section 5.'].forEach(function(t){var q=el('p','',t);q.style.margin='6px 0 0';how.appendChild(q);});
+var hn=el('b','','ℹ️ Honest notes');hn.style.cssText='display:block;margin-top:10px';how.appendChild(hn);NOTES.forEach(function(t){var q=el('p','',t);q.style.margin='6px 0 0';how.appendChild(q);});
+var row=el('div','lg-links');row.id='legalLinks';row.setAttribute('role','navigation');row.setAttribute('aria-label','Legal');
+[['Privacy Policy','v9Privacy'],['Terms of Use','v9Terms'],['Imprint','v9Imprint'],['Cookies','v9Cookies'],['Credits','v9Credits'],['Accessibility','v9Access']].forEach(function(x){var a=el('button','lg-a',x[0]);a.type='button';a.onclick=function(){openPanel(x[1]);};row.appendChild(a);});
+var gh=el('a','lg-a','🐙 GitHub: all the files this site runs on');gh.href='https://github.com/GeorgeMasterBG/AI-INFORMATION';gh.target='_blank';gh.rel='noopener noreferrer';row.appendChild(gh);
+var ml=el('a','lg-a','✉️ '+CONTACT);ml.href='mailto:'+CONTACT;row.appendChild(ml);
+var cs=el('button','lg-a','Cookie settings');cs.type='button';cs.onclick=function(){showConsent(true);};row.appendChild(cs);
+function placeLg(){var f=$('vtFoot')||document.body;f.appendChild(how);f.appendChild(row);}
+if(foot||document.readyState!=='loading')placeLg();else document.addEventListener('DOMContentLoaded',placeLg);
+/* ---------------- consent banner ---------------- */
+var ban=null;
+function applyConsent(c,silent){
+var hadPrefs=!!(CONS&&CONS.prefs),hadCache=!!(CONS&&CONS.cache);
+var w=CONS&&CONS.w;
+CONS={v:1,prefs:!!c.prefs,cache:!!c.cache,w:w||0,ver:1};consSave();
+if(CONS.prefs)flushMem();else wipeStored(!!CONS.cache);
+if(CONS.cache){flushMem();try{if(navigator.serviceWorker&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(function(){});}catch(e){}try{vcApplySize(store.get('ai_vcsize')||1024);}catch(e){}}
+else{VC.q=[];purgeCaches();VC.idx={};try{localStorage.removeItem('ai_v9_vidx');}catch(e){}}
+if(!silent)toast('Your choice was saved','var(--accent)');
+}
+function closeBan(){if(ban){ban.remove();ban=null;}document.documentElement.classList.remove('cb-open');}
+function showConsent(reopen,after){
+closeBan();
+var prefs=CONS?!!CONS.prefs:false,cache=CONS?!!CONS.cache:false,detail=!!reopen;
+ban=el('div','cb');ban.id='cBanner';ban.setAttribute('role','dialog');ban.setAttribute('aria-modal','false');ban.setAttribute('aria-label','Privacy choices');
+var box=el('div','cb-box');ban.appendChild(box);
+function draw(){
+box.textContent='';
+box.appendChild(el('h2','cb-t','🍪 Your privacy choices'));
+box.appendChild(el('p','cb-p','This site has no ads and no tracking. It would like to save some things on your device. The site works fine if you say no. You can change this at any time with “Cookie settings” at the bottom of the page.'));
+if(navigator.globalPrivacyControl===true){var gp=el('p','cb-p','✓ Your browser sends a Global Privacy Control signal. We respect it: optional storage stays off unless you choose it yourself below.');gp.style.cssText='font-size:12px';box.appendChild(gp);}
+var wn=el('p','cb-p','⚠️ '+'Even if you reject everything here, your browser and the services that deliver this site may still keep their own cache files or set their own cookies. These are not set by the site itself: your browser’s normal HTTP cache keeps copies of site files, and the hosting provider (Cloudflare) can set technical cookies or logs for security and delivery. We do not control them. You can delete them in your browser settings. The Feed cache does not collect personal data: it only stores images so they can be shown faster. If you see a website setting third-party cookies, that comes from that website’s own policy, not from this site.');wn.style.cssText='font-size:12px;opacity:.9';box.appendChild(wn);
+if(detail){
+var opt=function(title,desc,on,set,locked){
+var lab=el('label','cb-o');var cb=el('input');cb.type='checkbox';cb.checked=on;if(locked){cb.disabled=true;cb.checked=true;}
+cb.onchange=function(){set(cb.checked);};lab.appendChild(cb);
+var d=el('span','cb-od');d.appendChild(el('b','',title));d.appendChild(el('span','',desc));lab.appendChild(d);box.appendChild(lab);};
+opt('Necessary','Remembers this choice. Always on.',true,function(){},true);
+opt('Preferences','Language, theme, video quality, chosen city, quiz progress and recent searches. Stays on your device.',prefs,function(v){prefs=v;});
+opt('Offline cache','Site files, recent answers and videos saved on your device so they open fast and offline. You choose the size (150 MB to 9 GB) in the Feed.',cache,function(v){cache=v;});
+}
+var r=el('div','cb-r');
+function bt(txt,fn,cls){var x=el('button','cb-b'+(cls||''),txt);x.type='button';x.onclick=fn;r.appendChild(x);return x;}
+function done(c){applyConsent(c);closeBan();if(after)after();}
+bt('Accept all',function(){done({prefs:1,cache:1});});
+bt('Reject optional',function(){done({prefs:0,cache:0});});
+if(detail)bt('Save my choices',function(){done({prefs:prefs,cache:cache});},' cb-sel');else bt('Choose…',function(){detail=true;draw();});
+box.appendChild(r);
+var l=el('div','cb-l');var a=el('button','lg-a','Privacy Policy');a.type='button';a.onclick=function(){openPanel('v9Privacy');};l.appendChild(a);var a2=el('button','lg-a','Cookies');a2.type='button';a2.onclick=function(){openPanel('v9Cookies');};l.appendChild(a2);box.appendChild(l);
+}
+draw();document.body.appendChild(ban);document.documentElement.classList.add('cb-open');
+var f=ban.querySelector('.cb-b');if(f&&reopen)try{f.focus();}catch(e){}
+}
+window.AI_CONSENT={show:showConsent,get:function(){return CONS;}};
+if(CONS&&!CONS.cache)purgeCaches();
+if(!CONS){try{wipeStored(false);purgeCaches();if(hasCookie('ai_welcome'))document.cookie='ai_welcome=; Max-Age=0; Path=/';}catch(e){}showConsent(false,function(){if(window.AI_ASKAGE)window.AI_ASKAGE();if(window.AI_AFTER_CONSENT)window.AI_AFTER_CONSENT();});}
+}
+/* ---- why the site asks for your location (shown before the browser asks) ---- */
+function explainLocation(go){
+var id='v9LocWhy';var old=$(id);if(old)old.remove();
+var b=mkPanel(id,'📍 Why location?');b.parentNode.id=id;
+b.appendChild(el('p','lg-p','The site would like to know where you are for one reason only: to show the weather for your area.'));
+var ul=el('ul','lg-ul');['Your device sends its coordinates to Open-Meteo (a free weather service) to get the forecast.','The coordinates are not sent to this site’s server, not used for ads, and not shared with anyone else.','The place is saved on your device only if you allowed “Preferences” in the cookie choices.','Next your browser will ask you for permission. You can say “No”: you can always type a city name instead.'].forEach(function(t){ul.appendChild(el('li','',t));});b.appendChild(ul);
+var r=el('div','v9-row');r.appendChild(mkBtn('Continue','pri',function(){closePanel(id);setTimeout(go,150);}));r.appendChild(mkBtn('Not now','',function(){closePanel(id);}));b.appendChild(r);
+openPanel(id);
+}
+/* ---- Feed cache: choose 150 MB / 1 / 3 / 5 / 9 GB with honest hardware notes ---- */
+function initCache(){
+var SZ=[
+{mb:150,name:'150 MB',tag:'Light',vids:'about 6 videos',free:'1 GB',ram:2,store:'any storage (eMMC is fine)',total:'Any phone or computer',ff:'Firefox needs at least 1.5 GB of total storage',net:'under a minute on Wi-Fi'},
+{mb:1024,name:'1 GB',tag:'Balanced',vids:'about 40 videos',free:'3 GB',ram:3,store:'any storage (eMMC is fine)',total:'At least 4 GB of total storage',ff:'Firefox needs at least 10 GB of total storage',net:'about 3 minutes at 50 Mbit/s'},
+{mb:3072,name:'3 GB',tag:'Large',vids:'about 120 videos',free:'8 GB',ram:4,store:'UFS 2.1 or better, or an SSD (eMMC ≈ 125 MB/s writes: slow to fill)',total:'At least 32 GB of total storage',ff:'Firefox needs at least 30 GB of total storage',net:'about 8 minutes at 50 Mbit/s'},
+{mb:5120,name:'5 GB',tag:'Heavy',vids:'about 200 videos',free:'12 GB',ram:6,store:'UFS 3.x or an SSD',total:'At least 64 GB of total storage',ff:'Firefox needs at least 50 GB of total storage',net:'about 14 minutes at 50 Mbit/s'},
+{mb:9216,name:'9 GB',tag:'Maximum',vids:'about 360 videos',free:'20 GB',ram:8,store:'UFS 3.1 / 4.0 or an NVMe SSD',total:'At least 128 GB of total storage',ff:'Firefox needs about 90 GB of total storage (and caps one site at 10 GiB)',net:'about 25 minutes at 50 Mbit/s; use Wi-Fi'}
+];
+var b=mkPanel('v9Cache','💾 Feed cache');b.parentNode.id='v9Cache';
+var note=el('p','lg-p','The feed saves videos on this device so they start at once and keep working offline. Pick the most it may use. When the limit is reached, the oldest videos are removed first. The limit is checked against the real size of the saved files.');
+b.appendChild(note);
+var dev=el('div','v9-note');dev.id='cDev';b.appendChild(dev);
+var st=el('div','cc-use');b.appendChild(st);
+var offBox=el('div','v9-card');b.appendChild(offBox);
+var list=el('div');b.appendChild(list);
+var wl=el('label','cb-o');var wc=el('input');wc.type='checkbox';wc.checked=VC.wifi;wc.onchange=function(){VC.wifi=wc.checked;store.set('ai_vcwifi',wc.checked?'1':'0');};wl.appendChild(wc);var wd=el('span','cb-od');wd.appendChild(el('b','','Save videos only on Wi-Fi'));wd.appendChild(el('span','','Does not use mobile data for background saving (works where the browser tells the site the connection type; other browsers cannot tell).'));wl.appendChild(wd);b.appendChild(wl);
+var clr=mkBtn('🗑️ Clear saved videos','',function(){
+if(!window.caches){return;}caches.delete(VC.name).then(function(){VC.idx={};VC.state={};VC.q=[];vcSave();toast('Saved videos cleared','var(--accent)');refresh();});
+});clr.style.marginTop='10px';b.appendChild(clr);
+b.appendChild(el('p','v9-note','How the hardware advice was worked out: browsers allow one site up to about 60% of the device’s total storage in Chrome, Edge and Safari, but only 10% (maximum 10 GiB) in Firefox (MDN, “Storage quotas and eviction criteria”). Typical sequential write speeds are about 125 MB/s for eMMC 5.1, 410 to 1,200 MB/s for UFS 3.0 / 3.1 and about 2,800 MB/s for UFS 4.0. RAM and free-space numbers are recommendations so the device stays smooth, not hard limits.'));
+var quota=0,usage=0,sel=+store.get('ai_vcsize')||1024;
+function used(){var t=0,k;for(k in VC.idx)t+=VC.idx[k].s||0;return t;}
+function gb(n){return (n/1073741824).toFixed(n<1073741824*10?2:1)+' GB';}
+function refresh(){
+var u=used();
+dev.textContent='';
+var mem=navigator.deviceMemory;
+dev.appendChild(document.createTextNode('This browser allows this site up to '+(quota?gb(quota):'an unknown amount')+' of storage. '+(mem?'The device reports about '+(mem>=8?'8 GB or more':mem+' GB')+' of RAM'+(navigator.hardwareConcurrency?' and '+navigator.hardwareConcurrency+' CPU cores':'')+'. ':'')));
+st.textContent='Saved now: '+gb(u)+' of '+SZ.filter(function(x){return x.mb===sel;})[0].name+(cacheOK()?'':' (offline cache is off)');
+var bar=el('div','cc-bar');var fill=el('i');fill.style.width=Math.min(100,u/(sel*1048576)*100)+'%';bar.appendChild(fill);st.appendChild(bar);
+offBox.textContent='';
+if(!cacheOK()){offBox.appendChild(el('b','','Offline cache is off. '));offBox.appendChild(document.createTextNode('Videos are not saved until you allow it.'));var on=mkBtn('Allow the offline cache','pri',function(){applyConsent({prefs:CONS?CONS.prefs:0,cache:1});refresh();});on.style.cssText='display:block;margin-top:8px';offBox.appendChild(on);offBox.style.display='block';}else offBox.style.display='none';
+list.textContent='';
+SZ.forEach(function(o){
+var need=o.mb*1048576,tooBig=quota&&need>quota*0.9;
+var ramWarn=navigator.deviceMemory&&navigator.deviceMemory<o.ram;
+var card=el('button','cc-o'+(o.mb===sel?' on':'')+(tooBig?' off':''));card.type='button';card.disabled=!!tooBig;card.setAttribute('role','radio');card.setAttribute('aria-checked',o.mb===sel?'true':'false');
+var h=el('div','cc-h');h.appendChild(el('b','',o.name));h.appendChild(el('span','cc-tag',o.tag));
+h.appendChild(el('span','cc-st',tooBig?'⛔ too large for this browser':ramWarn?'⚠️ low RAM':quota&&need>quota*0.5?'⚠️ may not fit':'✅ fits'));card.appendChild(h);
+var ul=el('ul','cc-ul');
+['Holds '+o.vids+' (about 25 MB each at 480p; HD and 4K files are larger).','Free space on the device: at least '+o.free+'. '+o.total+'.','RAM: at least '+o.ram+' GB. Storage: '+o.store+'.',o.ff+'.','First fill: '+o.net+'. Uses mobile data if Wi-Fi-only is off.'].forEach(function(t){ul.appendChild(el('li','',t));});
+card.appendChild(ul);
+card.onclick=function(){
+if(!cacheOK()){toast('Allow the offline cache first','#ffaa00');return;}
+sel=o.mb;store.set('ai_vcsize',String(o.mb));vcApplySize(o.mb);vcEvict();
+try{if(o.mb>=1024&&navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+toast('Feed cache limit: '+o.name,'var(--accent)');logAct('cache','limit '+o.name);refresh();
+};
+list.appendChild(card);
+});
+}
+function fit(){
+if(!quota)return;
+var fits=SZ.filter(function(o){return o.mb*1048576<=quota*0.9;});
+if(!store.get('ai_vcsize')||SZ.filter(function(o){return o.mb===sel;})[0].mb*1048576>quota*0.9){sel=(fits.length?fits[fits.length-1]:SZ[0]).mb;vcApplySize(sel);}
+VC.max=Math.min(VC.max,Math.floor(quota*0.8));VC.per=Math.min(VC.per,Math.floor(VC.max/2));
+}
+function load(){
+try{if(navigator.storage&&navigator.storage.estimate)return navigator.storage.estimate().then(function(e){quota=e&&e.quota||0;usage=e&&e.usage||0;fit();}).catch(function(){});}catch(e){}
+return Promise.resolve();
+}
+load();
+window.AI_CACHE={open:function(){load().then(function(){if(store.get('ai_vcsize'))sel=+store.get('ai_vcsize');refresh();openPanel('v9Cache');});}};
+var fbar=$('feedBar');
+if(fbar){var fh=fbar.firstChild;if(fh){var cb=mkBtn('💾 Cache','',function(){window.AI_CACHE.open();});cb.setAttribute('aria-label','Feed cache size');fh.insertBefore(cb,fh.lastChild);
+}}
+}
+
+/* ===================== v39: Beta link + Standard Mode (search-engine style results) ===================== */
+function initBeta(){
+if(window.AI_BETA)return;
+var body=mkPanel('v9Beta','🧪 Beta version');
+var c=el('div','v9-card');
+c.appendChild(el('b','','Try the Beta version of the site'));
+var p=el('div','v9-note','The Beta version is where new features are tried first. It can be a little different or less stable than this version.');p.style.margin='8px 0';c.appendChild(p);
+var w=el('div','rep-badge lvl-medium','⚠️ New features do not always appear in the Beta version straight away. Sometimes it has nothing new yet, and sometimes a feature is added there later.');w.style.margin='10px 0';c.appendChild(w);
+var a=el('a','v9-open','Open the Beta version ↗');a.href='https://beta-ai-information.pages.dev/';a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('translate','no');
+a.style.cssText='display:inline-block;padding:12px 18px;border-radius:22px;background:var(--accent);color:var(--bg);font-weight:bold;text-decoration:none;margin-top:6px';
+c.appendChild(a);
+var u=el('div','v9-note','https://beta-ai-information.pages.dev/');u.setAttribute('translate','no');u.style.marginTop='10px';c.appendChild(u);
+body.appendChild(c);
+var btn=mkBtn('🧪 Beta','',function(){openPanel('v9Beta');});
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+}
+
+function initStd(){
+var body=mkPanel('v9Std','Standard Mode');var P=body.parentNode;P.classList.add('std');
+var ph=P.querySelector('.v9-ph');if(ph)ph.style.display='none';
+var wrap=el('div','std-wrap home');body.appendChild(wrap);
+var top=el('div','std-top');
+var back=el('button','std-x','✕');back.type='button';back.setAttribute('aria-label','Close Standard Mode');back.onclick=function(){closePanel('v9Std');};
+var logo=el('div','std-logo','AI INFORMATION');logo.setAttribute('translate','no');logo.onclick=function(){goHome();};
+var pillBox=el('div','std-pillbox');
+var pill=el('div','std-pill');
+var mag=el('span','std-mag','🔍');
+var inp=el('input');inp.type='search';inp.placeholder='Search';inp.setAttribute('aria-label','Search');inp.maxLength=120;inp.setAttribute('autocomplete','off');inp.setAttribute('enterkeyhint','search');inp.setAttribute('translate','no');
+var clr=el('button','std-clr','✕');clr.type='button';clr.setAttribute('aria-label','Clear');clr.style.display='none';
+pill.appendChild(mag);pill.appendChild(inp);pill.appendChild(clr);
+var sug=el('div','std-sug');sug.style.display='none';
+pillBox.appendChild(pill);pillBox.appendChild(sug);
+top.appendChild(back);top.appendChild(logo);top.appendChild(pillBox);
+var homeBtns=el('div','std-hb');
+var b1=el('button','std-b','Search');b1.type='button';b1.onclick=function(){run();};
+var b2=el('button','std-b','Verify sources (Classic mode)');b2.type='button';b2.onclick=function(){var q=inp.value.trim();closePanel('v9Std');if(q&&$('q')){$('q').value=q;try{window.scrollTo(0,0);}catch(e){}if(typeof doSearch==='function')doSearch();}};
+homeBtns.appendChild(b1);homeBtns.appendChild(b2);
+var tabs=el('div','std-tabs');
+var TABS=[['all','All'],['images','Images'],['news','News']],tabBtn={};
+TABS.forEach(function(t){var b=el('button','std-tab',t[1]);b.type='button';b.onclick=function(){setTab(t[0]);};tabs.appendChild(b);tabBtn[t[0]]=b;});
+var meta=el('div','std-meta');var res=el('div','std-res');var more=el('div','std-more');more.style.cssText='display:none;text-align:center;margin:10px 0;padding:0;border:0;background:none;cursor:default';
+wrap.appendChild(top);wrap.appendChild(homeBtns);wrap.appendChild(tabs);wrap.appendChild(meta);var sumWrap=el('div','std-sum');sumWrap.setAttribute('data-ft','aisum');wrap.appendChild(sumWrap);var curList=[],sumSt=null,sumTimer=0;wrap.appendChild(res);wrap.appendChild(more);
+var fyWrap=el('div','std-fy');fyWrap.setAttribute('data-ft','foryou');fyWrap.style.cssText='margin:10px 0';
+function fyDraw(){
+fyWrap.textContent='';
+var rc=jget('ai_v9_recent',[]).slice(0,8);
+var b=el('button','std-b','✨ For you (AI)');b.type='button';b.style.cssText='border-radius:999px;padding:8px 16px;font-weight:700';fyWrap.appendChild(b);
+fyWrap.appendChild(el('div','v9-note','The AI reads your last searches (kept only on this device), suggests related topics, and our script then loads pictures and short texts for them. Nothing is sent until you press.'));
+var out=el('div');fyWrap.appendChild(out);
+b.onclick=function(){
+rc=jget('ai_v9_recent',[]).slice(0,8);
+if(!rc.length){out.textContent='Search for something first, then the AI can suggest more.';return;}
+b.disabled=true;out.textContent='Asking the AI model…';
+aiAsk('suggest',{text:rc.join('\n')}).then(function(j){
+var tp=(j.topics||[]).filter(function(t){return kidOK({title:t,text:''});}).slice(0,4);if(!tp.length)throw new Error('no topics');
+out.textContent='';out.appendChild(el('div','v9-note','🤖 Topics suggested by the AI model ('+mName(j.model)+'). It can be wrong; the pictures and texts come from open sources.'));
+tp.forEach(function(t){
+var card=el('div','v9-card');card.style.cssText='margin:8px 0;padding:10px';
+var tb=el('button','std-b','🔎 '+t);tb.type='button';tb.onclick=function(){inp.value=t;run();};card.appendChild(tb);
+var g=el('div','std-grid');g.style.marginTop='6px';card.appendChild(g);var tx=el('div','v9-note','');card.appendChild(tx);out.appendChild(card);
+imgPage(t,0).then(function(a){a.filter(function(x){return x&&x.thumb&&kidOK({title:x.title,license:x.license});}).slice(0,4).forEach(function(x){var c=el('a','std-ic');c.href=safe(x.url);c.target='_blank';c.rel='noopener noreferrer';var im=new Image();im.loading='lazy';im.alt=x.title||t;im.referrerPolicy='strict-origin-when-cross-origin';im.src=safe(x.thumb);im.onerror=function(){c.remove();};c.appendChild(im);g.appendChild(c);});}).catch(function(){});
+webPage(t,0).then(function(a){var r=(a||[]).filter(function(x){return kidOK({title:x.title,text:x.text,source:x.source});})[0];if(r){tx.textContent=String(r.title||'')+' — '+String(r.text||'').slice(0,200);}}).catch(function(){});
+});
+b.disabled=false;
+}).catch(function(e){b.disabled=false;out.textContent=aiErrText(e);});
+};
+}
+fyDraw();wrap.insertBefore(fyWrap,sumWrap);
+
+wrap.appendChild(el('div','std-foot','Standard Mode · results come from free public sources. They are not checked for truth.'));
+var q='',tab='all',data={},shown=10,t0=0,seq=0;
+function lang(){return /[Ѐ-ӿ]/.test(q)?'bg':'en';}
+function safe(u){u=safeUrl(u);return u==='#'?'':u;}
+function pretty(u){try{var x=new URL(u);var parts=x.pathname.split('/').filter(Boolean).slice(0,3).map(function(s){try{return decodeURIComponent(s);}catch(e){return s;}});return x.hostname.replace(/^www\./,'')+(parts.length?' › '+parts.join(' › '):'');}catch(e){return u;}}
+function strip(h){try{return new DOMParser().parseFromString(String(h||''),'text/html').body.textContent||'';}catch(e){return '';}}
+var imgIO=null;
+function imgAuto(S){
+if(imgIO){imgIO.disconnect();imgIO=null;}
+var lb=el('label','v9-note');lb.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 4px;cursor:pointer';var cb=document.createElement('input');cb.type='checkbox';cb.checked=jget('ai_v9_imgauto',false)===true;
+cb.onchange=function(){jset('ai_v9_imgauto',cb.checked);imgAuto(S);};lb.appendChild(cb);lb.appendChild(document.createTextNode('Auto: load more pictures while I scroll'));more.appendChild(lb);
+if(!cb.checked||!window.IntersectionObserver||S.items.length<S.shown)return;
+var sen=el('div');sen.style.cssText='height:2px;width:100%';more.appendChild(sen);
+imgIO=new IntersectionObserver(function(en){if(en[0]&&en[0].isIntersecting&&pickFn){imgIO.disconnect();imgIO=null;pickFn(10);}},{rootMargin:'700px'});imgIO.observe(sen);}
+function goHome(){try{fyDraw();}catch(e){}sumSt=null;clearTimeout(sumTimer);sumWrap.textContent='';seq++;wrap.classList.add('home');q='';inp.value='';clr.style.display='none';res.textContent='';meta.textContent='';more.style.display='none';hideSug();setTimeout(function(){try{inp.focus();}catch(e){}},50);}
+function setTab(t){tab=t;shown=10;Object.keys(tabBtn).forEach(function(k){tabBtn[k].classList.toggle('on',k===t);});if(t!=='all'){grpSel='';gbar.textContent='';gbar.style.display='none';}if(q)load(t);}
+function run(){var v=inp.value.trim();if(v.length<2){toast('Type at least 2 letters','#ffaa00');return;}q=v;data={};sumSt=null;clearTimeout(sumTimer);sumWrap.textContent='';shown=10;wrap.classList.remove('home');hideSug();inp.blur();
+var r=jget('ai_v9_recent',[]).filter(function(x){return x.toLowerCase()!==v.toLowerCase();});r.unshift(v);jset('ai_v9_recent',r.slice(0,10));logAct('search','std: '+v);
+setTab(tab);}
+/* ---- data loaders ---- */
+function wikiRaw(q){var l=lang();return fetch('https://'+l+'.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srlimit=8&srsearch='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){return((j.query||{}).search||[]).map(function(x){return{title:x.title,url:'https://'+l+'.wikipedia.org/wiki/'+encodeURIComponent(x.title.replace(/ /g,'_')),source:'Wikipedia',text:strip(x.snippet),t:0};});}).catch(function(){return[];});}
+function gdeltRaw(q){
+var words=String(q||'').toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu)||[];
+var stop=/^(the|and|with|from|what|who|how|why|when|where|is|are|was|were|for|you|your|какво|как|защо|кога|къде|кой|коя|кои|ли|е|са|и|на|от|във|в|с|до|по)$/;
+words=words.filter(function(w){return w.length>2&&!stop.test(w);});
+var raw=String(q||'').trim().toLocaleLowerCase();
+var query='"'+String(q||'').replace(/["\\]/g,' ').trim()+'"';
+return J('https://api.gdeltproject.org/api/v2/doc/doc?mode=artlist&format=json&maxrecords=12&sort=datedesc&query='+E(query)).then(function(j){
+return(j.articles||[]).map(function(x){var t=0;if(x.seendate){var m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/.exec(x.seendate);if(m)t=Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6])/1000);}return{title:x.title,url:x.url,source:'GDELT news',text:x.domain||'',t:t};})
+.filter(function(x){var title=String(x.title||'').toLocaleLowerCase();return words.length?words.every(function(w){return title.indexOf(w)>=0;}):!!raw&&title.indexOf(raw)>=0;});
+}).catch(function(){return[];});
+}
+function hnRaw(q){return fetch('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=6&query='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){return(j.hits||[]).filter(function(x){return x.title;}).map(function(x){return{title:x.title,url:x.url||('https://news.ycombinator.com/item?id='+x.objectID),source:'Hacker News',text:(x.points||0)+' points · '+(x.num_comments||0)+' comments',t:x.created_at_i||0};});}).catch(function(){return[];});}
+function J(u){var c=window.AbortController?new AbortController():null,t=c&&setTimeout(function(){c.abort();},4500);return fetch(u,{credentials:'omit',referrerPolicy:'no-referrer',signal:c?c.signal:undefined}).then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json();},function(e){clearTimeout(t);throw e;});}
+function E(v){return encodeURIComponent(v);}
+function mw(host,label,q,p){return J('https://'+host+'/w/api.php?action=query&format=json&origin=*&list=search&srlimit=10&sroffset='+(p*10)+'&srsearch='+E(q)).then(function(j){return((j.query||{}).search||[]).map(function(x){return{title:x.title,url:'https://'+host+'/wiki/'+E(x.title.replace(/ /g,'_')),source:label,text:strip(x.snippet),t:0};});}).catch(function(){return[];});}
+function iaRaw(q,p){return J('https://archive.org/advancedsearch.php?q='+E(q+' AND NOT subject:(nude OR erotic OR porn OR adult OR xxx)')+'&fl[]=identifier&fl[]=title&fl[]=description&rows=10&page='+(p+1)+'&output=json').then(function(j){return(((j.response||{}).docs)||[]).filter(function(x){return x.title;}).map(function(x){var d=Array.isArray(x.description)?x.description[0]:x.description;return{title:String(x.title),url:'https://archive.org/details/'+E(x.identifier),source:'Internet Archive',text:strip(d||'').slice(0,240),t:0};});}).catch(function(){return[];});}
+function olRaw(q,p){return J('https://openlibrary.org/search.json?limit=10&page='+(p+1)+'&fields=key,title,author_name,first_publish_year&q='+E(q)).then(function(j){return(j.docs||[]).map(function(x){return{title:x.title,url:'https://openlibrary.org'+x.key,source:'Open Library',text:(x.author_name?x.author_name.slice(0,2).join(', ')+' · ':'')+(x.first_publish_year||''),t:0};});}).catch(function(){return[];});}
+function crRaw(q,p){return J('https://api.crossref.org/works?rows=10&offset='+(p*10)+'&select=title,URL,container-title,author&query='+E(q)).then(function(j){return((j.message||{}).items||[]).filter(function(x){return x.title&&x.title[0]&&x.URL;}).map(function(x){return{title:x.title[0],url:x.URL,source:'Crossref (research)',text:(x['container-title']&&x['container-title'][0])||'',t:0};});}).catch(function(){return[];});}
+function oaRaw(q,p){return J('https://api.openalex.org/works?per-page=10&page='+(p+1)+'&search='+E(q)).then(function(j){return(j.results||[]).filter(function(x){return x.display_name;}).map(function(x){var u=(x.primary_location&&x.primary_location.landing_page_url)||x.doi||x.id;return{title:x.display_name,url:u,source:'OpenAlex (research)',text:(x.publication_year||'')+(x.cited_by_count?' · cited '+x.cited_by_count+' times':''),t:0};});}).catch(function(){return[];});}
+function pmcRaw(q,p){return J('https://www.ebi.ac.uk/europepmc/webservices/rest/search?format=json&pageSize=10&page='+(p+1)+'&query='+E(q)).then(function(j){return(((j.resultList||{}).result)||[]).filter(function(x){return x.title&&x.id;}).map(function(x){return{title:strip(x.title),url:'https://europepmc.org/article/'+E(x.source||'MED')+'/'+E(x.id),source:'Europe PMC (science)',text:(x.journalTitle||'')+(x.pubYear?' · '+x.pubYear:''),t:0};});}).catch(function(){return[];});}
+function seRaw(q,p){return J('https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&site=stackoverflow&pagesize=10&page='+(p+1)+'&q='+E(q)).then(function(j){return(j.items||[]).map(function(x){return{title:strip(x.title),url:x.link,source:'Stack Overflow',text:(x.score||0)+' votes · '+(x.answer_count||0)+' answers',t:x.creation_date||0};});}).catch(function(){return[];});}
+function inter(lists){var out=[],i=0,more=true;while(more){more=false;lists.forEach(function(l){if(i<l.length){out.push(l[i]);more=true;}});i++;}return out;}
+function mk(label,urlf,mapf,nopage){return function(q,p){if(nopage&&p>0)return Promise.resolve([]);return J(urlf(q,p)).then(function(j){return(mapf(j,q)||[]).filter(function(x){return x&&x.title&&x.url;}).map(function(x){x.source=label;x.text=x.text?String(x.text):'';x.t=x.t||0;return x;});}).catch(function(){return[];});};}
+function sx(v){return strip(v||'').replace(/\s+/g,' ').trim();}
+var GROUP={'Wikipedia':'Encyclopedias','Wikipedia (DE)':'Encyclopedias','Wikipedia (FR)':'Encyclopedias','Wikipedia (ES)':'Encyclopedias','Wikipedia (RU)':'Encyclopedias','Simple Wikipedia':'Encyclopedias','Wikidata':'Encyclopedias','Wikispecies':'Encyclopedias','Wikiquote':'Encyclopedias','Wiktionary':'Encyclopedias',
+'Wikibooks':'Learning','Wikiversity':'Learning','Wikisource':'Learning','Wikivoyage':'Places','Internet Archive':'Books','Open Library':'Books','Project Gutenberg':'Books','Google Books':'Books','Library of Congress':'Books',
+'Crossref (research)':'Science','OpenAlex (research)':'Science','Europe PMC (science)':'Science','DOAJ (open journals)':'Science','Semantic Scholar':'Science','INSPIRE (physics)':'Science','Zenodo':'Science','DataCite':'Science',
+'Stack Overflow':'Code','Super User':'Code','Math Stack Exchange':'Code','Physics Stack Exchange':'Code','History Stack Exchange':'Code','GitHub':'Code','npm':'Code',
+'Hacker News':'News','GDELT news':'News','Wikinews':'News','Spaceflight News':'News','GBIF (species)':'Nature','iNaturalist':'Nature','Cleveland Museum of Art':'Culture','MusicBrainz':'Culture',
+'OpenStreetMap':'Places','REST Countries':'Places','TheMealDB':'Food','Open Food Facts':'Food'};
+function grpOf(r){return r.g||GROUP[r.source]||'Other';}
+function seX(site,label){return mk(label,function(q,p){return 'https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&site='+site+'&pagesize=10&page='+(p+1)+'&q='+E(q);},function(j){return(j.items||[]).map(function(x){return{title:sx(x.title),url:x.link,text:(x.score||0)+' votes · '+(x.answer_count||0)+' answers',t:x.creation_date||0};});});}
+var MORE=[
+mk('Project Gutenberg',function(q,p){return 'https://gutendex.com/books/?page='+(p+1)+'&search='+E(q);},function(j){return(j.results||[]).map(function(x){return{title:x.title,url:'https://www.gutenberg.org/ebooks/'+x.id,text:((x.authors||[])[0]||{}).name||''};});}),
+mk('Google Books',function(q,p){return 'https://www.googleapis.com/books/v1/volumes?maxResults=10&startIndex='+(p*10)+'&q='+E(q);},function(j){return(j.items||[]).map(function(x){var v=x.volumeInfo||{};return{title:v.title,url:v.infoLink,text:((v.authors||[]).slice(0,2).join(', ')+' '+sx(v.description)).slice(0,240)};});}),
+mk('Library of Congress',function(q,p){return 'https://www.loc.gov/search/?fo=json&c=10&sp='+(p+1)+'&q='+E(q);},function(j){return(j.results||[]).map(function(x){return{title:x.title,url:x.url||x.id,text:sx(Array.isArray(x.description)?x.description[0]:x.description).slice(0,240)};});}),
+mk('DOAJ (open journals)',function(q,p){return 'https://doaj.org/api/search/articles/'+E(q)+'?pageSize=10&page='+(p+1);},function(j){return(j.results||[]).map(function(x){var b=x.bibjson||{};return{title:b.title,url:((b.link||[])[0]||{}).url||('https://doaj.org/article/'+x.id),text:(b.journal&&b.journal.title)||''};});}),
+mk('Semantic Scholar',function(q,p){return 'https://api.semanticscholar.org/graph/v1/paper/search?limit=10&offset='+(p*10)+'&fields=title,url,year,venue&query='+E(q);},function(j){return(j.data||[]).map(function(x){return{title:x.title,url:x.url,text:(x.venue||'')+(x.year?' · '+x.year:'')};});}),
+mk('INSPIRE (physics)',function(q,p){return 'https://inspirehep.net/api/literature?size=10&page='+(p+1)+'&fields=titles,control_number&q='+E(q);},function(j){return((j.hits||{}).hits||[]).map(function(x){var m=x.metadata||{};return{title:((m.titles||[])[0]||{}).title,url:'https://inspirehep.net/literature/'+m.control_number};});}),
+mk('Zenodo',function(q,p){return 'https://zenodo.org/api/records?size=10&page='+(p+1)+'&q='+E(q);},function(j){return((j.hits||{}).hits||[]).map(function(x){var m=x.metadata||{};return{title:m.title,url:(x.links||{}).self_html,text:sx(m.description).slice(0,240)};});}),
+mk('DataCite',function(q,p){return 'https://api.datacite.org/dois?page%5Bsize%5D=10&page%5Bnumber%5D='+(p+1)+'&query='+E(q);},function(j){return(j.data||[]).map(function(x){var a=x.attributes||{};return{title:((a.titles||[])[0]||{}).title,url:a.url||('https://doi.org/'+x.id),text:a.publicationYear||''};});}),
+seX('superuser','Super User'),seX('math','Math Stack Exchange'),seX('physics','Physics Stack Exchange'),seX('history','History Stack Exchange'),
+mk('GitHub',function(q,p){return 'https://api.github.com/search/repositories?per_page=10&page='+(p+1)+'&q='+E(q);},function(j){return(j.items||[]).map(function(x){return{title:x.full_name,url:x.html_url,text:(x.description||'')+' · ★ '+(x.stargazers_count||0)};});}),
+mk('npm',function(q,p){return 'https://registry.npmjs.org/-/v1/search?size=10&from='+(p*10)+'&text='+E(q);},function(j){return(j.objects||[]).map(function(x){var k=x.package||{};return{title:k.name,url:(k.links||{}).npm,text:k.description||''};});}),
+mk('Spaceflight News',function(q,p){return 'https://api.spaceflightnewsapi.net/v4/articles/?limit=10&offset='+(p*10)+'&search='+E(q);},function(j){return(j.results||[]).map(function(x){return{title:x.title,url:x.url,text:x.summary,t:x.published_at?Math.floor(Date.parse(x.published_at)/1000):0};});}),
+mk('GBIF (species)',function(q,p){return 'https://api.gbif.org/v1/species/search?limit=10&offset='+(p*10)+'&q='+E(q);},function(j){return(j.results||[]).map(function(x){return{title:x.scientificName,url:'https://www.gbif.org/species/'+x.key,text:[x.rank,x.kingdom,x.family].filter(Boolean).join(' · ')};});}),
+mk('iNaturalist',function(q,p){return 'https://api.inaturalist.org/v1/taxa?per_page=10&page='+(p+1)+'&q='+E(q);},function(j){return(j.results||[]).map(function(x){return{title:(x.preferred_common_name?x.preferred_common_name+' – ':'')+x.name,url:'https://www.inaturalist.org/taxa/'+x.id,text:x.rank||''};});}),
+mk('Cleveland Museum of Art',function(q,p){return 'https://openaccess-api.clevelandart.org/api/artworks/?has_image=1&limit=10&skip='+(p*10)+'&q='+E(q);},function(j){return(j.data||[]).map(function(x){return{title:x.title,url:x.url,text:(((x.creators||[])[0]||{}).description||'')+' · '+(x.type||'')};});}),
+mk('MusicBrainz',function(q,p){return 'https://musicbrainz.org/ws/2/artist?fmt=json&limit=10&offset='+(p*10)+'&query='+E(q);},function(j){return(j.artists||[]).map(function(x){return{title:x.name,url:'https://musicbrainz.org/artist/'+x.id,text:[x.disambiguation,x.country].filter(Boolean).join(' · ')};});}),
+mk('OpenStreetMap',function(q){return 'https://nominatim.openstreetmap.org/search?format=json&limit=8&q='+E(q);},function(j){return(Array.isArray(j)?j:[]).map(function(x){return{title:x.display_name,url:'https://www.openstreetmap.org/'+x.osm_type+'/'+x.osm_id,text:x.type||''};});},true),
+mk('REST Countries',function(q){return 'https://restcountries.com/v3.1/name/'+E(q)+'?fields=name,capital,region,population';},function(j){return(Array.isArray(j)?j:[]).slice(0,4).map(function(x){return{title:(x.name||{}).common,url:'https://en.wikipedia.org/wiki/'+E(String((x.name||{}).common||'').replace(/ /g,'_')),text:'Capital: '+((x.capital||[])[0]||'–')+' · '+(x.region||'')+' · population '+(x.population||0).toLocaleString('en')};});},true),
+mk('TheMealDB',function(q){return 'https://www.themealdb.com/api/json/v1/1/search.php?s='+E(q);},function(j){return(j.meals||[]).slice(0,6).map(function(x){return{title:x.strMeal,url:'https://www.themealdb.com/meal/'+x.idMeal,text:[x.strCategory,x.strArea].filter(Boolean).join(' · ')};});},true),
+mk('Open Food Facts',function(q,p){return 'https://world.openfoodfacts.org/cgi/search.pl?search_simple=1&action=process&json=1&page_size=10&page='+(p+1)+'&search_terms='+E(q);},function(j){return(j.products||[]).map(function(x){return{title:x.product_name,url:'https://world.openfoodfacts.org/product/'+x.code,text:x.brands||''};});})
+];
+function webPage(q,p,cb){
+var l=lang(),h=function(d){return l+'.'+d;};
+var jobs=[mw(h('wikipedia.org'),'Wikipedia',q,p)];
+if(l==='bg')jobs.push(mw('en.wikipedia.org','Wikipedia',q,p));
+else jobs.push(mw('simple.wikipedia.org','Simple Wikipedia',q,p));
+[['de','DE'],['fr','FR'],['es','ES'],['ru','RU']].forEach(function(x){if(x[0]!==l)jobs.push(mw(x[0]+'.wikipedia.org','Wikipedia ('+x[1]+')',q,p));});
+jobs.push(mw(h('wikibooks.org'),'Wikibooks',q,p),mw(h('wikisource.org'),'Wikisource',q,p),mw(h('wikinews.org'),'Wikinews',q,p),mw(h('wiktionary.org'),'Wiktionary',q,p),mw(h('wikiversity.org'),'Wikiversity',q,p),
+mw(h('wikivoyage.org'),'Wikivoyage',q,p),mw(h('wikiquote.org'),'Wikiquote',q,p),mw('species.wikimedia.org','Wikispecies',q,p),mw('www.wikidata.org','Wikidata',q,p),
+iaRaw(q,p),olRaw(q,p),crRaw(q,p),oaRaw(q,p),pmcRaw(q,p),seRaw(q,p),
+J('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=10&page='+p+'&query='+E(q)).then(function(j){return(j.hits||[]).filter(function(x){return x.title;}).map(function(x){return{title:x.title,url:x.url||('https://news.ycombinator.com/item?id='+x.objectID),source:'Hacker News',text:(x.points||0)+' points · '+(x.num_comments||0)+' comments',t:x.created_at_i||0};});}).catch(function(){return[];}));
+MORE.forEach(function(f){jobs.push(f(q,p));});
+if(p===0){jobs.push(gdeltRaw(q));if(netUp())jobs.push(xget('search',{q:q},20000).then(function(j){return j.results||[];}).catch(function(){return[];}));}
+jobs=jobs.map(function(j){return j.then(function(a){if(cb)cb(a);return a;});});
+return Promise.all(jobs).then(inter);
+}
+/* images: several free sources, paged */
+function imgCommons(q,p){return J('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=30&gsroffset='+(p*30)+'&gsrsearch='+E(q+' filetype:bitmap')+'&prop=imageinfo&iiprop=url|extmetadata|mime&iiurlwidth=320').then(function(j){
+var ps=Object.keys((j.query||{}).pages||{}).map(function(k){return j.query.pages[k];});ps.sort(function(a,b){return(a.index||99)-(b.index||99);});
+return ps.map(function(p){var ii=(p.imageinfo||[])[0];if(!ii||!ii.thumburl||!/^image\//.test(ii.mime||''))return null;var m=ii.extmetadata||{};return{title:String(p.title).replace(/^File:/,'').replace(/\.\w+$/,'').replace(/_/g,' '),thumb:ii.thumburl,url:ii.descriptionurl,license:(m.LicenseShortName&&m.LicenseShortName.value)||'',thumbFallback:ii.url||'',src:'Wikimedia Commons'};}).filter(Boolean);}).catch(function(){return[];});}
+function imgOpenverse(q,p){return J('https://api.openverse.org/v1/images/?page_size=20&page='+(p+1)+'&q='+E(q)).then(function(j){return(j.results||[]).filter(function(x){return x.thumbnail&&x.foreign_landing_url&&!x.mature;}).map(function(x){return{title:x.title||'Image',thumb:x.thumbnail,url:x.foreign_landing_url,license:'CC '+String(x.license||'').toUpperCase()+' '+(x.license_version||''),src:'Openverse'};});}).catch(function(){return[];});}
+function imgNasa(q,p){return J('https://images-api.nasa.gov/search?media_type=image&page='+(p+1)+'&q='+E(q)).then(function(j){return(((j.collection||{}).items)||[]).map(function(x){var d=(x.data||[])[0]||{},l=(x.links||[])[0];if(!l||!d.nasa_id)return null;return{title:d.title||'NASA image',thumb:l.href,url:'https://images.nasa.gov/details/'+E(d.nasa_id),license:'NASA (public domain)',src:'NASA'};}).filter(Boolean);}).catch(function(){return[];});}
+function imgIA(q,p){return J('https://archive.org/advancedsearch.php?q='+E('('+q+') AND mediatype:image AND (licenseurl:(*creativecommons* OR *publicdomain*) OR collection:(flickrcommons OR nasa)) AND NOT subject:(nude OR erotic OR porn OR adult OR xxx)')+'&fl[]=identifier&fl[]=title&rows=20&page='+(p+1)+'&output=json').then(function(j){return(((j.response||{}).docs)||[]).filter(function(x){return x.title;}).map(function(x){return{title:String(x.title),thumb:'https://archive.org/services/img/'+E(x.identifier),url:'https://archive.org/details/'+E(x.identifier),license:'Internet Archive (free license)',src:'Internet Archive'};});}).catch(function(){return[];});}
+function imgArt(q,p){return J('https://api.artic.edu/api/v1/artworks/search?limit=20&page='+(p+1)+'&fields=id,title,image_id,is_public_domain&q='+E(q)).then(function(j){return(j.data||[]).filter(function(x){return x.image_id&&x.is_public_domain;}).map(function(x){return{title:x.title||'Artwork',thumb:'https://www.artic.edu/iiif/2/'+x.image_id+'/full/400,/0/default.jpg',url:'https://www.artic.edu/artworks/'+x.id,license:'Public domain',src:'Art Institute of Chicago'};});}).catch(function(){return[];});}
+function imgWiki(q,p){var l=lang();return J('https://'+l+'.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=15&gsroffset='+(p*15)+'&gsrsearch='+E(q)+'&prop=pageimages&piprop=thumbnail&pithumbsize=320').then(function(j){return Object.keys((j.query||{}).pages||{}).map(function(k){return j.query.pages[k];}).filter(function(x){return x.thumbnail;}).map(function(x){return{title:x.title,thumb:x.thumbnail.source,url:'https://'+l+'.wikipedia.org/wiki/'+E(x.title.replace(/ /g,'_')),license:'See the Wikipedia page',src:'Wikipedia'};});}).catch(function(){return[];});}
+function imgNat(q,p){return J('https://api.inaturalist.org/v1/taxa?per_page=15&page='+(p+1)+'&q='+E(q)).then(function(j){return(j.results||[]).filter(function(x){return x.default_photo&&x.default_photo.medium_url;}).map(function(x){return{title:(x.preferred_common_name||x.name),thumb:x.default_photo.medium_url,url:'https://www.inaturalist.org/taxa/'+x.id,license:(x.default_photo.license_code||'').toUpperCase().replace(/-/g,' ')||'',src:'iNaturalist'};});}).catch(function(){return[];});}
+function imgCle(q,p){return J('https://openaccess-api.clevelandart.org/api/artworks/?has_image=1&cc0=1&limit=15&skip='+(p*15)+'&q='+E(q)).then(function(j){return(j.data||[]).filter(function(x){return x.images&&x.images.web;}).map(function(x){return{title:x.title,thumb:x.images.web.url,url:x.url,license:'CC0 (public domain)',src:'Cleveland Museum of Art'};});}).catch(function(){return[];});}
+function imgPage(q,p,cb){return Promise.all([imgCommons(q,p),imgOpenverse(q,p),imgNasa(q,p),imgIA(q,p),imgArt(q,p),imgWiki(q,p),imgNat(q,p),imgCle(q,p)].map(function(j){return j.then(function(a){if(cb)cb(a);return a;});})).then(inter);}
+/* ---- rendering ---- */
+function favLetter(s){return(String(s||'?').replace(/^www\./,'').charAt(0)||'?').toUpperCase();}
+function licInfo(l){l=String(l||'');
+if(/public domain|cc0|\bpd\b|pdm/i.test(l))return['Public domain','Free to use for anything. Credit is not required, but it is polite.'];
+if(/by[-\s]?nc[-\s]?nd/i.test(l))return['CC BY-NC-ND','Use with credit, not for commercial use, and without changes.'];
+if(/by[-\s]?nc[-\s]?sa/i.test(l))return['CC BY-NC-SA','Use and change with credit, not for commercial use, and share your changes under the same licence.'];
+if(/by[-\s]?nc/i.test(l))return['CC BY-NC','Use and change with credit, but not for commercial use.'];
+if(/by[-\s]?nd/i.test(l))return['CC BY-ND','Use with credit, but do not change it.'];
+if(/by[-\s]?sa/i.test(l))return['CC BY-SA','Use and change with credit, and share your changes under the same licence.'];
+if(/\bcc[-\s]?by\b|by\s*\d/i.test(l))return['CC BY','Use and change freely if you credit the author.'];
+if(/nasa/i.test(l))return['NASA','Usually free to use. Do not suggest that NASA endorses you, and check NASA’s media guidelines.'];
+if(/internet archive/i.test(l))return['Free licence','The item page shows its exact licence. Check it before reusing.'];
+return l?['Licence: '+l.slice(0,24),'Check the licence on the source page before reusing it.']:['Licence unknown','No licence was given. Assume it is NOT free to reuse until you check the source page.'];}
+var cmp=[];var cmpBar=el('div','std-cmpbar');cmpBar.style.cssText='display:none;margin:8px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:14px;align-items:center;gap:10px;flex-wrap:wrap';
+var cmpPanelBody=mkPanel('v9Cmp2','⚖️ Compare two results');wrap.insertBefore(cmpBar,res);
+var flowBar=el('div','std-cmpbar');flowBar.style.cssText='display:none;margin:8px 0;padding:10px 12px;border:1px solid var(--accent2);border-radius:14px;align-items:center;gap:8px;flex-wrap:wrap';wrap.insertBefore(flowBar,meta);
+var flowNote=el('div','v9-note','Use the checkboxes under results to choose sources for comparison. Or let Random comparison pick two for you; check a link from the results.');flowNote.style.flexBasis='100%';flowBar.appendChild(flowNote);
+function flowShow(list){flowBar.textContent='';if(!list||!list.length||tab!=='all'){flowBar.style.display='none';return;}flowBar.style.display='flex';flowBar.appendChild(flowNote);
+var cmpBtn=el('button','std-b','🎲 Random comparison');cmpBtn.type='button';cmpBtn.disabled=list.length<2;cmpBtn.title=list.length<2?'At least two results are needed':'';cmpBtn.onclick=function(){var pool=list.slice(),picked=[];while(pool.length&&picked.length<2){var i=Math.floor(Math.random()*pool.length);picked.push(pool.splice(i,1)[0]);}cmp=picked;[].forEach.call(res.querySelectorAll('.std-cmp input'),function(c){c.checked=cmp.some(function(x){return x.url===c.closest('.std-r').querySelector('.std-t').href;});});cmpUpdate();if(cmp.length===2)openCmp();};flowBar.appendChild(cmpBtn);
+var checkBtn=el('button','std-b','🛡️ Check first link');checkBtn.type='button';checkBtn.onclick=function(){var r=list[0];closePanel('v9Std');openScam('url');var input=$('scamInput');if(input)input.value=r.url;var lab=$('scamLabBar');if(lab)lab.scrollIntoView({behavior:'smooth',block:'start'});runScam();};flowBar.appendChild(checkBtn);
+}
+function cmpUpdate(){cmpBar.textContent='';if(!cmp.length){cmpBar.style.display='none';return;}cmpBar.style.display='flex';
+cmpBar.appendChild(el('span','',cmp.length===1?'1 source selected. Select one more result below.':'2 sources selected.'));
+var go=el('button','std-b','Compare selected sources');go.type='button';go.disabled=cmp.length<2;go.onclick=openCmp;cmpBar.appendChild(go);
+var cl=el('button','std-b','Clear');cl.type='button';cl.onclick=function(){cmp=[];cmpUpdate();[].forEach.call(res.querySelectorAll('.std-cmp input'),function(c){c.checked=false;});};cmpBar.appendChild(cl);}
+var STOP=/^(this|that|with|from|have|were|been|their|there|which|about|would|could|should|also|more|than|into|they|them|what|when|will|your|only|other|some|such|most|these|those|over|after)$/;
+function words(t){var o={};String(t||'').toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu,' ').split(/\s+/).forEach(function(w){if(w.length>=4&&!STOP.test(w))o[w]=1;});return o;}
+function openCmp(){
+var b=cmpPanelBody;b.textContent='';b.appendChild(el('div','v9-note','Side by side: the short descriptions given by each source. Open the links to read the full pages. Results are not checked for truth.'));
+var grid=el('div');grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0';b.appendChild(grid);
+var texts=[],done=0;var shared=el('div');
+function fin(){if(++done<2)return;var A=words(texts[0]),B=words(texts[1]),both=Object.keys(A).filter(function(w){return B[w];}).slice(0,16);
+shared.textContent='';shared.appendChild(el('b','','Words in both'));var row=el('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px';
+if(both.length)both.forEach(function(w){var c=el('span','',w);c.style.cssText='padding:4px 10px;border-radius:14px;border:1px solid var(--accent);font-size:13px';row.appendChild(c);});else row.appendChild(el('span','v9-note','No shared key words found. These two may be about different things or use different words.'));shared.appendChild(row);}
+cmp.forEach(function(r,i){var c=el('div','v9-card');c.setAttribute('translate','no');c.appendChild(el('div','v9-note',r.source||''));
+var a=el('a','std-t',r.title);a.href=safe(r.url);a.target='_blank';a.rel='noopener noreferrer';c.appendChild(a);
+var tx=el('div','std-s',r.text||'');tx.style.marginTop='8px';c.appendChild(tx);grid.appendChild(c);
+texts[i]=(r.title||'')+' '+(r.text||'');
+var m=/\/\/(\w+)\.wikipedia\.org\/wiki\/(.+)$/.exec(r.url||'');
+if(m){tx.textContent='Loading…';fetch('https://'+m[1]+'.wikipedia.org/api/rest_v1/page/summary/'+m[2]).then(function(x){return x.ok?x.json():null;}).then(function(j){var t=j&&j.extract?j.extract.slice(0,700):(r.text||'');tx.textContent=t;texts[i]+=' '+t;fin();}).catch(function(){tx.textContent=r.text||'';fin();});}else fin();});
+b.appendChild(shared);openPanel('v9Cmp2');}
+function resultEl(r){
+var u=safe(r.url);if(!u)return null;
+var d=el('div','std-r');d.setAttribute('translate','no');
+var site=el('div','std-site');var host='';try{host=new URL(u).hostname.replace(/^www\./,'');}catch(e){}
+site.appendChild(el('span','std-fav',favLetter(host)));
+var s2=el('div','std-sn');s2.appendChild(el('div','std-name',r.source||host));s2.appendChild(el('div','std-url',pretty(u)));site.appendChild(s2);
+var a=el('a','std-t',r.title||u);a.href=u;a.target='_blank';a.rel='noopener noreferrer';
+d.appendChild(site);d.appendChild(a);
+var sn=(r.t?ago(r.t)+' — ':'')+(r.text||'');if(sn.trim())d.appendChild(el('div','std-s',sn.slice(0,300)));
+var lb=el('label','std-cmp');lb.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-top:6px;cursor:pointer';var cb=document.createElement('input');cb.type='checkbox';cb.checked=cmp.some(function(x){return x.url===u;});
+cb.onchange=function(){if(cb.checked){if(cmp.length>=2){cb.checked=false;toast('Compare works with two results. Clear one first.','#ffaa00');return;}cmp.push(r);}else cmp=cmp.filter(function(x){return x.url!==u;});cmpUpdate();};
+lb.appendChild(cb);lb.appendChild(document.createTextNode('Compare'));d.appendChild(lb);
+return d;
+}
+function setMeta(n,ms){meta.textContent=n?('About '+n+' result'+(n===1?'':'s')+' ('+(ms/1000).toFixed(2)+' seconds)'):'';}
+function status(t){res.textContent='';res.appendChild(el('div','std-none',t));more.style.display='none';meta.textContent='';}
+function knowledge(list){
+var w=list.filter(function(r){return r.source==='Wikipedia';})[0];if(!w)return null;
+var box=el('div','std-kp');box.setAttribute('translate','no');
+var l=/\/\/(\w+)\.wikipedia/.exec(w.url);var lg=l?l[1]:'en';
+fetch('https://'+lg+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(w.title.replace(/ /g,'_'))).then(function(r){return r.ok?r.json():null;}).then(function(j){
+if(!j||!j.extract||j.type==='disambiguation')return box.remove();
+if(j.thumbnail&&j.thumbnail.source){var im=new Image();im.alt='';im.referrerPolicy='no-referrer';im.decoding='async';im.src=j.thumbnail.source;box.appendChild(im);}
+var t=el('div','std-kt',j.title);box.appendChild(t);if(j.description)box.appendChild(el('div','std-kd',j.description));
+box.appendChild(el('div','std-ke',j.extract.slice(0,420)+(j.extract.length>420?'…':'')));
+var a=el('a','','Wikipedia ↗');a.href=safe(j.content_urls&&j.content_urls.desktop&&j.content_urls.desktop.page)||w.url;a.target='_blank';a.rel='noopener noreferrer';box.appendChild(a);
+}).catch(function(){box.remove();});
+return box;
+}
+
+var SUM_MODELS=Object.keys(AI_SHORT);
+function mName(m){return String(m||'').replace(/^@cf\//,'');}
+function mShort(m){return aiShort(m);}
+function drawSum(){
+sumWrap.textContent='';
+if(!curList||!curList.length||(tab!=='all'&&tab!=='news')){return;}
+if(!sumSt||sumSt.q!==q){sumSt={q:q,versions:[],cur:-1,busy:false,open:false,err:'',auto:0,t0:Date.now()};}
+if(!sumSt.auto&&autoSumOn()){var _st=sumSt;clearTimeout(sumTimer);sumTimer=setTimeout(function(){if(sumSt!==_st||_st.auto)return;_st.auto=1;_st.open=true;if(!_st.versions.length&&!_st.busy)genSum(msel0());else drawSum();},Math.max(300,Math.min(1400,4500-(Date.now()-_st.t0))));}
+var bub=el('button','std-b','✨ AI Summary');bub.type='button';bub.setAttribute('aria-expanded',sumSt.open?'true':'false');
+bub.style.cssText='border-radius:999px;padding:8px 16px;margin:6px 0;font-weight:700';
+bub.onclick=function(){sumSt.open=!sumSt.open;if(sumSt.open&&!sumSt.versions.length&&!sumSt.busy)genSum(msel0());drawSum();};
+sumWrap.appendChild(bub);
+if(!sumSt.open)return;
+var box=el('div','v9-card');box.style.cssText='margin:6px 0 10px;padding:12px;line-height:1.55';box.setAttribute('role','region');box.setAttribute('aria-label','AI Summary');
+box.appendChild(el('b','','✨ AI Summary of '+Math.min(curList.length,14)+' results'));
+var mr=mkModelRow();var ms=mr.msel;mr.removeChild(mr.lastChild);
+ms.addEventListener('change',function(){genSum(ms.value);});box.appendChild(mr);
+var al=el('label','v9-note');al.style.cssText='display:flex;gap:8px;align-items:center;margin:4px 0;cursor:pointer';var acb=document.createElement('input');acb.type='checkbox';acb.checked=autoSumOn();acb.onchange=function(){jset('ai_v9_autosum',acb.checked);};al.appendChild(acb);al.appendChild(document.createTextNode('Write the summary automatically after each search (sends the shown results to the AI model; turn off to send only when you press ✨)'));box.appendChild(al);
+var body=el('div','');body.style.cssText='margin:8px 0;white-space:pre-wrap';
+if(sumSt.busy){body.textContent='Asking the AI model… (it reads only the titles and snippets of the results)';}
+else if(sumSt.err&&sumSt.cur<0){body.textContent='⚠️ '+sumSt.err;}
+else if(sumSt.cur>=0){body.textContent=sumSt.versions[sumSt.cur].text;}
+box.appendChild(body);
+if(sumSt.versions.length>1||sumSt.cur>=0){
+var vr=el('div','');vr.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;max-width:100%;min-width:0';
+sumSt.versions.forEach(function(v,i){var vb=el('button','std-b',(i+1)+' · '+mShort(v.model));vb.type='button';vb.title='Version '+(i+1)+': '+mName(v.model);vb.setAttribute('aria-label','Version '+(i+1)+', '+mName(v.model));vb.setAttribute('aria-pressed',i===sumSt.cur?'true':'false');vb.style.cssText='padding:4px 10px;font-size:12px;flex:0 1 auto;min-width:0;max-width:100%;white-space:normal;'+(i===sumSt.cur?'outline:2px solid var(--accent)':'');vb.onclick=function(){sumSt.cur=i;drawSum();};vr.appendChild(vb);});
+box.appendChild(vr);}
+if(sumSt.err&&sumSt.cur>=0){var ew=el('div','v9-note','⚠️ The last try failed: '+sumSt.err);box.appendChild(ew);}
+var ar=el('div','');ar.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px';
+var other=el('button','std-b','🔁 Another model');other.type='button';other.disabled=sumSt.busy;other.onclick=function(){var used=sumSt.versions.map(function(v){return v.model;});var nx=SUM_MODELS.filter(function(m){return used.indexOf(m)<0;})[0]||SUM_MODELS[(SUM_MODELS.indexOf(used[used.length-1])+1)%SUM_MODELS.length];jset('ai_v9_model',nx);genSum(nx);};
+ar.appendChild(other);
+if(sumSt.cur>=0){var chat=el('button','std-b','💬 Open in AI Chat');chat.type='button';chat.onclick=function(){var v=sumSt.versions[sumSt.cur];var h=jget('ai_v9_chat',[]);h.push({role:'user',content:'AI Summary: '+q});h.push({role:'assistant',content:v.text,ai:1});jset('ai_v9_chat',h.slice(-40));closePanel('v9Std');openChat();};ar.appendChild(chat);}
+box.appendChild(ar);
+if(sumSt.cur>=0){var v=sumSt.versions[sumSt.cur];box.appendChild(el('div','v9-note','🤖 AI model ('+mName(v.model)+'), run by Cloudflare. It summarised these results and can be wrong: open the sources to check. Sources used: '+v.n+'.'));}
+sumWrap.appendChild(box);
+}
+function autoSumOn(){try{var g=ageG();if(g==='u13'||g==='13-15'||g==='16-17')return false;}catch(e){}return jget('ai_v9_autosum',true)!==false;}
+function msel0(){var v=jget('ai_v9_model','');return typeof v==='string'?v:'';}
+function genSum(model){
+if(!FT.on('aisum'))return;if(!sumSt||sumSt.busy)return;var st=sumSt;st.busy=true;st.err='';drawSum();
+var items=curList.slice(0,14).map(function(r){return{title:String(r.title||'').slice(0,140),text:String(r.text||'').slice(0,320),source:String(r.source||'').slice(0,50),url:r.url};});
+xpost('summary',{query:q,items:items,model:model||''},40000).then(function(j){
+st.busy=false;if(!j.summary)throw new Error('empty');st.versions.push({model:j.model||model||'',text:j.summary,n:items.length});st.cur=st.versions.length-1;if(sumSt===st)drawSum();
+}).catch(function(e){st.busy=false;st.err=/needs-server|501|needs Workers AI/.test(String(e&&e.message))?'AI summary needs the Cloudflare Worker with Workers AI switched on.':'The AI model did not answer ('+String((e&&e.message)||e).slice(0,160)+'). Try another model.';if(sumSt===st)drawSum();});
+}
+var kfBad={},kfBusy={};
+function kfFilter(list){
+var k=q+'|'+tab,bad=kfBad[k];
+try{var _g=ageG();if(!(_g==='u13'||_g==='13-15'||_g==='16-17'||store.get('ai_kids')==='1'))return list;}catch(e){return list;}
+if(!bad){if(!kfBusy[k]&&list.length&&typeof aiAsk==='function'){kfBusy[k]=1;var first=list.slice(0,60);var txt=first.map(function(r,i){return(i+1)+'. '+String(r.title||'').slice(0,120)+' — '+String(r.text||'').slice(0,160);}).join('\n');
+aiAsk('kidfilter',{text:txt}).then(function(j){var m={};(j.unsafe||[]).forEach(function(n){var r=first[n-1];if(r&&r.url)m[r.url]=1;});kfBad[k]=m;kfBusy[k]=0;if(k===q+'|'+tab&&curList)renderList(curList);}).catch(function(){kfBad[k]={};kfBusy[k]=0;});}
+return list;}
+return list.filter(function(r){return !bad[r.url];});}
+var snapT=0;
+function snapSave(){clearTimeout(snapT);var qq=q,tt=tab;snapT=setTimeout(function(){try{if(!qq||qq.length<2||tt!=='all'||!curList||curList.length<3)return;var d=new Date().toISOString().slice(0,10),key=qq.toLowerCase().slice(0,60);var S=jget('ai_v9_snaps',{});if(!S||typeof S!=='object'||Array.isArray(S))S={};var o=S[key]||(S[key]={});o[d]=curList.slice(0,12).map(function(r){return[String(r.title||'').slice(0,120),String(r.text||'').slice(0,200),String(r.source||'').slice(0,30)];});var ds=Object.keys(o).sort();while(ds.length>8)delete o[ds.shift()];var ks=Object.keys(S);if(ks.length>25){ks.sort(function(a,b){var x=Object.keys(S[a]).sort().pop()||'',y=Object.keys(S[b]).sort().pop()||'';return x<y?-1:1;});delete S[ks[0]];}jset('ai_v9_snaps',S);}catch(e){}},1500);}
+function renderList(list){
+list=kfFilter(list);
+flowShow(list);curList=list;drawSum();snapSave();
+res.textContent='';
+var shownN=0;
+if(tab==='all'){var kp=knowledge(list);if(kp)res.appendChild(kp);}
+list.slice(0,(data.all?data.all.shown:shown)).forEach(function(r){var e=resultEl(r);if(e){res.appendChild(e);shownN++;}});
+if(!shownN)status('No results found. Try different words.');
+}
+var pickFn=null,grpSel='';var gbar=el('div','std-grp');gbar.style.cssText='display:none;flex-wrap:wrap;gap:6px;margin:6px 0';wrap.insertBefore(gbar,res);
+function optBar(label){more.textContent='';more.appendChild(el('div','std-meta',label));[10,25,50,100].forEach(function(k){var b=el('button','std-b','+'+k);b.type='button';b.setAttribute('aria-label','Load '+k+' more');b.style.margin='4px';b.onclick=function(){if(!pickFn)return;[].forEach.call(more.querySelectorAll('button'),function(x){x.disabled=true;});pickFn(k);};more.appendChild(b);});more.style.display='block';}
+function stream(S,fetcher,okFn){var lists=[],t=0,first=true;
+function rebuild(){S.seen={};S.items=[];inter(lists).forEach(function(x){if(!x||!x.url||S.seen[x.url]||!okFn(x))return;S.seen[x.url]=1;S.items.push(x);});}
+function chunk(a){lists.push(a);rebuild();if(first&&S.items.length){first=false;if(S.upd)S.upd();return;}if(!t)t=setTimeout(function(){t=0;if(S.upd)S.upd();},300);}
+return fetcher(q,0,chunk).then(function(){clearTimeout(t);t=0;S.page=1;S.started=2;if(!S.items.length)S.empty=1;});}
+function fill(S,fetcher,n,okFn){var tries=0;function step(){if(S.count()>=n||S.done||tries>=6)return Promise.resolve();tries++;return fetcher(q,S.page).then(function(a){S.page++;var add=0;a.forEach(function(x){if(!x||!x.url||S.seen[x.url]||!okFn(x))return;S.seen[x.url]=1;S.items.push(x);add++;});if(!add){S.empty=(S.empty||0)+1;if(S.empty>=2)S.done=true;}else S.empty=0;return step();});}return step();}
+function newS(f){var S={items:[],page:0,seen:{},done:false,shown:0,count:function(){return f?S.items.filter(f).length:S.items.length;}};return S;}
+function webList(S){var l=tab==='news'?S.items.filter(function(r){return /news/i.test(r.source||'');}).sort(function(x,y){return(y.t||0)-(x.t||0);}):S.items;return grpSel&&tab==='all'?l.filter(function(r){return grpOf(r)===grpSel;}):l;}
+function drawGroups(S,redraw){gbar.textContent='';if(tab!=='all'||!S.items.length){gbar.style.display='none';return;}var c={};S.items.forEach(function(r){var g=grpOf(r);c[g]=(c[g]||0)+1;});var names=Object.keys(c).sort();gbar.style.display='flex';
+[''].concat(names).forEach(function(g){var b=el('button','std-b',g?g+' ('+c[g]+')':'All sources ('+S.items.length+')');b.type='button';b.style.cssText='padding:6px 12px;font-size:13px;'+(grpSel===g?'outline:2px solid var(--accent)':'');b.setAttribute('aria-pressed',grpSel===g?'true':'false');b.onclick=function(){grpSel=g;W_shownReset(S);redraw();};gbar.appendChild(b);});}
+function W_shownReset(S){S.shown=Math.max(10,S.shown);}
+function load(t){
+var me=++seq;t0=performance.now();status('Searching…');pickFn=null;
+if(t==='images'){
+var S=data.images=data.images||(function(){var o=newS();o.shown=30;return o;})();
+var iok=function(x){return kidOK({title:x.title,license:x.license});};
+function drawI(){if(me!==seq)return;res.textContent='';if(!S.items.length){status(S.started===2?'No images found.':'Searching…');return;}
+if(Math.min(S.shown,S.items.length)>=10){var warn=el('div','v9-note','⚠️ Showing 10 or more images can include previews whose original files have been deleted or are no longer reachable. The search script may still try to load those thumbnails; if one is missing, open its source page.');warn.style.cssText='margin:8px 0;padding:10px 12px;border:1px solid #d69e00;border-radius:10px';res.appendChild(warn);}var g=el('div','std-grid');S.items.slice(0,S.shown).forEach(function(x){var c=el('a','std-ic');c.href=safe(x.url);c.target='_blank';c.rel='noopener noreferrer';c.setAttribute('translate','no');var im=new Image();im.loading='lazy';im.decoding='async';im.alt=x.title;im.referrerPolicy='strict-origin-when-cross-origin';im.onerror=function(){if(x.thumbFallback&&im.src!==x.thumbFallback){im.src=x.thumbFallback;return;}im.remove();var ph=el('span','','🖼️ Preview unavailable');ph.style.cssText='position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:12px 8px 30px;background:var(--bg2);color:var(--text);font-size:12px';c.appendChild(ph);};im.src=x.thumb;c.appendChild(im);var li=licInfo(x.license);c.title=li[0]+': '+li[1];c.appendChild(el('span','std-ct',x.title+(x.src?' · '+x.src:'')));var lbd=el('span','std-lic',li[0]);lbd.style.cssText='position:absolute;top:6px;left:6px;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;background:rgba(0,0,0,.72);color:#fff';c.appendChild(lbd);g.appendChild(c);});res.appendChild(g);setMeta(Math.min(S.shown,S.items.length),performance.now()-t0);
+res.appendChild(el('div','v9-note','Licence badges: “Public domain” = free for anything. “CC BY” = free if you credit the author. “SA” = share changes under the same licence. “NC” = not for commercial use. “ND” = no changes. Hover or long-press an image for details. This is a guide, not legal advice.'));
+optBar('Showing '+Math.min(S.shown,S.items.length)+' images from Wikimedia Commons, Wikipedia, Openverse, NASA, Internet Archive, iNaturalist, the Art Institute of Chicago and the Cleveland Museum of Art. Load more:');imgAuto(S);}
+pickFn=function(k){S.shown+=k;fill(S,imgPage,S.shown,iok).then(function(){drawI();});};
+S.upd=drawI;if(S.started===2)drawI();else if(!S.started){S.started=1;stream(S,imgPage,iok).then(function(){drawI();}).catch(function(){if(me===seq)status('Images could not be loaded. Try again.');});}
+return;}
+
+var W=data.all=data.all||(function(){var o=newS();o.shown=10;return o;})();
+var wok=function(x){return kidOK({title:x.title,text:x.text,source:x.source});};
+function ensure(){var tries=0;function go(){if(webList(W).length>=W.shown||W.done||tries++>=6)return Promise.resolve();return fill(W,webPage,W.items.length+10,wok).then(go);}return go();}
+function draw(){if(me!==seq)return;drawGroups(W,function(){ensure().then(draw);});var list=webList(W);data.cur=list;setMeta(list.length,performance.now()-t0);renderList(list);
+if(list.length||!W.done){optBar('Showing '+Math.min(W.shown,list.length)+(tab==='news'?' news results from ':' results from ')+(function(){var n={};list.slice(0,Math.min(W.shown,list.length)).forEach(function(r){n[r.source]=1;});return Object.keys(n).length;})()+(tab==='news'?' news sources. Load more:':' different sources (encyclopedias, books, research papers, code, news, nature, art, places and more). Load more:'));}else more.style.display='none';}
+pickFn=function(k){W.shown+=k;ensure().then(draw);};
+W.upd=draw;if(W.started===2)draw();else if(!W.started){W.started=1;stream(W,webPage,wok).then(function(){if(me!==seq)return;if(!W.items.length){status('No results found. Try different words.');return;}draw();}).catch(function(){if(me!==seq)return;status('Search failed. Check your connection and try again.');});}
+}
+/* ---- suggestions ---- */
+var sugT=0,sugSeq=0;
+function hideSug(){sug.style.display='none';sug.textContent='';}
+function showSug(items){sug.textContent='';if(!items.length){sug.style.display='none';return;}
+items.forEach(function(s){var b=el('button','std-si','🔍  '+s);b.type='button';b.setAttribute('translate','no');b.onmousedown=function(e){e.preventDefault();};b.onclick=function(){inp.value=s;clr.style.display='block';run();};sug.appendChild(b);});sug.style.display='block';}
+function suggest(){
+var v=inp.value.trim();clr.style.display=inp.value?'block':'none';
+clearTimeout(sugT);
+if(!v){var rec=jget('ai_v9_recent',[]).slice(0,6);showSug(rec);return;}
+if(v.length<2||!netUp()){hideSug();return;}
+sugT=setTimeout(function(){var me=++sugSeq,l=/[Ѐ-ӿ]/.test(v)?'bg':'en';
+fetch('https://'+l+'.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=6&search='+encodeURIComponent(v)).then(function(r){return r.json();}).then(function(j){if(me!==sugSeq||document.activeElement!==inp)return;showSug((j[1]||[]).filter(function(x){return typeof x==='string';}));}).catch(function(){});},220);
+}
+inp.addEventListener('input',suggest);inp.addEventListener('focus',suggest);
+inp.addEventListener('blur',function(){setTimeout(hideSug,150);});
+inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();run();}else if(e.key==='Escape'){hideSug();}});
+clr.onclick=function(){inp.value='';clr.style.display='none';inp.focus();suggest();};
+setTab('all');
+window.openStd=function(v){openPanel('v9Std');if(v){inp.value=v;clr.style.display='block';run();}else{goHome();}};
+var btn=mkBtn('🔎 Standard Mode','',function(){window.openStd(($('q')||{}).value&&($('q').value.trim())||'');});
+var bar=$('v9Bar');if(bar)bar.insertBefore(btn,bar.firstChild);
+}
+function initA11y(){
+var D=document.documentElement;
+function load(){var o=null;try{o=JSON.parse(store.get('ai_a11y')||'null');}catch(e){}
+if(!o||typeof o!=='object'){var rm=false;try{rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}o={size:0,hc:false,rm:rm};}
+o.size=[0,1,2].indexOf(o.size)!==-1?o.size:0;o.hc=!!o.hc;o.rm=!!o.rm;return o;}
+var st=load();
+function apply(){D.classList.toggle('a11y-l',st.size===1);D.classList.toggle('a11y-xl',st.size===2);D.classList.toggle('a11y-hc',st.hc);var ap='auto';try{ap=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}D.classList.toggle('a11y-rm',ap==='on'?false:ap==='off'?true:st.rm);}
+window.AI_A11Y_APPLY=apply;
+function save(){store.set('ai_a11y',JSON.stringify(st));apply();}
+apply();
+var body=mkPanel('v9A11y','♿️ Accessibility');
+function render(){
+body.textContent='';
+body.appendChild(el('div','v9-note','These settings are saved on this device only.'));
+var h1=el('h3','','Text size');h1.style.margin='14px 0 6px';body.appendChild(h1);
+var r1=el('div','v9-row');
+[['Normal',0],['Large',1],['Extra large',2]].forEach(function(z){var b=mkBtn(z[0],st.size===z[1]?'on':'',function(){st.size=z[1];save();render();});b.setAttribute('aria-pressed',st.size===z[1]?'true':'false');r1.appendChild(b);});
+body.appendChild(r1);
+var h2=el('h3','','Display');h2.style.margin='14px 0 6px';body.appendChild(h2);
+var r2=el('div','v9-row');
+var hc=mkBtn(st.hc?'◐ High contrast: ON':'◐ High contrast: OFF',st.hc?'on':'',function(){st.hc=!st.hc;save();render();});hc.setAttribute('aria-pressed',st.hc?'true':'false');
+var rm=mkBtn(st.rm?'⏸ Reduced motion: ON':'⏸ Reduced motion: OFF',st.rm?'on':'',function(){st.rm=!st.rm;save();render();});rm.setAttribute('aria-pressed',st.rm?'true':'false');
+r2.appendChild(hc);r2.appendChild(rm);body.appendChild(r2);
+var r3=el('div','v9-row');r3.style.marginTop='14px';
+r3.appendChild(mkBtn('↺ Reset to default','',function(){st={size:0,hc:false,rm:false};save();render();}));body.appendChild(r3);
+body.appendChild(el('div','v9-note','Reduced motion stops animations such as the title shine. Your browser\'s own reduced-motion setting is used the first time.'));
+}
+var btn=el('button','','♿️ Access');btn.type='button';btn.onclick=function(){render();openPanel('v9A11y');};
+var bar=$('v9Bar');if(bar)bar.appendChild(btn);
+}
+function initVoice(){
+var pill=document.querySelector('.search-pill'),inp=$('q'),sb=$('searchBtn');if(!pill||!inp||!sb||$('micBtn'))return;
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+var LOCALE={en:'en-US'},lang='en';
+var mic=el('button','','🎤');mic.type='button';mic.id='micBtn';mic.title='Voice search: tap, then speak';mic.setAttribute('aria-label','Voice search');
+mic.style.cssText='min-width:44px;padding:10px;background:var(--bg3);color:var(--text);border:1.5px solid var(--accent);font-size:18px;line-height:1';
+pill.insertBefore(mic,sb);
+var stat=el('div','');stat.id='micStatus';stat.setAttribute('role','status');stat.setAttribute('aria-live','polite');stat.style.cssText='display:none;font-size:12px;text-align:center;margin-top:8px;padding:6px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--accent2)';
+pill.parentNode.insertBefore(stat,pill.nextSibling);
+function say(t){stat.textContent=t||'';stat.style.display=t?'block':'none';}
+var listening=false,stopFn=null;
+function setListening(on,txt){listening=on;mic.textContent=on?'⏹':'🎤';mic.style.background=on?'#ff4444':'var(--bg3)';mic.style.color=on?'#fff':'var(--text)';mic.setAttribute('aria-pressed',on?'true':'false');if(txt!==undefined)say(txt);}
+function fail(t){setListening(false,'');say('⚠️ '+t);setTimeout(function(){if(!listening)say('');},6000);}
+function submit(t){t=String(t||'').replace(/\s+/g,' ').trim().slice(0,200);if(!t){fail('I did not hear anything. Tap 🎤 and try again.');return;}inp.value=t;setListening(false,'');say('🔎 '+t);setTimeout(function(){if(!listening)say('');},2500);doSearch();}
+function native(){
+var rec=new SR(),final='',heard=false,errored=false;
+rec.lang=LOCALE[lang];rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+rec.onresult=function(e){var t='',f='';for(var i=e.resultIndex;i<e.results.length;i++){var r=e.results[i];t+=r[0].transcript;if(r.isFinal)f+=r[0].transcript;}heard=true;inp.value=t;if(f)final=(final+' '+f).trim();};
+rec.onerror=function(e){
+errored=true;var c=e&&e.error;
+if(c==='network'||c==='service-not-allowed'||c==='language-not-supported'){store.set('ai_voice_native_fail','1');if(API.stt){recorder();return;}fail('This browser blocks its speech service (Brave does). Use Chrome, Edge or Safari for voice search.');return;}
+if(c==='not-allowed')fail('Microphone access was denied. Allow the microphone for this site in your browser settings.');
+else if(c==='no-speech')fail('I did not hear anything. Tap 🎤 and try again.');
+else if(c==='audio-capture')fail('No microphone was found.');
+else if(c!=='aborted')fail('Voice search failed ('+c+').');
+};
+rec.onend=function(){if(errored)return;if(final)submit(final);else if(heard&&inp.value)submit(inp.value);else fail('I did not hear anything. Tap 🎤 and try again.');};
+stopFn=function(){try{rec.stop();}catch(e){}};
+try{rec.start();setListening(true,'🎤 Listening… speak now. (Your browser\'s speech service processes the audio.)');inp.value='';}catch(e){fail('Could not start the microphone.');}
+}
+function recorder(){
+if(!API.stt){fail('Voice search is not supported in this browser. Use Chrome, Edge or Safari, or enable Workers AI (binding AI) on the Worker.');return;}
+if(!navigator.mediaDevices||!window.MediaRecorder){fail('This browser cannot record audio.');return;}
+navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+var types=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'],mt='';
+for(var i=0;i<types.length;i++){try{if(MediaRecorder.isTypeSupported(types[i])){mt=types[i];break;}}catch(e){}}
+var mr;try{mr=mt?new MediaRecorder(stream,{mimeType:mt}):new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(function(t){t.stop();});fail('This browser cannot record audio.');return;}
+var chunks=[],spoke=false,last=Date.now(),t0=Date.now(),timer=0,ac=null,an=null,buf=null;
+mr.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+function cleanup(){clearInterval(timer);stream.getTracks().forEach(function(t){t.stop();});try{ac&&ac.close();}catch(e){}}
+mr.onstop=function(){
+cleanup();setListening(false,'⏳ Understanding what you said…');
+var blob=new Blob(chunks,{type:mr.mimeType||mt||'audio/webm'});
+if(blob.size<1200){fail('I did not hear anything. Tap 🎤 and try again.');return;}
+var fr=new FileReader();fr.onload=function(){
+var b64=String(fr.result).split(',')[1]||'';
+xpost('transcribe',{audio:b64,lang:lang},45000).then(function(j){submit(j.text);}).catch(function(e){fail(e&&e.message&&e.message!=='needs-server'?e.message:'Speech recognition is not available right now.');});
+};fr.readAsDataURL(blob);
+};
+stopFn=function(){try{if(mr.state!=='inactive')mr.stop();}catch(e){}};
+try{var AC=window.AudioContext||window.webkitAudioContext;if(AC){ac=new AC();var src=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=1024;src.connect(an);buf=new Uint8Array(an.fftSize);}}catch(e){an=null;}
+timer=setInterval(function(){
+var now=Date.now();
+if(an){an.getByteTimeDomainData(buf);var s=0;for(var k=0;k<buf.length;k++){var v=(buf[k]-128)/128;s+=v*v;}if(Math.sqrt(s/buf.length)>0.03){spoke=true;last=now;}}
+if(spoke&&now-last>1400)stopFn();else if(!spoke&&an&&now-t0>7000)stopFn();else if(now-t0>14000)stopFn();
+},120);
+mr.start();setListening(true,'🎤 Listening… speak now, then pause. Tap ⏹ to finish.');inp.value='';
+}).catch(function(e){fail(e&&e.name==='NotAllowedError'?'Microphone access was denied. Allow the microphone for this site in your browser settings.':'Could not use the microphone.');});
+}
+mic.onclick=function(){
+if(listening){stopFn&&stopFn();return;}
+if(!window.isSecureContext){fail('Voice search needs a secure (https) page.');return;}
+waitApi().then(function(){
+if(SR&&store.get('ai_voice_native_fail')!=='1')native();else recorder();
+});
+};
+}
+
+/* ===================== v9: weather ===================== */
+var WMO={0:['☀️','Clear sky'],1:['🌤️','Mostly clear'],2:['⛅️','Partly cloudy'],3:['☁️','Overcast'],45:['🌫️','Fog'],48:['🌫️','Rime fog'],51:['🌦️','Light drizzle'],53:['🌦️','Drizzle'],55:['🌧️','Dense drizzle'],56:['🌧️','Freezing drizzle'],57:['🌧️','Freezing drizzle'],61:['🌧️','Light rain'],63:['🌧️','Rain'],65:['🌧️','Heavy rain'],66:['🌧️','Freezing rain'],67:['🌧️','Freezing rain'],71:['🌨️','Light snow'],73:['🌨️','Snow'],75:['❄️','Heavy snow'],77:['🌨️','Snow grains'],80:['🌦️','Rain showers'],81:['🌧️','Rain showers'],82:['⛈️','Violent showers'],85:['🌨️','Snow showers'],86:['❄️','Heavy snow showers'],95:['⛈️','Thunderstorm'],96:['⛈️','Thunderstorm, hail'],99:['⛈️','Thunderstorm, heavy hail']};
+function wmo(c){var w=WMO[c]||['🌡️','Unknown'];return{i:w[0],t:w[1]};}
+var wxLoc=jget('ai_wx_loc',{name:'Sofia',lat:42.6977,lon:23.3219}),wxData=null;
+var wxPanelBody=null,wxNote='';
+(function(){try{var ua=navigator.userAgent||'',mob=/Android|iPhone|iPad|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),w=[],m;
+var desk=/Windows NT|Macintosh|Mac OS X/i.test(ua)&&!mob;
+if(!mob&&!desk)w.push('This device does not run Android, iOS, Windows or macOS, so animations or icons may not look right.');
+var ok=true;
+if((m=/Firefox\/(\d+)|FxiOS\/(\d+)/.exec(ua))){if(+(m[1]||m[2])<110)ok=false;}
+else if((m=/Chrome\/(\d+)|CriOS\/(\d+)/.exec(ua))){if(+(m[1]||m[2])<110)ok=false;}
+else if((m=/Version\/(\d+)[\d.]* .*Safari/.exec(ua))){if(+m[1]<16)ok=false;}
+else w.push('This browser is not one the site was tested with, so some things may not work.');
+if(!ok)w.push('Your browser looks old. Update it, or parts of the site may not work.');
+if(!w.length||sessionStorage.getItem('ai_compat_ok'))return;
+var b=document.createElement('div');b.setAttribute('role','note');b.style.cssText='margin:8px 12px;padding:10px 12px;border-radius:12px;border:1.5px solid #f5a623;background:var(--bg2);color:var(--text);font-size:13px;line-height:1.45;display:flex;gap:10px;align-items:flex-start';
+var t=document.createElement('div');t.style.flex='1';t.textContent='⚠️ '+w.join(' ');var x=document.createElement('button');x.type='button';x.textContent='✕';x.setAttribute('aria-label','Close');x.style.cssText='background:none;border:none;color:var(--text);font-size:16px;cursor:pointer';x.onclick=function(){b.remove();try{sessionStorage.setItem('ai_compat_ok','1');}catch(e){}};
+b.appendChild(t);b.appendChild(x);document.body.insertBefore(b,document.body.firstChild);}catch(e){}})();
+function atMode(){var m='off';try{m=localStorage.getItem('ai_v9_autotheme')||'off';}catch(e){}return m==='time'||m==='weather'?m:'off';}
+function atIsDay(){
+try{if(wxData&&wxData.daily&&wxData.daily.sunrise&&wxData.utc_offset_seconds!=null){var nowL=new Date(Date.now()+wxData.utc_offset_seconds*1000).toISOString().slice(0,16),dayS=nowL.slice(0,10),i=wxData.daily.time.indexOf(dayS);if(i>=0){return wxData.daily.sunrise[i]<=nowL&&nowL<wxData.daily.sunset[i];}}}catch(e){}
+try{if(wxData&&wxData.current&&wxData.current.is_day!=null)return wxData.current.is_day===1;}catch(e){}
+var h=new Date().getHours();return h>=7&&h<19;}
+function atDecide(){var m=atMode(),day=atIsDay(),place=(wxData&&wxLoc&&wxLoc.name)||'';
+if(!day)return{light:false,why:'it is night'+(place?' in '+place:'')};
+if(m==='weather'&&wxData&&wxData.current){var c=wxData.current;if(c.weather_code>=45)return{light:false,why:'the weather is gloomy ('+wmo(c.weather_code).t.toLowerCase()+')'+(place?' in '+place:'')};if(c.cloud_cover>=90)return{light:false,why:'the sky is heavily clouded'+(place?' in '+place:'')};return{light:true,why:'it is a bright day'+(place?' in '+place:'')};}
+return{light:true,why:'it is day'+(place?' in '+place:'')};}
+window.AI_AUTOTHEME_APPLY=function(){var m=atMode();if(m==='off')return null;var d=atDecide();var cur=document.body.classList.contains('light-theme');
+if(cur!==d.light){document.body.classList.toggle('light-theme',d.light);document.documentElement.style.colorScheme=d.light?'light':'dark';document.querySelectorAll('.theme-btn').forEach(function(b){b.textContent=d.light?'☀️':'🌙';});}
+return d;};
+window.AI_AUTOTHEME_STOP=function(){if(atMode()==='off')return;try{store.set('ai_v9_autotheme','off');localStorage.setItem('ai_v9_autotheme','off');}catch(e){}toast('Automatic theme is off. You are in control.','var(--accent)',2500);if(window.AI_AUTOTHEME_REFRESH)AI_AUTOTHEME_REFRESH();};
+setInterval(function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}},300000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}});
+function wxLoad(){
+var u='https://api.open-meteo.com/v1/forecast?latitude='+wxLoc.lat+'&longitude='+wxLoc.lon+'&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,is_day&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,uv_index_max&timezone=auto&forecast_days=7';
+return fetch(u).then(function(r){if(!r.ok)throw new Error('http');return r.json();}).then(function(j){
+wxData=j;var c=j.current,w=wmo(c.weather_code);var chip=$('wxChip');chip.textContent='';chip.appendChild(document.createTextNode(w.i+' '+Math.round(c.temperature_2m)+'°C'));chip.title=wxLoc.name+' · '+w.t;try{AI_AUTOTHEME_APPLY();}catch(e){}
+if(wxPanelBody&&$('v9Weather').classList.contains('open'))wxRender();
+}).catch(function(){$('wxChip').textContent='🌡️ --°';});
+}
+function wxRender(){
+var b=wxPanelBody;b.textContent='';var j=wxData;
+var row=el('div','v9-row'),inp=el('input','v9-in');inp.placeholder='Search a city…';inp.setAttribute('aria-label','City');
+var list=el('div');
+function search(){var q=inp.value.trim();if(q.length<2)return;list.textContent='…';
+fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language='+'en'+'&name='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(d){
+list.textContent='';(d.results||[]).forEach(function(c){var bt=mkBtn(c.name+(c.admin1?', '+c.admin1:'')+', '+(c.country||''),'',function(){wxLoc={name:c.name,lat:c.latitude,lon:c.longitude};jset('ai_wx_loc',wxLoc);logAct('weather','city '+c.name);wxLoad();});bt.style.margin='3px';list.appendChild(bt);});
+if(!(d.results||[]).length)list.textContent='No city found';}).catch(function(){list.textContent='Search unavailable here';});}
+inp.onkeydown=function(e){if(e.key==='Enter')search();};row.appendChild(inp);row.appendChild(mkBtn('Search','pri',search));
+var msg=el('div','v9-note');msg.id='wxMsg';msg.textContent=wxNote;if(/preview window/.test(wxNote)){var ob=el('button','v9-btn','↗ Open the site in your browser');ob.type='button';ob.style.cssText='display:block;margin-top:8px';ob.onclick=function(){window.open(location.href,'_blank','noopener');};msg.appendChild(ob);}
+var locBtn=mkBtn('📍 My location','',function(){explainLocation(locGo);});
+function locGo(){
+var done=false,wd=null;
+function say(t,keep){if(keep)wxNote=t;msg.textContent=t;}
+function use(name,lat,lon,why){wxLoc={name:name,lat:lat,lon:lon};jset('ai_wx_loc',wxLoc);say(why||'',true);locBtn.disabled=false;wxLoad();}
+function approx(why){
+if(API.geo&&API.geo.lat!=null){logAct('weather','approximate location');use((API.geo.city||'Approximate location')+' (approximate)',API.geo.lat,API.geo.lon,why+' Using your approximate location from your network instead.');return;}
+say(why+' Trying an approximate location from your network…');
+fetch('https://ipwho.is/?fields=success,city,latitude,longitude').then(function(r){return r.json();}).then(function(g){
+if(!g||!g.success||g.latitude==null)throw 0;logAct('weather','approximate location (ip)');use((g.city||'Approximate location')+' (approximate)',g.latitude,g.longitude,why+' Used an approximate location from your network (city level, found with ipwho.is).');
+}).catch(function(){locBtn.disabled=false;say(why+' Search for your city above instead.',true);});
+}
+function finish(fn){if(done)return;done=true;clearTimeout(wd);fn();}
+locBtn.disabled=true;say('Asking your device for its location… (allow it if the browser asks)');
+wd=setTimeout(function(){finish(function(){approx('Your browser gave no answer (location may be blocked in this window).'+(embedded?'':' '+how()));if(embedded)openOut();});},11000);
+var embedded=false;try{embedded=window.top!==window;}catch(e){embedded=true;}
+var ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+function openOut(){}
+function how(){return ios?'On iPhone: Settings → Privacy & Security → Location Services → Safari Websites → While Using, then reload.':'On Android: tap the lock icon in the address bar → Permissions → Location → Allow, then reload.';}
+if(!window.isSecureContext){finish(function(){approx('Phones only allow location on secure (https://) pages, and this page is not secure.');});return;}
+if(!navigator.geolocation){finish(function(){approx('This browser has no location access.');});return;}
+try{
+navigator.geolocation.getCurrentPosition(function(p){finish(function(){logAct('weather','geolocation');use('My location',p.coords.latitude,p.coords.longitude,'');});},
+function(e){finish(function(){approx(e&&e.code===1?(embedded?'This preview window is not allowed to ask for your location, so the browser shows no permission prompt.':'Location permission is blocked for this site. '+how()):'Your device could not provide a location (turn on GPS/Location Services and try again).');if(embedded)openOut();});},{timeout:9000,maximumAge:600000,enableHighAccuracy:false});
+}catch(e){finish(function(){approx('Location is blocked in this window.');});}
+}
+row.appendChild(locBtn);
+b.appendChild(row);b.appendChild(msg);b.appendChild(list);
+if(!j){b.appendChild(el('div','v9-note','Weather is loading, or this viewer cannot reach the weather service.'));return;}
+var c=j.current,w=wmo(c.weather_code);
+b.appendChild(el('h3','',wxLoc.name));
+var big=el('div','wx-big');big.appendChild(el('span','',w.i));big.appendChild(el('span','',Math.round(c.temperature_2m)+'°C'));var d=el('span','',w.t);d.style.cssText='font-size:18px;font-weight:normal';big.appendChild(d);b.appendChild(big);
+var g=el('div','wx-grid');
+[['Feels like',Math.round(c.apparent_temperature)+'°C'],['Humidity',c.relative_humidity_2m+'%'],['Wind',Math.round(c.wind_speed_10m)+' km/h '+compass(c.wind_direction_10m)],['Pressure',Math.round(c.pressure_msl)+' hPa'],['Cloud cover',c.cloud_cover+'%'],['Precipitation',c.precipitation+' mm'],['Sunrise',(j.daily.sunrise[0]||'').slice(11)],['Sunset',(j.daily.sunset[0]||'').slice(11)],['UV index (max)',j.daily.uv_index_max[0]]].forEach(function(p){var x=el('div');x.appendChild(el('b','',p[0]));x.appendChild(document.createTextNode(p[1]));g.appendChild(x);});
+b.appendChild(g);
+b.appendChild(el('b','','Next 24 hours'));var st=el('div','wx-strip'),now=new Date().toISOString().slice(0,13);var start=Math.max(0,j.hourly.time.findIndex(function(t){return t.slice(0,13)>=now.slice(0,13);}));
+for(var i=start;i<start+24&&i<j.hourly.time.length;i++){var x=el('div');x.appendChild(el('div','',j.hourly.time[i].slice(11,16)));x.appendChild(el('div','',wmo(j.hourly.weather_code[i]).i));x.appendChild(el('b','',Math.round(j.hourly.temperature_2m[i])+'°'));x.appendChild(el('div','v9-note','💧'+(j.hourly.precipitation_probability[i]||0)+'%'));st.appendChild(x);}
+b.appendChild(st);b.appendChild(el('div','',' '));
+b.appendChild(el('b','','7 days'));var dy=el('div','wx-strip');
+j.daily.time.forEach(function(t,i){var x=el('div');x.appendChild(el('div','',new Date(t).toLocaleDateString('en',{weekday:'short'})));x.appendChild(el('div','',wmo(j.daily.weather_code[i]).i));x.appendChild(el('b','',Math.round(j.daily.temperature_2m_max[i])+'° / '+Math.round(j.daily.temperature_2m_min[i])+'°'));x.appendChild(el('div','v9-note','💧'+j.daily.precipitation_sum[i]+' mm'));dy.appendChild(x);});
+b.appendChild(dy);
+var src=el('div','v9-note');src.appendChild(document.createTextNode('Source: '));var a=el('a','','Open-Meteo.com');a.href='https://open-meteo.com/en/docs';a.target='_blank';a.rel='noopener noreferrer';src.appendChild(a);src.appendChild(document.createTextNode(' · '+'updated '+(c.time||'').replace('T',' ')));src.style.marginTop='14px';b.appendChild(src);
+var scoutTxt=function(){var d=j.daily,cc=j.current,t=[];t.push('Now: '+wmo(cc.weather_code).t+', '+Math.round(cc.temperature_2m)+'°C (feels '+Math.round(cc.apparent_temperature)+'°C), wind '+Math.round(cc.wind_speed_10m)+' km/h, humidity '+cc.relative_humidity_2m+'%, rain '+cc.precipitation+' mm.');
+for(var k=0;k<3&&d&&k<d.time.length;k++)t.push(d.time[k]+': '+wmo(d.weather_code[k]).t+', '+Math.round(d.temperature_2m_min[k])+'..'+Math.round(d.temperature_2m_max[k])+'°C'+(d.precipitation_sum?', rain '+d.precipitation_sum[k]+' mm':'')+'.');return t.join('\n');};
+var scout=aiBlock('🛰️ AI Weather Scout','weather',function(){return{text:scoutTxt(),extra:{place:wxLoc.name.replace(/\s*\(approximate\)\s*$/i,'')}};},{hint:'AI + location: the AI model takes the place shown above and today\'s numbers, the site searches the internet for news and warnings about that place, and the AI writes a short briefing. Only the place name and these numbers are sent, not your exact coordinates.'});
+scout.style.marginTop='14px';b.appendChild(scout);
+}
+function compass(d){return['N','NE','E','SE','S','SW','W','NW'][Math.round((d%360)/45)%8];}
+function wxGeoInit(){
+if(store.get('ai_wx_loc'))return;
+if(API.geo&&API.geo.lat!=null){wxLoc={name:API.geo.city||'Approximate location',lat:API.geo.lat,lon:API.geo.lon};wxLoad();}
+}
+/* ===================== v9: video cache ===================== */
+var VC={name:'ai-v9-videos',max:1024*1024*1024,per:512*1024*1024,blobMax:40*1024*1024,busy:0,hold:0,q:[],state:{},idx:jget('ai_v9_vidx',{}),par:2,ahead:2,wifi:true};
+var VC_SIZES=[150,1024,3072,5120,9216];
+function vcApplySize(mb){mb=VC_SIZES.indexOf(+mb)>-1?+mb:1024;VC.max=mb*1048576;VC.per=Math.min(3*1073741824,Math.floor(VC.max/2));VC.par=mb<=150?1:mb<=1024?2:mb<=3072?2:mb<=5120?3:4;VC.ahead=mb<=150?1:mb<=1024?2:mb<=3072?3:mb<=5120?5:8;}
+vcApplySize(store.get('ai_vcsize')||1024);VC.wifi=store.get('ai_vcwifi')!=='0';
+function vcSave(){jset('ai_v9_vidx',VC.idx);}
+/* ===================== v33: video quality (smallest → 8K) ===================== */
+var VQL=[144,240,360,480,720,1080,1440,2160,4320],VQN={144:'144p',240:'240p',360:'360p',480:'480p',720:'720p HD',1080:'1080p Full HD',1440:'1440p 2K',2160:'2160p 4K',4320:'4320p 8K'},VQBIG={};
+function vqBucket(h){var b=0;VQL.forEach(function(L){if(h>=L*0.88)b=L;});return b||VQL[0];}
+function vqPref(){var p=store.get('ai_vq');return p&&p!=='best'&&isFinite(+p)?+p:'best';}
+function vqList(it){
+if(it._vql)return it._vql;
+var t=document.createElement('video'),a=(Array.isArray(it.qualities)?it.qualities:[]).filter(function(q){return q&&q.src&&/^https:/.test(q.src)&&q.h>0;});
+a=a.filter(function(q){var ty=q.type||q.mime;if(!ty)return true;try{return t.canPlayType(ty)!=='';}catch(e){return true;}});
+a.forEach(function(q){q.b=vqBucket(q.h);});
+a.sort(function(x,y){return x.h-y.h;});
+it._vql=a;return a;
+}
+function vqChoose(it,pref){
+var a=vqList(it);if(!a.length)return null;
+if(pref==='best')return LOW()?(a.filter(function(q){return q.b<=480;}).pop()||a[0]):a[a.length-1];
+var le=a.filter(function(q){return q.b<=pref;});return le.length?le[le.length-1]:a[0];
+}
+function vqApply(it,pref){
+var q=vqChoose(it,pref===undefined?vqPref():pref);if(!q)return null;
+if(it._vqs!==q.src){it.src=q.src;if(q.mime)it.mime=q.mime;it._vqs=q.src;}
+it._vqb=q.b;if(q.b>720)VQBIG[q.src]=1;return q;
+}
+function vqStepDown(it){
+var a=vqList(it),i=-1,k;for(k=0;k<a.length;k++)if(a[k].src===it.src)i=k;
+if(i<1)return false;var q=a[i-1];it.src=q.src;if(q.mime)it.mime=q.mime;it._vqs=q.src;it._vqb=q.b;toast('Could not play this quality — switched to '+VQN[q.b],'#ffaa00');return true;
+}
+function vqSeen(it,v){var w=v.videoWidth,h=v.videoHeight;if(!(w&&h))return 0;var sh=Math.min(w,h),b=vqBucket(sh);it._vqd=b;if(!it._vql||!it._vql.length)it._vql=[{h:sh,b:b,src:it.src,mime:it.mime||''}];return b;}
+function vqFill(sel,it){
+var a=vqList(it),have={},cur=String(vqPref()),best=a.length?a[a.length-1].b:0;
+a.forEach(function(q){have[q.b]=1;});sel.textContent='';
+var o=el('option','','Best'+(best?' ('+VQN[best].split(' ')[0]+')':''));o.value='best';sel.appendChild(o);
+VQL.forEach(function(L){var x=el('option','',VQN[L]+(have[L]?(it._vqd===L?' ✓ playing':''):' — not available'));x.value=String(L);x.disabled=!have[L];sel.appendChild(x);});
+sel.value=cur;if(sel.value!==cur)sel.value='best';
+}
+function vqSet(val){store.set('ai_vq',String(val));try{document.dispatchEvent(new Event('aivq'));}catch(e){}}
+function vcURL(src){
+if(!window.caches||!cacheOK())return Promise.resolve(null);
+var big=!!(VC.idx[src]&&VC.idx[src].s>VC.blobMax);
+if(big&&!(navigator.serviceWorker&&navigator.serviceWorker.controller))return Promise.resolve(null);
+return caches.open(VC.name).then(function(c){return c.match(src);}).then(function(r){if(!r)return null;VC.idx[src]&&(VC.idx[src].t=Date.now());if(big)return '/__vc/'+encodeURIComponent(src);return r.blob().then(function(b){return b.size>VC.blobMax?null:URL.createObjectURL(b);});}).catch(function(){return null;});
+}
+function vcEvict(){
+var tot=0,k;for(k in VC.idx)tot+=VC.idx[k].s;if(tot<=VC.max)return;
+var keys=Object.keys(VC.idx).sort(function(a,b){return VC.idx[a].t-VC.idx[b].t;});
+caches.open(VC.name).then(function(c){keys.forEach(function(k){if(tot<=VC.max*0.8)return;tot-=VC.idx[k].s;delete VC.idx[k];c.delete(k);});vcSave();});
+}
+function vcPump(){
+while(!VC.hold&&VC.busy<VC.par&&VC.q.length){
+var job=VC.q.shift();VC.busy++;
+(function(job){
+fetch(job.src,{mode:'cors'}).then(function(r){
+if(!r.ok||r.status!==200)throw 0;var len=parseInt(r.headers.get('content-length')||'0',10);
+if(len>VC.per){try{r.body&&r.body.cancel();}catch(e){}VC.state[job.src]='big';throw 0;}
+var ct=r.headers.get('content-type')||'',mt=/^(video|audio)\//.test(ct)?ct.split(';')[0]:(job.mime||'video/mp4');
+if((len>VC.blobMax||!len)&&r.body&&typeof TransformStream==='function'){
+/* large file: stream straight into the cache, never held in memory */
+var n=0,ts=new TransformStream({transform:function(ch,ctl){n+=ch.byteLength;if(n>VC.per){ctl.error(new Error('big'));return;}ctl.enqueue(ch);}});
+var hd={'content-type':mt};if(len)hd['content-length']=String(len);
+return caches.open(VC.name).then(function(c){return c.put(job.src,new Response(r.body.pipeThrough(ts),{status:200,headers:hd})).then(function(){return c;});}).then(function(c){
+VC.idx[job.src]={s:len||n,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';job.cb&&job.cb();
+}).catch(function(e){try{caches.open(VC.name).then(function(c){c.delete(job.src);});}catch(x){}delete VC.idx[job.src];throw e;});
+}
+return r.blob().then(function(b){
+if(b.size>VC.blobMax*4&&!r.body){VC.state[job.src]='big';throw 0;}
+b=new Blob([b],{type:mt});return caches.open(VC.name).then(function(c){return c.put(job.src,new Response(b,{headers:{'content-type':mt}}));}).then(function(){VC.idx[job.src]={s:b.size,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';job.cb&&job.cb();});
+});
+}).catch(function(){if(!VC.state[job.src])VC.state[job.src]='fail';}).then(function(){VC.busy--;vcPump();});
+})(job);
+}
+}
+function vcWarm(src,cb,front,mime){
+if(LOW()||!cacheOK())return;try{var cn=navigator.connection;if(VC.wifi&&cn&&cn.type==='cellular')return;}catch(e){}if(!window.caches||!/^https:/.test(src))return;if(VC.state[src]||VC.q.some(function(j){return j.src===src;}))return;
+if(VC.idx[src]){VC.state[src]='ok';cb&&cb();return;}
+var j={src:src,cb:cb,mime:mime};front?VC.q.unshift(j):VC.q.push(j);vcPump();
+}
+var vcObs=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target._on&&e.target._on();}else{e.target._off&&e.target._off();}});},{rootMargin:'700px 0px'}):null;
+function vPlaying(on){VC.hold=on?1:0;document.body.classList.toggle('v-busy',!!on);if(!on)vcPump();}
+document.addEventListener('visibilitychange',function(){if(document.hidden)[].forEach.call(document.querySelectorAll('.vd-card video'),function(v){v.pause();});});
+/* ===================== v9: video card (custom controls) ===================== */
+function fmtT(s){if(!isFinite(s))return'0:00';s=Math.floor(s);var m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
+function controls(v,opts){
+opts=opts||{};var c=el('div','vd-ctl');
+function b(txt,title,fn){var x=el('button','',txt);x.type='button';x.title=title;x.setAttribute('aria-label',title);x.onclick=fn;c.appendChild(x);return x;}
+var pp=b('▶','Play / pause',function(){v.paused?v.play().catch(function(){}):v.pause();});
+b('⏪','Back 10 s',function(){v.currentTime=Math.max(0,v.currentTime-10);});
+b('⏩','Forward 10 s',function(){v.currentTime=Math.min(v.duration||1e9,v.currentTime+10);});
+if(opts.next)b('⏭','Next video',opts.next);
+var seek=el('input');seek.type='range';seek.min='0';seek.max='1000';seek.value='0';seek.setAttribute('aria-label','Seek');c.appendChild(seek);
+var tm=el('span','v9-note','0:00');c.appendChild(tm);
+var dragging=false;seek.oninput=function(){dragging=true;if(v.duration)v.currentTime=v.duration*seek.value/1000;};seek.onchange=function(){dragging=false;};
+var lastU=0;v.addEventListener('timeupdate',function(){var n=performance.now();if(n-lastU<400)return;lastU=n;if(!dragging&&v.duration)seek.value=Math.round(1000*v.currentTime/v.duration);tm.textContent=fmtT(v.currentTime)+' / '+fmtT(v.duration);});
+v.addEventListener('play',function(){pp.textContent='⏸';});v.addEventListener('pause',function(){pp.textContent='▶';});
+if(opts.speed){var sp=el('select','v9-sel');['0.5','0.75','1','1.25','1.5','2'].forEach(function(s){var o=el('option','',s+'×');o.value=s;sp.appendChild(o);});sp.value='1';sp.onchange=function(){v.playbackRate=parseFloat(sp.value);};c.appendChild(sp);}
+if(opts.item){var qs=el('select','v9-sel');qs.title='Video quality';qs.setAttribute('aria-label','Video quality');vqFill(qs,opts.item);
+var rs=el('span','v9-note vd-res','');rs.title='Quality being played';
+qs.onchange=function(){vqSet(qs.value);if(opts.onQuality)opts.onQuality(qs.value);};
+function det(){var b=vqSeen(opts.item,v);if(!b)return;rs.textContent='▶ '+VQN[b].split(' ')[0];rs.title='Playing '+v.videoWidth+'×'+v.videoHeight;vqFill(qs,opts.item);}
+v.addEventListener('loadedmetadata',det);v.addEventListener('resize',det);
+var sync=function(){if(!document.body.contains(qs)){document.removeEventListener('aivq',sync);return;}vqFill(qs,opts.item);};document.addEventListener('aivq',sync);c.appendChild(qs);c.appendChild(rs);}
+if(opts.dl)b('⬇️','Download',opts.dl);
+var fsBtn=b('⛶','Full screen',function(){
+var t=v.closest('.vd-card')||v.parentNode,cur=document.fullscreenElement||document.webkitFullscreenElement;
+if(cur){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}return;}
+if(!t.querySelector('.vd-exit')){var x=el('button','vd-exit','✕ Exit full screen');x.type='button';x.setAttribute('aria-label','Exit full screen');x.onclick=function(e){e.stopPropagation();try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(_){}};t.appendChild(x);}
+if(!t._idle){t._idle=1;t._wake=idleHide(t,3000,function(){return !!v.paused;},true);}
+(t.requestFullscreen||t.webkitRequestFullscreen||function(){v.webkitEnterFullscreen&&v.webkitEnterFullscreen();}).call(t);
+});
+return c;
+}
+function videoCard(it,opts){
+opts=opts||{};vqApply(it);var card=el('div','vd-card');var v=document.createElement('video');v.playsInline=true;v.preload='none';v.disablePictureInPicture=false;v.setAttribute('playsinline','');v.setAttribute('disableremoteplayback','');if(it.thumb&&!LOW())v.poster=it.thumb;
+var wrap=el('div','vd-wrap'),spin=el('div','v9-spin');spin.setAttribute('role','status');spin.setAttribute('aria-label','Loading');wrap.appendChild(v);wrap.appendChild(spin);card.appendChild(wrap);
+function busy(x){wrap.classList.toggle('loading',!!x);}
+['loadstart','waiting','stalled','seeking'].forEach(function(n){v.addEventListener(n,function(){if(v.src||v.currentSrc)busy(true);});});['canplay','playing','loadeddata','error','seeked','pause','emptied'].forEach(function(n){v.addEventListener(n,function(){if(n!=='pause'||v.readyState>=3)busy(false);});});
+var tag=el('span','vd-cached',''),blobU=null,on=false,stallT=0;
+v.addEventListener('play',function(){[].forEach.call(document.querySelectorAll('.vd-card video'),function(o){if(o!==v)o.pause();});vPlaying(true);logAct('video','play '+it.title);});
+v.addEventListener('pause',function(){vPlaying(false);});v.addEventListener('ended',function(){vPlaying(false);});
+v.addEventListener('waiting',function(){clearTimeout(stallT);stallT=setTimeout(function(){if(v.paused||v.readyState>2)return;var t=v.currentTime,s0=v.currentSrc;v.load();v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t;}catch(e){}v.play().catch(function(){});});},9000);});
+v.addEventListener('playing',function(){clearTimeout(stallT);});
+function attach(){
+if(on)return;on=true;busy(true);vqApply(it);
+vcURL(it.src).then(function(u){
+if(!on){if(u)URL.revokeObjectURL(u);return;}
+if(u){blobU=u;v.src=u;tag.textContent='⚡ cached';}
+else if(LOW()&&!card._forced){busy(false);tag.textContent='📶 low data';var lb=mkBtn('⬇️ Load video (uses data)','pri',function(){card._forced=true;lb.remove();on=false;attach();});lb.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3';wrap.appendChild(lb);}
+else if(!netUp()){busy(false);tag.textContent='📴 not saved offline';}
+else{v.src=it.src;v.preload='metadata';
+card._warm=function(){vcWarm(it.src,function(){tag.textContent='⚡ cached';},opts.front,it.mime);};
+setTimeout(function(){if(on&&v.paused&&!card._wd)card._warm();},1200);}
+});
+}
+function detach(){
+if(!on||!v.paused)return;on=false;clearTimeout(stallT);
+busy(false);v.removeAttribute('src');v.preload='none';try{v.load();}catch(e){}
+if(blobU){URL.revokeObjectURL(blobU);blobU=null;}
+}
+card._on=attach;card._off=detach;
+if(opts.front)attach();
+if(vcObs)vcObs.observe(card);else attach();
+var tried=0,failBox=null;
+function failUi(){
+busy(false);tag.textContent='⚠️ cannot play';if(failBox)return;
+failBox=el('div','v9-note','This video cannot be played here. ');failBox.style.cssText='padding:8px 0;';
+failBox.appendChild(mkBtn('↻ Retry','',function(){failBox.remove();failBox=null;tried=0;on=false;attach();}));
+if(it.page){var oa=el('a','','Open original ↗');oa.href=safeUrl(it.page);oa.target='_blank';oa.rel='noopener noreferrer';failBox.appendChild(document.createTextNode(' '));failBox.appendChild(oa);}
+card.appendChild(failBox);
+}
+function swapSrc(u,keep){
+if(blobU&&!keep){URL.revokeObjectURL(blobU);blobU=null;}
+v.removeAttribute('src');try{v.load();}catch(e){}
+v.src=u;v.preload='metadata';busy(true);
+}
+v.addEventListener('error',function(){
+if(!on||!v.getAttribute('src'))return;
+var cur=v.getAttribute('src');
+if(blobU&&cur===blobU&&tried<1){tried=1;try{caches.open(VC.name).then(function(c){c.delete(it.src);});}catch(e){}delete VC.idx[it.src];VC.state[it.src]='fail';vcSave();swapSrc(it.src);return;}
+if(vqStepDown(it)){swapSrc(it.src);return;}
+if(it.full&&it.full!==it.src&&cur!==it.full&&tried<2){tried=2;swapSrc(it.full);return;}
+failUi();
+});
+card.appendChild(el('div','vd-ttl',it.title));
+var meta=el('div','vd-meta',[it.source,it.license,it.duration?fmtT(it.duration):''].filter(Boolean).join(' · ')+' ');meta.appendChild(tag);
+if(it.page){var a=el('a','','↗');a.href=safeUrl(it.page);a.target='_blank';a.rel='noopener noreferrer';meta.appendChild(document.createTextNode(' '));meta.appendChild(a);}
+card.appendChild(meta);
+var subEl=el('div','vd-sub');subEl.style.display='none';card.insertBefore(subEl,wrap.nextSibling);
+var subOn=false,subLoaded=false;
+function srt2vtt(t){return 'WEBVTT\n\n'+t.replace(/\r/g,'').replace(/(\d+:\d+:\d+),(\d+)/g,'$1.$2');}
+function loadSubs(){
+if(subLoaded)return;subLoaded=true;subEl.textContent='Loading subtitles…';
+var lang=(navigator.language||'en').slice(0,2).toLowerCase(),L=it.subs;
+var pick=L.filter(function(x){return x.lang===lang;})[0]||L.filter(function(x){return x.lang==='en';})[0]||L[0];
+fetch(pick.url).then(function(r){if(!r.ok)throw 0;return r.text();}).then(function(t){
+if(!/^\s*WEBVTT/.test(t))t=srt2vtt(t);
+var tr=document.createElement('track');tr.kind='subtitles';tr.label=pick.label;tr.srclang=pick.lang||'en';tr.src=URL.createObjectURL(new Blob([t],{type:'text/vtt'}));v.appendChild(tr);tr.track.mode='hidden';
+subEl.textContent='Subtitles on — they appear here while someone speaks.';
+tr.track.addEventListener('cuechange',function(){var c=tr.track.activeCues,out=[];if(c)for(var i=0;i<c.length;i++)out.push(String(c[i].text).replace(/<[^>]+>/g,''));subEl.textContent=out.join('\n')||'\u00a0';});
+}).catch(function(){subLoaded=false;subOn=false;subEl.style.display='none';toast('Subtitles could not be loaded','#ffaa00');});
+}
+var ctl=controls(v,{speed:true,item:it,onQuality:function(val){
+var q=vqApply(it,val==='best'?'best':+val);if(!q||!on)return;
+var t=v.currentTime,was=!v.paused;if(blobU){URL.revokeObjectURL(blobU);blobU=null;}tag.textContent=VQN[q.b]||'';busy(true);tried=0;
+v.src=it.src;v.preload='auto';v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t;}catch(e){}if(was)v.play().catch(function(){});});
+},next:opts.next&&function(){opts.next(card);},dl:function(ev){var bt=ev&&ev.currentTarget;dl(it.src,(it.title||'video').replace(/[^\wЀ-ӿ.-]+/g,'_').slice(0,80)||'video',bt,blobU);logAct('video','download '+it.title);}});card.appendChild(ctl);
+if(it.subs&&it.subs.length){var cc=el('button','','CC');cc.type='button';cc.title='Subtitles';cc.setAttribute('aria-label','Subtitles');cc.onclick=function(){subOn=!subOn;cc.style.opacity=subOn?'1':'.6';cc.style.outline=subOn?'2px solid var(--accent)':'none';subEl.style.display=subOn?'block':'none';store.set('ai_cc',subOn?'1':'0');if(subOn)loadSubs();};cc.style.opacity='.6';ctl.appendChild(cc);if(store.get('ai_cc')==='1'&&!LOW())v.addEventListener('play',function f(){v.removeEventListener('play',f);cc.click();});}
+return card;
+}
+function nextCard(card){var n=card.nextElementSibling;while(n&&!n.classList.contains('vd-card'))n=n.nextElementSibling;if(n){n.scrollIntoView({behavior:'smooth',block:'start'});var v=n.querySelector('video');if(v)setTimeout(function(){v.play().catch(function(){});},400);}}
+/* ===================== v9: video sources (server, with browser fallback) ===================== */
+var PAIDRE=/fair use|non-?free|all rights reserved|proprietary|\bpaid\b|premium|subscription|\brent(al)?\b|purchase|pay[- ]per/i;
+var KIDRE=/(?<![\p{L}])(sex\w*|porn\w*|nude|nudes|nudity|naked|nsfw|xxx|erotic\w*|fetish\w*|strip\s?tease|striptease|escort\w*|onlyfans|hentai|bdsm|orgy|milf|boob\w*|topless|lingerie|bikini\s+model|adult\s+(only|content|video)|18\+|gore|beheading|murder\w*|massacre|torture|rape\w*|suicide|self[- ]harm|cocaine|heroin|meth\b|weed|cannabis|marijuana|drug\s+(deal|use)\w*|casino|gambl\w*|betting|slot\s+machine|секс\w*|порн\w*|еротик\w*|еротичн\w*|голи\s+(жени|мъже|момичета|тела)|гола|голо\s+тяло|проститут\w*|насилие|убийств\w*|самоубийств\w*|изнасилван\w*|наркотик\w*|хазарт\w*|казино|залагани\w*)(?![\p{L}])/iu;
+var KIDSRC=/mastodon|lemmy|peertube|reddit|4chan|tumblr/i;
+function ageG(){return window.AI_AGE||'';}
+function kidsOn(){try{var g=ageG();if(g==='u13'||g==='13-15'||g==='16-17')return true;return store.get('ai_kids')!=='0';}catch(e){return true;}}
+function kidOK(it){if(!kidsOn()||!it)return true;if(KIDSRC.test(String(it.source||'')))return false;return !KIDRE.test([it.title,it.text,it.license].join(' '));}
+function freeVid(it){return !!it&&!PAIDRE.test(String(it.license||''))&&kidOK(it);}
+function commonsClient(q,page){
+var u='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50&gsroffset='+((page||0)*50)+'&gsrsearch='+encodeURIComponent(q+' filetype:video')+'&prop=videoinfo|imageinfo&viprop=url|mime|extmetadata|size|mediatype|derivatives&viurlwidth=480&iiprop=url|mime|size|extmetadata&iiurlwidth=480';
+return fetch(u).then(function(r){return r.json();}).then(function(j){
+var pages=j.query?Object.keys(j.query.pages).map(function(k){return j.query.pages[k];}):[];pages.sort(function(a,b){return(a.index||99)-(b.index||99);});
+return pages.map(function(p){var ii=(p.videoinfo||[])[0]||(p.imageinfo||[])[0];if(!ii||!/^(video\/|application\/ogg)/.test(ii.mime))return null;var m=ii.extmetadata||{};if(m.NonFree&&/true|1|yes/i.test(String(m.NonFree.value)))return null;if(PAIDRE.test(String((m.LicenseShortName&&m.LicenseShortName.value)||'')+' '+String((m.UsageTerms&&m.UsageTerms.value)||'')))return null;var ds=(ii.derivatives||[]).filter(function(d){return d&&/^https:/.test(d.src||'')&&Number(d.height)>0;});ds.sort(function(x,y){function sc(d){return(String(d.type).indexOf('video/mp4')===0?0:1000)+Math.abs(Number(d.height)-480)+(Number(d.height)<240?500:0);}return sc(x)-sc(y);});var dv=ds[0];
+var cq={};(ii.derivatives||[]).concat([{src:ii.url,type:ii.mime,width:ii.width,height:ii.height}]).forEach(function(d){var h=Math.round(Math.min(Number(d.width)||1e9,Number(d.height)||0));if(!(h>0)||h>9000||!/^https:/.test(d.src||''))return;var m=String(d.type||'').split(';')[0],c=cq[h];if(!c||(m==='video/mp4'&&c.mime!=='video/mp4'))cq[h]={h:h,src:d.src,mime:m==='application/ogg'?'video/ogg':m,type:String(d.type||'')};});
+return{qualities:Object.keys(cq).map(function(k){return cq[k];}).sort(function(a,b){return a.h-b.h;}),id:'c:'+p.pageid,title:String(p.title).replace(/^File:/,'').replace(/\.\w+$/,'').replace(/_/g,' '),thumb:ii.thumburl||'',src:dv?dv.src:ii.url,full:ii.url,page:ii.descriptionurl,license:(m.LicenseShortName&&m.LicenseShortName.value)||'Free license',source:'Wikimedia Commons',mime:dv?String(dv.type).split(';')[0]:ii.mime,duration:ii.duration?Math.round(ii.duration):null};}).filter(Boolean);
+});
+}
+function archivePick(files){
+var l=(files||[]).filter(function(f){return f&&typeof f.name==='string'&&!/_thumb|\/|\.(gif|jpg|png)$/i.test(f.name);});
+function rk(f){var n=f.name.toLowerCase(),fm=String(f.format||'').toLowerCase();return(/h\.?264|mpeg4/.test(fm)&&/\.mp4$/.test(n))?0:/\.mp4$/.test(n)?1:/\.webm$/.test(n)?2:/\.ogv$/.test(n)?3:9;}
+l=l.filter(function(f){return rk(f)<9;}).sort(function(a,b){return rk(a)-rk(b)||(Number(a.size)||0)-(Number(b.size)||0);});
+return l[0]||null;
+}
+function archiveClient(q,popular,page){
+var qq='('+(q?'('+q+') AND ':'')+'mediatype:movies AND collection:(opensource_movies OR prelinger OR feature_films OR classic_tv OR newsandpublicaffairs))';
+var u='https://archive.org/advancedsearch.php?q='+encodeURIComponent(qq)+'&fl[]=identifier&fl[]=title&fl[]=week&rows=60&page='+((page||0)+1)+'&output=json'+(popular?'&sort[]='+encodeURIComponent('week desc'):'');
+return fetch(u).then(function(r){return r.json();}).then(function(j){
+var docs=((j.response||{}).docs||[]).filter(function(d){return /^[A-Za-z0-9._-]{1,100}$/.test(String(d.identifier||''));}).slice(0,40);
+return Promise.all(docs.map(function(d){
+return fetch('https://archive.org/metadata/'+encodeURIComponent(d.identifier)).then(function(r){return r.json();}).then(function(m){
+var f=archivePick(m&&m.files);if(!f)return null;var n=f.name.toLowerCase();
+var aq={};(m&&m.files||[]).forEach(function(g){if(!g||typeof g.name!=='string'||/_thumb|\//.test(g.name))return;var nn=g.name.toLowerCase();if(!/\.(mp4|webm|ogv)$/.test(nn))return;var h=Math.round(Math.min(Number(g.width)||1e9,Number(g.height)||0));if(!(h>0)||h>9000)return;var c=aq[h];if(!c||(/\.mp4$/.test(nn)&&!/\.mp4$/.test(c.src)))aq[h]={h:h,src:'https://archive.org/download/'+encodeURIComponent(d.identifier)+'/'+g.name.split('/').map(encodeURIComponent).join('/'),mime:/\.webm$/.test(nn)?'video/webm':/\.ogv$/.test(nn)?'video/ogg':'video/mp4'};});
+return{qualities:Object.keys(aq).map(function(k){return aq[k];}).sort(function(a,b){return a.h-b.h;}),id:'a:'+d.identifier,title:String(Array.isArray(d.title)?d.title[0]:(d.title||d.identifier)),thumb:'https://archive.org/services/img/'+d.identifier,src:'https://archive.org/download/'+encodeURIComponent(d.identifier)+'/'+f.name.split('/').map(encodeURIComponent).join('/'),page:'https://archive.org/details/'+d.identifier,license:'Public domain / CC',source:'Internet Archive',mime:/\.webm$/.test(n)?'video/webm':/\.ogv$/.test(n)?'video/ogg':'video/mp4',popularity:d.week||0};
+}).catch(function(){return null;});
+})).then(function(a){return a.filter(Boolean);});
+});
+}
+function browserVideoFallback(q,o){return commonsClient(q||'video',o.page).then(function(a){return a.filter(freeVid);}).catch(function(){return[];}).then(function(a){if(a.length)return a;return archiveClient(q,!!o.popular,o.page).then(function(b){return b.filter(freeVid);}).catch(function(){return[];});});}
+function findVideos(q,o){
+o=o||{};var params={q:q||''};if(o.popular)params.popular='1';if(o.ai)params.ai='1';if(o.page)params.page=String(o.page);
+return xget('videos',params,20000).then(function(j){o.fallback=!!j.fallback;var a=(j.items||[]).filter(freeVid).map(tagPop);return a.length?a:browserVideoFallback(q,o).then(function(b){return b.map(tagPop);});}).catch(function(){return browserVideoFallback(q,o).then(function(a){return a.map(tagPop);});});
+}
+function tagPop(it){if(it.popularity&&!it._p){it._p=1;it.title=it.title+' · 🔥 '+it.popularity+' downloads this week';}return it;}
+function feedItems(page){
+var key='ai_v9_feed2_'+country();var cached=jget(key,null);
+if(page)return xget('feed',{page:String(page)},25000).then(function(j){return(j.items||[]).filter(function(it){return it.type!=='video'||freeVid(it);});});
+var p=xget('feed',{},20000).then(function(j){return(j.items||[]).filter(function(it){return it.type!=='video'||freeVid(it);});});
+return p.catch(function(){
+var d=new Date(Date.now()-86400000),lang='en';
+return fetch('https://api.wikimedia.org/feed/v1/wikipedia/'+lang+'/featured/'+d.getUTCFullYear()+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+String(d.getUTCDate()).padStart(2,'0')).then(function(r){return r.json();}).then(function(j){
+var out=[];(j.mostread&&j.mostread.articles||[]).forEach(function(a){if(/^(Main_Page|Special:|Wikipedia:|Заглавна_страница|Служебна:)/.test(a.title))return;out.push({type:'post',title:a.normalizedtitle||a.title,text:(a.extract||a.description||'').slice(0,300),image:(a.thumbnail&&a.thumbnail.source)||'',link:a.content_urls&&a.content_urls.desktop&&a.content_urls.desktop.page||''});});
+var tp=['nature','space','science','technology','history','music','art','travel','animals','ocean'][Math.floor(Date.now()/300000)%10];
+return fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=40').then(function(r){return r.json();}).then(function(h){return(h.hits||[]).filter(function(x){return x.title;}).map(function(x){return{type:'post',title:x.title,text:'Hacker News - '+(x.points||0)+' points',image:'',link:x.url||('https://news.ycombinator.com/item?id='+x.objectID),t:x.created_at_i};});}).catch(function(){return[];}).then(function(hn){out=hn.concat(out);return commonsClient(tp);}).then(function(v){return out.concat(v.slice(0,5).map(function(x){return{type:'video',title:x.title,text:x.license,image:x.thumb,src:x.src,link:x.page,mime:x.mime,source:x.source,license:x.license,duration:x.duration};}));}).catch(function(){return out;});
+});
+}).then(function(items){if(items.length)jset(key,{t:Date.now(),items:items.slice(0,80)});return items;}).catch(function(e){if(cached)return cached.items;throw e;});
+}
+function renderFeed(box,items,limit,moreFn){
+if(window.AI_FEED_MODE&&window.AI_FEED_MODE.p&&!window.AI_FEED_MODE.v)items=items.filter(function(it){return it.type!=='video';});
+if(kidsOn())items=items.filter(kidOK);box.textContent='';var n=0;box._shown=limit;
+items.forEach(function(it){
+if(n>=limit)return;n++;
+if(it.type==='video'&&it.src){box.appendChild(videoCard({title:it.title,thumb:it.image,src:it.src,page:it.link,license:it.license||it.text,source:it.source||'',mime:it.mime||'video/mp4',duration:it.duration,subs:it.subs,full:it.full,qualities:it.qualities},{next:nextCard}));return;}
+var p=el('div','fd-post');
+if(it.image&&!LOW()){var im=new Image();im.loading='lazy';im.decoding='async';try{im.fetchPriority='low';}catch(e){}im.alt='';im.referrerPolicy='no-referrer';im.src=it.image;p.appendChild(im);}
+var t=el('div');var h4=el('h4','');if(it.isNew)h4.appendChild(el('span','new-tag','NEW'));h4.appendChild(document.createTextNode(it.title));t.appendChild(h4);t.appendChild(el('p','',(it.text||'')+(it.t?' · '+ago(it.t):'')));
+var r=el('div','v9-row');
+if(it.link){var a=el('a','','Open ↗');a.href=safeUrl(it.link);a.target='_blank';a.rel='noopener noreferrer';r.appendChild(a);}
+if(it.image)r.appendChild(mkBtn('⬇️ '+'Image','',function(){dl(it.image,(it.title||'image').replace(/[^\wЀ-ӿ.-]+/g,'_').slice(0,80)||'image');}));
+r.appendChild(mkBtn('⬇️ '+'Text','',function(){saveFile((it.title||'post').replace(/[^\wЀ-ӿ.-]+/g,'_')+'.txt',it.title+'\n\n'+(it.text||'')+'\n\n'+(it.link||''),'text/plain');}));
+t.appendChild(r);p.appendChild(t);box.appendChild(p);
+});
+var moreBtn=null;
+if(box._manual){
+var ctl=el('div','fd-more');ctl.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:16px';
+ctl.appendChild(el('div','v9-note','Showing '+Math.min(n,items.length)+' items. Load more:')).style.width='100%';
+[10,25,50,100].forEach(function(k){var bt=mkBtn('+'+k,'',function(){box._step=k;if(items.length>limit){renderFeed(box,items,limit+k,moreFn);}else if(moreFn){[].forEach.call(ctl.querySelectorAll('button'),function(x){x.disabled=true;});moreFn();}});bt.setAttribute('aria-label','Load '+k+' more');ctl.appendChild(bt);});
+box.appendChild(ctl);
+if(items.length<=limit&&!moreFn)ctl.style.display='none';
+}else if(items.length>limit){moreBtn=mkBtn('Load more','',function(){renderFeed(box,items,limit+24,moreFn);});box.appendChild(moreBtn);}
+else if(moreFn&&!box._manual){moreBtn=mkBtn('Load more','',function(){moreBtn.disabled=true;moreBtn.textContent='Loading…';moreFn();});box.appendChild(moreBtn);}
+if(moreBtn&&window.IntersectionObserver){var io=new IntersectionObserver(function(es){if(es[0].isIntersecting){io.disconnect();moreBtn.click();}},{rootMargin:'1200px'});io.observe(moreBtn);}
+items.slice(limit,limit+10).forEach(function(it){if(it.image&&!LOW()){var i=new Image();i.src=it.image;}});
+}
+/* ===================== v9: videos panel ===================== */
+var TOPICS=['documentary','nature','space','science','technology','history','music','art','travel','animals','ocean','city'];
+function regionName(){try{return new Intl.DisplayNames(['en'],{type:'region'}).of(country());}catch(e){return'';}}
+function openVideos(tab,inline){
+if(!inline&&window.AI_FEED_VIDEOS){window.AI_FEED_VIDEOS(tab);return;}
+var b=$('v9VideosBody');
+if(!b._built){
+b._built=true;
+var tabs=el('div','v9-row');var body=el('div');b.appendChild(tabs);b.appendChild(body);b._tabs=tabs;b._body=body;
+b._show=function(name){
+[].forEach.call(tabs.children,function(t){t.classList.toggle('on',t.dataset.k===name);});body.textContent='';
+if(name==='fyp')vidFyp(body);else if(name==='search')vidSearch(body);else vidPlayer(body);
+};
+[['fyp','🔥 '+'For you'],['search','🔎 '+'Search'],['player','▶ '+'My player']].forEach(function(t){var x=el('button','v9-tab',t[1]);x.type='button';x.dataset.k=t[0];x.onclick=function(){b._show(t[0]);};tabs.appendChild(x);});
+}
+if(!b._pc){b._pc=1;['https://upload.wikimedia.org','https://archive.org'].forEach(function(h){var l=document.createElement('link');l.rel='preconnect';l.href=h;l.crossOrigin='anonymous';document.head.appendChild(l);});}
+b._show(tab||'fyp');if(!inline)openPanel('v9Videos');
+}
+function vidFyp(body){
+var feed=el('div','vd-feed');feed.id='v9Scroller';var note=el('div','v9-note');
+note.textContent='Viral videos — the most downloaded this week from free-licensed archives (Internet Archive, Wikimedia Commons). Videos are downloaded ahead into your device cache so scrolling and seeking stay instant.';
+body.appendChild(note);body.appendChild(feed);
+var topics=TOPICS.slice(),page=0,loading=false,seen={},all=[],dry=0;
+var rbtn=reelBtn(function(){return all;},function(){return more();},function(){var cs=[].slice.call(feed.querySelectorAll('.vd-card')),i;for(i=0;i<cs.length;i++){var vv=cs[i].querySelector('video');if(vv&&!vv.paused)return i;}var top=$('v9VideosBody').getBoundingClientRect().top;for(i=0;i<cs.length;i++){if(cs[i].getBoundingClientRect().bottom>top+80)return i;}return 0;});
+body.insertBefore(rbtn,body.firstChild);
+var sentinel=el('div','v9-spin');
+function more(){
+if(loading||dry>=6)return Promise.resolve();loading=true;
+var rnd=Math.floor(page/topics.length),qs=[topics[page%topics.length],topics[(page+1)%topics.length]];page+=2;
+return Promise.all(qs.map(function(q){return findVideos(q,{popular:true,page:rnd}).catch(function(){return[];});})).then(function(rs){
+var got=0,keep=[];rs.forEach(function(arr){arr.forEach(function(it){if(seen[it.src])return;seen[it.src]=1;got++;keep.push(it);all.push(it);feed.appendChild(videoCard(it,{next:nextCard}));});});if(keep.length&&page<=2)jset('ai_v9_fyp_q_'+country(),keep.slice(0,40));
+loading=false;dry=got?0:dry+1;if(dry>=6){sentinel.className='v9-note';sentinel.textContent='No more free videos right now.';}else if(!got)more();
+[].slice.call(feed.querySelectorAll('.vd-card')).slice(0,Math.max(2,VC.ahead)).forEach(function(c){c._warm&&c._warm();});
+});
+}
+body.appendChild(sentinel);
+var fc=jget('ai_v9_fyp_q_'+country(),null);
+if(fc&&fc.length){fc.forEach(function(it){if(seen[it.src])return;seen[it.src]=1;all.push(it);feed.appendChild(videoCard(it,{next:nextCard}));});}
+more();logAct('video','opened For you');
+if(window.IntersectionObserver){var io=new IntersectionObserver(function(es){if(es[0].isIntersecting)more();},{root:$('v9VideosBody'),rootMargin:'1500px'});io.observe(sentinel);}
+}
+function vidSearch(body){
+var row=el('div','v9-row'),inp=el('input','v9-in');inp.placeholder='Search videos…';inp.setAttribute('aria-label','Video search');
+var out=el('div','vd-feed');
+function go(){var q=inp.value.trim();if(q.length<2)return;out.textContent='';out.appendChild(el('div','v9-spin'));logAct('video','search '+q);
+var items=[],seenS={},pg=0,mb=null;
+function add(a){var n=0;a.forEach(function(it){if(seenS[it.src])return;seenS[it.src]=1;n++;items.push(it);out.insertBefore(videoCard(it,{next:nextCard,front:items.length<4}),mb);});return n;}
+function more(){if(mb){mb.disabled=true;mb.textContent='Loading…';}pg++;findVideos(q,{page:pg}).then(function(a){var n=add(a);if(!n&&pg>=3){mb.remove();out.appendChild(el('div','v9-note','No more results.'));}else{mb.disabled=false;mb.textContent='Load more videos';if(!n)more();}}).catch(function(){mb.disabled=false;mb.textContent='Load more videos';});}
+findVideos(q).then(function(a){out.textContent='';if(!a.length){out.appendChild(el('div','v9-note','Nothing found in the free video archives.'));return;}out.appendChild(reelBtn(function(){return items;},function(){return new Promise(function(res){if(!mb){res();return;}pg++;findVideos(q,{page:pg}).then(function(b){add(b);res();}).catch(function(){res();});});}));mb=mkBtn('Load more videos','',more);out.appendChild(mb);add(a);}).catch(function(){out.textContent='Search failed.';});}
+inp.onkeydown=function(e){if(e.key==='Enter'){go();hideKeyboard();}};row.appendChild(inp);row.appendChild(mkBtn('Search','pri',go));body.appendChild(row);
+body.appendChild(el('div','v9-note','Results come from Wikimedia Commons and the Internet Archive (free licenses). Each card has a download button.'));
+body.appendChild(out);
+}
+function vidPlayer(body){
+var drop=el('div','v9-card');drop.style.cssText+=';text-align:center;border-style:dashed;cursor:pointer';drop.textContent='📂 '+'Choose or drop a video file here';
+var fi=el('input');fi.type='file';fi.accept='video/*';fi.style.display='none';drop.onclick=function(){fi.click();};
+var stage=el('div');body.appendChild(drop);body.appendChild(fi);body.appendChild(stage);var cur=null;
+function load(f){if(!f||!/^video\//.test(f.type)){toast('Choose a video file','#ff4444');return;}
+if(cur)URL.revokeObjectURL(cur);cur=URL.createObjectURL(f);stage.textContent='';logAct('player',f.name);
+var wrap=el('div','vd-card');var v=document.createElement('video');v.src=cur;v.playsInline=true;v.autoplay=true;wrap.appendChild(v);wrap.appendChild(el('div','vd-ttl',f.name));wrap.appendChild(controls(v,{speed:true}));stage.appendChild(wrap);wrap.tabIndex=0;
+wrap.onkeydown=function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key===' '){e.preventDefault();v.paused?v.play():v.pause();}else if(e.key==='ArrowLeft')v.currentTime-=5;else if(e.key==='ArrowRight')v.currentTime+=5;else if(e.key==='f')wrap.requestFullscreen&&wrap.requestFullscreen();};}
+fi.onchange=function(){load(fi.files[0]);};
+drop.ondragover=function(e){e.preventDefault();};drop.ondrop=function(e){e.preventDefault();load(e.dataTransfer.files[0]);};
+if(V9.pending){var pi=V9.pending;V9.pending=null;var w0=el('div','vd-card');w0.appendChild(videoCard(pi,{front:true}));stage.appendChild(w0);}
+body.appendChild(el('div','v9-note','Space = play/pause · ← → = 5 s · F = full screen. The file stays on your device.'));
+}
+
+/* ===================== v29: full-screen scrolling reel ===================== */
+/* auto-hide helper: adds .idle to el after ms without touch / mouse / key / scroll */
+function isLand(){try{return window.matchMedia('(orientation:landscape)').matches;}catch(e){return false;}}
+function idleHide(elm,ms,hold,always){
+var t=0,mq=null;
+function wake(){elm.classList.remove('idle');clearTimeout(t);if(!always&&!isLand())return;t=setTimeout(function(){if(hold&&hold())return wake();elm.classList.add('idle');},ms);}
+function down(){elm._wasIdle=elm.classList.contains('idle');wake();}
+elm.addEventListener('pointerdown',down,{passive:true,capture:true});
+['pointermove','touchstart','wheel','scroll'].forEach(function(n){elm.addEventListener(n,wake,{passive:true,capture:true});});
+document.addEventListener('keydown',wake,true);window.addEventListener('resize',wake);window.addEventListener('orientationchange',wake);
+try{mq=window.matchMedia('(orientation:landscape)');(mq.addEventListener?mq.addEventListener('change',wake):mq.addListener(wake));}catch(e){}
+wake();
+return function(){clearTimeout(t);document.removeEventListener('keydown',wake,true);window.removeEventListener('resize',wake);window.removeEventListener('orientationchange',wake);try{if(mq)(mq.removeEventListener?mq.removeEventListener('change',wake):mq.removeListener(wake));}catch(e){}elm.classList.remove('idle');};
+}
+function openReel(items,start,loadMore){
+if($('v28Reel')||!items||!items.length)return;
+[].forEach.call(document.querySelectorAll('.vd-card video'),function(v){v.pause();});
+var R=el('div','');R.id='v28Reel';R.setAttribute('role','dialog');R.setAttribute('aria-modal','true');R.setAttribute('aria-label','Full screen videos');
+var slides=[],cur=-1,muted=store.get('ai_reel_mute')==='1',loadingMore=false,fsOn=false,shut=false,rafT=0;
+function ui(cls){var d=el('div','rl-ui '+cls);return d;}
+function rb(txt,label,fn){var b=el('button','rl-btn',txt);b.type='button';b.setAttribute('aria-label',label);b.title=label;b.onclick=function(e){e.stopPropagation();fn();};return b;}
+var topUi=ui('rl-top'),rightUi=ui('rl-right'),cnt=el('div','rl-cnt','');
+function setCnt(){var s=slides[cur],r=s&&s.it._vqd?' · '+VQN[s.it._vqd].split(' ')[0]:'';cnt.textContent=(cur+1)+' / '+slides.length+r;}
+var mb=rb(muted?'🔇':'🔊','Sound on / off',function(){muted=!muted;store.set('ai_reel_mute',muted?'1':'0');mb.textContent=muted?'🔇':'🔊';slides.forEach(function(s){s.v.muted=muted;});});
+topUi.appendChild(rb('✕','Close',close));
+rightUi.appendChild(mb);
+var qb=rb('⚙️','Video quality',function(){openQ();});qb.className+=' rl-q';rightUi.appendChild(qb);
+rightUi.appendChild(rb('▲','Previous video',function(){go(-1);}));
+rightUi.appendChild(rb('▼','Next video',function(){go(1);}));
+R.appendChild(topUi);R.appendChild(rightUi);R.appendChild(cnt);
+function qswap(s){
+var v=s.v,t=v.currentTime,was=!v.paused;if(s.blobU){URL.revokeObjectURL(s.blobU);s.blobU=null;}
+s.d.classList.add('loading');s.tried=0;v.src=s.it.src;v.preload='auto';
+v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t;}catch(e){}if(was)v.play().catch(function(){});});
+}
+function closeQ(){var m=R.querySelector('.rl-menu');if(m)m.remove();}
+function openQ(){
+if(R.querySelector('.rl-menu')){closeQ();return;}
+var s=slides[cur];if(!s)return;var a=vqList(s.it),have={},curB=s.it._vqb||0,pref=String(vqPref());
+a.forEach(function(q){have[q.b]=1;});
+var m=el('div','rl-menu');m.addEventListener('click',function(e){e.stopPropagation();});m.addEventListener('pointerdown',function(e){e.stopPropagation();});
+m.appendChild(el('b','','Video quality'));
+if(a.length<2)m.appendChild(el('div','v9-note','This video is only available in the quality it is playing now.'));
+function item(label,val,ok){
+var b=el('button','rl-qi',label+(ok?'':' — not available'));b.type='button';b.disabled=!ok;
+if(String(val)===pref)b.className+=' on';
+b.onclick=function(e){e.stopPropagation();vqSet(val);var q=vqApply(s.it,val==='best'?'best':+val);closeQ();if(q&&s.on)qswap(s);};
+m.appendChild(b);
+}
+item('Best'+(a.length?' ('+VQN[a[a.length-1].b].split(' ')[0]+')':''),'best',a.length>0);
+VQL.forEach(function(L){item(VQN[L]+(L===(s.it._vqd||curB)?' ✓ playing':''),L,!!have[L]);});
+var x=rb('Close','Close menu',closeQ);x.className+=' rl-qx';x.textContent='Close';m.appendChild(x);
+R.appendChild(m);
+}
+function go(d){var n=cur+d;if(n<0||n>=slides.length)return;R.scrollTo({top:n*R.clientHeight,behavior:'smooth'});}
+function play(s){
+var p=s.v.play();
+if(p&&p.catch)p.catch(function(){
+if(!s.v.muted){s.v.muted=true;muted=true;mb.textContent='🔇';s.v.play().catch(function(){flash(s,'▶');});toast('Tap 🔊 for sound','#ffaa00');}else flash(s,'▶');
+});
+}
+function flash(s,t){s.fl.textContent=t;s.fl.classList.remove('show');void s.fl.offsetWidth;s.fl.classList.add('show');}
+function attach(s){
+if(s.on)return;s.on=true;s.d.classList.add('loading');vqApply(s.it);
+vcURL(s.it.src).then(function(u){
+if(!s.on){if(u)URL.revokeObjectURL(u);return;}
+if(u){s.blobU=u;s.v.src=u;}
+else if(LOW()&&!s.forced){s.d.classList.remove('loading');var lb=mkBtn('⬇️ Load video (uses data)','pri',function(){s.forced=true;lb.remove();s.on=false;attach(s);});lb.className+=' rl-fail';s.d.appendChild(lb);return;}
+else{s.v.src=s.it.src;vcWarm(s.it.src,null,slides[cur]===s,s.it.mime);}
+s.v.preload='auto';
+if(slides[cur]===s)play(s);
+});
+}
+function detach(s){
+if(!s.on)return;s.on=false;s.d.classList.remove('loading');
+s.v.pause();s.v.removeAttribute('src');s.v.preload='none';try{s.v.load();}catch(e){}
+if(s.blobU){URL.revokeObjectURL(s.blobU);s.blobU=null;}
+}
+function fail(s){
+s.d.classList.remove('loading');if(s.failEl)return;
+var f=el('div','rl-fail','This video cannot be played.');f.appendChild(document.createElement('br'));
+f.appendChild(mkBtn('↻ Retry','',function(){f.remove();s.failEl=null;s.tried=0;detach(s);attach(s);}));
+s.failEl=f;s.d.appendChild(f);
+var k=slides.indexOf(s);if(k===cur)setTimeout(function(){if(!shut&&slides[cur]===s&&s.failEl)go(1);},2500);
+}
+function mk(it){
+var s={it:it,on:false,blobU:null,tried:0,forced:false,failEl:null};
+var d=el('div','rl-s'),v=document.createElement('video');
+v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');v.preload='none';v.muted=muted;v.setAttribute('disableremoteplayback','');
+if(it.thumb&&!LOW())v.poster=it.thumb;
+var spin=el('div','v9-spin'),fl=el('div','rl-flash','▶'),info=el('div','rl-info');
+info.appendChild(el('b','',it.title||'Video'));
+var meta=el('span','',[it.source,it.license].filter(Boolean).join(' · ')+' ');
+if(it.page){var a=el('a','','Original ↗');a.href=safeUrl(it.page);a.target='_blank';a.rel='noopener noreferrer';meta.appendChild(a);}
+info.appendChild(meta);
+var bar=el('input','rl-bar');bar.type='range';bar.min='0';bar.max='1000';bar.value='0';bar.setAttribute('aria-label','Seek');
+var drag=false;bar.oninput=function(){drag=true;if(v.duration)v.currentTime=v.duration*bar.value/1000;};bar.onchange=function(){drag=false;};
+bar.addEventListener('click',function(e){e.stopPropagation();});
+var lastU=0;v.addEventListener('timeupdate',function(){var n=performance.now();if(n-lastU<250)return;lastU=n;if(!drag&&v.duration)bar.value=Math.round(1000*v.currentTime/v.duration);});
+['waiting','stalled','seeking'].forEach(function(n){v.addEventListener(n,function(){if(s.on&&(v.src||v.currentSrc))d.classList.add('loading');});});
+['canplay','playing','loadeddata','seeked','pause'].forEach(function(n){v.addEventListener(n,function(){d.classList.remove('loading');});});
+['loadedmetadata','resize'].forEach(function(n){v.addEventListener(n,function(){vqSeen(it,v);if(slides[cur]===s)setCnt();});});
+v.addEventListener('playing',function(){logAct('video','reel '+it.title);});
+v.addEventListener('ended',function(){if(slides[cur]===s)go(1);});
+v.addEventListener('error',function(){
+if(!s.on||!v.getAttribute('src'))return;var c=v.getAttribute('src');
+if(s.blobU&&c===s.blobU&&s.tried<1){s.tried=1;try{caches.open(VC.name).then(function(x){x.delete(it.src);});}catch(e){}delete VC.idx[it.src];VC.state[it.src]='fail';vcSave();v.removeAttribute('src');try{v.load();}catch(e){}v.src=it.src;return;}
+if(vqStepDown(it)){v.removeAttribute('src');try{v.load();}catch(e){}v.src=it.src;return;}
+if(it.full&&it.full!==it.src&&c!==it.full&&s.tried<2){s.tried=2;v.removeAttribute('src');try{v.load();}catch(e){}v.src=it.full;return;}
+fail(s);
+});
+d.addEventListener('click',function(e){if(R._wasIdle){R._wasIdle=false;return;}if(R.querySelector('.rl-menu')){closeQ();return;}if(e.target.closest&&e.target.closest('button,a,input'))return;if(v.paused){play(s);flash(s,'▶');}else{v.pause();flash(s,'⏸');}});
+d.appendChild(v);d.appendChild(spin);d.appendChild(fl);d.appendChild(info);d.appendChild(bar);
+s.d=d;s.v=v;s.fl=fl;return s;
+}
+function sync(){
+while(slides.length<items.length){var s=mk(items[slides.length]);slides.push(s);R.appendChild(s.d);}
+setCnt();
+}
+function more(){
+if(!loadMore||loadingMore)return;loadingMore=true;
+Promise.resolve().then(loadMore).catch(function(){}).then(function(){loadingMore=false;if(!shut)sync();});
+}
+function setActive(i){
+if(i===cur||i<0||i>=slides.length)return;
+if(slides[cur])slides[cur].v.pause();
+cur=i;
+slides.forEach(function(s,k){if(Math.abs(k-i)<=1)attach(s);else detach(s);});
+var s=slides[i];if(s.on&&s.v.getAttribute('src'))play(s);
+for(var k=1;k<=Math.max(2,VC.ahead);k++){var n=slides[i+k];if(n&&!LOW())vcWarm(n.it.src,null,false,n.it.mime);}
+setCnt();
+if(i>=slides.length-3)more();
+}
+R.addEventListener('scroll',function(){if(rafT)return;rafT=requestAnimationFrame(function(){rafT=0;if(shut)return;setActive(Math.round(R.scrollTop/Math.max(1,R.clientHeight)));});},{passive:true});
+function key(e){
+if(shut)return;var k=e.key;
+if(k==='Escape'){e.preventDefault();e.stopPropagation();if(R.querySelector('.rl-menu'))closeQ();else close();}
+else if(k==='ArrowDown'||k==='PageDown'||k==='j'){e.preventDefault();go(1);}
+else if(k==='ArrowUp'||k==='PageUp'||k==='k'){e.preventDefault();go(-1);}
+else if(k===' '){e.preventDefault();var s=slides[cur];if(s)s.v.paused?play(s):s.v.pause();}
+else if(k==='m'||k==='M'){mb.click();}
+else if(k==='ArrowRight'){var t=slides[cur];if(t)t.v.currentTime+=5;}
+else if(k==='ArrowLeft'){var u=slides[cur];if(u)u.v.currentTime-=5;}
+}
+function onFs(){var f=document.fullscreenElement||document.webkitFullscreenElement;if(f===R)fsOn=true;else if(fsOn&&!shut){fsOn=false;close();}}
+function close(){
+if(shut)return;shut=true;closeQ();
+document.removeEventListener('keydown',key,true);document.removeEventListener('fullscreenchange',onFs);document.removeEventListener('webkitfullscreenchange',onFs);
+slides.forEach(function(s){s.on=true;detach(s);});
+if(stopIdle)stopIdle();R.remove();document.documentElement.style.overflow=V9.stack.length?'hidden':'';
+var f=document.fullscreenElement||document.webkitFullscreenElement;if(f===R){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}}
+}
+document.addEventListener('keydown',key,true);document.addEventListener('fullscreenchange',onFs);document.addEventListener('webkitfullscreenchange',onFs);
+document.body.appendChild(R);document.documentElement.style.overflow='hidden';
+var stopIdle=idleHide(R,3000,function(){return R.querySelector('.rl-bar:active')||R.querySelector('.rl-bar:focus-visible');});
+sync();
+var st=Math.max(0,Math.min(start||0,slides.length-1));
+R.scrollTop=st*R.clientHeight;setActive(st);
+if(!store.get('ai_reel_hint')){store.set('ai_reel_hint','1');R.appendChild(el('div','rl-hint','Swipe up / down for the next video · tap to pause'));}
+try{var rq=R.requestFullscreen||R.webkitRequestFullscreen;if(rq){var pr=rq.call(R);if(pr&&pr.catch)pr.catch(function(){});}}catch(e){}
+logAct('video','reel opened');
+}
+function reelBtn(getItems,loadMore,getStart){
+var b=mkBtn('🎞️ Full screen scroll','pri',function(){var it=getItems();if(!it.length){toast('No videos loaded yet','#ffaa00');return;}openReel(it,getStart?getStart():0,loadMore);});
+b.className+=' rl-start';return b;
+}
+
+/* ===================== v9: AI Chat ===================== */
+/* ---- local conversation engine (used when no language model is connected) ---- */
+function calcExpr(src){
+var i=0;function ws(){}
+function num(){var m=/^\d+(\.\d+)?|^\.\d+/.exec(src.slice(i));if(!m)throw 0;i+=m[0].length;return parseFloat(m[0]);}
+function atom(){if(src[i]==='('){i++;var v=add();if(src[i++]!==')')throw 0;return v;}if(src[i]==='-'){i++;return -atom();}if(src[i]==='+'){i++;return atom();}return num();}
+function pow(){var b=atom();if(src.slice(i,i+2)==='**'){i+=2;return Math.pow(b,pow());}return b;}
+function mul(){var v=pow();while(i<src.length&&/[*/%]/.test(src[i])&&src.slice(i,i+2)!=='**'){var o=src[i++];var r=pow();v=o==='*'?v*r:o==='/'?v/r:v%r;}return v;}
+function add(){var v=mul();while(i<src.length&&/[-+]/.test(src[i])){var o=src[i++];var r=mul();v=o==='+'?v+r:v-r;}return v;}
+var out=add();if(i!==src.length)throw 0;return out;
+}
+function localReply(q,hist){
+var t=q.trim(),l=t.toLowerCase().replace(/[!?.,]+$/,'').trim(),bg=/[Ѐ-ӿ]/.test(t);
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+if(/^(hi|hello|hey|yo|hola|good (morning|afternoon|evening)|здрасти|здравей|здравейте|привет|добър ден|добро утро|добър вечер|чао)$/.test(l))
+return bg?pick(['Здравей! Как мога да помогна днес?','Здравей! С какво да помогна?']):pick(['Hello! How can I help you today?','Hi there! What would you like to talk about?','Hey! What can I do for you?']);
+if(/^(how are you|how'?s it going|what'?s up|how do you do|как си|как сте|какво правиш|как върви)( today)?$/.test(l))
+return bg?'Добре съм, благодаря! А ти как си? Какво да потърсим или обсъдим?':'I\'m doing well, thanks for asking! How are you? What shall we look into?';
+if(/^(thanks|thank you|thx|ty|благодаря|мерси|благодаря ти)( a lot| very much| you)?$/.test(l))return bg?'Моля! Ако имаш друг въпрос, питай.':'You\'re welcome! Ask me anything else any time.';
+if(/^(bye|goodbye|see you|good night|чао|довиждане|лека нощ)$/.test(l))return bg?'Довиждане! Връщай се когато искаш.':'Goodbye! Come back any time.';
+if(/(who are you|what are you|your name|кой си|какъв си|как се казваш)/.test(l))
+return bg?'Аз съм асистентът на AI INFORMATION. Не съм свързан с ChatGPT или OpenAI. Мога да разговарям, да смятам, да търся в интернет и да намирам видеа.':'I\'m the assistant of AI INFORMATION. I have no connection to ChatGPT or OpenAI. I can chat, do maths, search the web for facts and find videos.';
+if(/(are you (chat)?gpt|are you openai|chatgpt ли си)/.test(l))return bg?'Не, не съм ChatGPT и не използвам OpenAI API.':'No, I\'m not ChatGPT and I don\'t use any OpenAI API.';
+if(/^(help|what can you do|what do you do|помощ|какво можеш|какво умееш)$/.test(l))
+return bg?'Мога да разговарям, да смятам (напр. 12*7+3), да ти кажа часа и датата, да търся факти в Wikipedia/новини и да намирам видеа ("намери видео за вулкани"). За по-умни отговори сайтът трябва да е свързан с езиков модел (Workers AI).':'I can chat, calculate (try 12*7+3), tell the time and date, search Wikipedia/news for facts, and find videos ("find a video about volcanoes"). For smarter, free-form answers the site must be connected to a language model (Cloudflare Workers AI).';
+if(/(what('?s| is) the (time|date)|what time is it|what day is it|колко е часът|коя дата е|какъв ден е|колко е часа)/.test(l)){
+var d=new Date();return (bg?'Сега е ':'It is ')+d.toLocaleString(bg?'bg-BG':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})+'.';}
+if(/^(tell me a joke|joke|another joke|кажи (ми )?виц|виц)$/.test(l))
+return bg?pick(['Защо програмистите бъркат Хелоуин с Коледа? Защото 31 октомври = 25 декември (Oct 31 = Dec 25).','Опитах да хвана облак… но получих 404.']):pick(['Why do programmers mix up Halloween and Christmas? Because Oct 31 = Dec 25.','I tried to catch some fog earlier. I mist.','There are 10 kinds of people: those who understand binary and those who don\'t.']);
+var m=/^(?:what is|what's|calculate|calc|solve|колко е|изчисли|смятай)?\s*([-+*/%^().,\d\s×x÷:]+)\s*=?\s*\??$/i.exec(l);
+if(m&&/\d/.test(m[1])&&/[-+*/%^×x÷:]/.test(m[1].replace(/^\s*-/,''))){
+var ex=m[1].replace(/×|x/gi,'*').replace(/÷|:/g,'/').replace(/\^/g,'**').replace(/,/g,'.').replace(/\s+/g,'');
+if(/^[-+*/%().\d]+$/.test(ex)&&ex.length<80){try{var v=calcExpr(ex);if(typeof v==='number'&&isFinite(v))return ex.replace(/\*\*/g,'^')+' = '+(Math.round(v*1e10)/1e10);}catch(e){}}
+}
+return null;
+}
+
+/* ===================== v9: multi-source scans ===================== */
+function engRows(box,list){
+list.forEach(function(e){var r=el('div','eng '+e.status);var l=el('div');l.appendChild(el('b','',e.name));l.appendChild(el('small','',e.detail||''));r.appendChild(l);r.appendChild(el('span','st',({flagged:'🚨 flagged',clean:'✅ clean',unknown:'❔ no data',error:'⚠️ error'})[e.status]||e.status));box.appendChild(r);});
+}
+function multiScan(raw){
+var res=$('scamResult');var w=el('div','rep-ai');w.appendChild(el('b','','🔬 Multi-source scan'));var st=el('div','v9-note','Asking several independent sources…');w.appendChild(st);res.appendChild(w);
+var u=String(raw).trim();if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(u))u='https://'+u;
+function localScan(why){
+var host;try{host=new URL(u).hostname;}catch(e){st.textContent='This does not look like a link.';return;}
+st.textContent='Asking the DNS safety filters from your browser…';
+function ask(url){return fetch(url,{method:'POST',headers:{'Content-Type':'application/dns-message',Accept:'application/dns-message'},body:dnsBuild(host,1),credentials:'omit',referrerPolicy:'no-referrer'}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}).then(function(b){return dnsParse(new Uint8Array(b));});}
+var E=[['Cloudflare Security DNS','https://security.cloudflare-dns.com/dns-query'],['Cloudflare Family DNS','https://family.cloudflare-dns.com/dns-query']];
+Promise.all([ask('https://cloudflare-dns.com/dns-query').catch(function(){return null;})].concat(E.map(function(x){return ask(x[1]).catch(function(){return null;});}))).then(function(r){
+st.remove();var base=r[0],ok=base&&base.rcode===0&&base.answers.some(function(x){return x.type===1&&x.v!=='0.0.0.0';});
+var eng=[],bad=0,good=0;
+E.forEach(function(x,i){var q=r[i+1];if(!q||!base){eng.push({name:x[0],status:'unknown',detail:'resolver unreachable'});return;}
+var blocked=ok&&(q.rcode===3||(q.answers.length&&q.answers.every(function(a){return a.v==='0.0.0.0'||a.v==='::'||/^0(:0)*$/.test(a.v);}))||(q.rcode===0&&!q.answers.length));
+if(blocked){bad++;eng.push({name:x[0],status:'flagged',detail:i?'blocked by the family filter (malware, phishing or adult content)':'blocked as malware/phishing'});}else{good++;eng.push({name:x[0],status:'clean',detail:'not blocked'});}});
+var v=bad>=2?['🚨','Malicious – multiple sources flag it','high']:bad===1?['⚠️','Suspicious – one source flags it','medium']:good?['✅','No source flags it','low']:['❔','Not enough data for a verdict','unknown'];
+w.appendChild(el('div','rep-badge lvl-'+v[2],v[0]+' '+v[1]));engRows(w,eng);
+w.appendChild(el('div','v9-note','These two filters were asked directly from your browser (the domain name is sent to Cloudflare’s DNS). This is a quick hint, not a guarantee. The page itself is never opened.'));
+logAct('scam','multi-source local '+v[2]);});}
+if(!API.ok){localScan();return;}
+xpost('scan-url',{url:u},30000).then(function(j){
+if(j.verdict==='unknown'&&(j.engines||[]).every(function(e){return e.status==='unknown'||e.status==='error';})){localScan();return;}
+st.remove();var vm={malicious:['🚨','Malicious – multiple sources flag it'],suspicious:['⚠️','Suspicious – one source flags it'],clean:['✅','No source flags it'],unknown:['❔','Not enough data for a verdict']}[j.verdict]||['❔','',''];
+var badge=el('div','rep-badge lvl-'+(j.verdict==='malicious'?'high':j.verdict==='suspicious'?'medium':j.verdict==='clean'?'low':'unknown'),vm[0]+' '+vm[1]);w.appendChild(badge);
+engRows(w,j.engines||[]);(function(){var d=j.domainAgeDays,t;if(d==null)t='Domain age: not available (this domain ending has no public registry data).';else{var y=Math.floor(d/365),m=Math.floor((d%365)/30);t='Domain '+(j.domainName||'')+' was registered on '+j.domainCreated+' ('+(y?y+' y ':'')+(y||m?m+' mo':d+' days')+(d<30?', very new: a common sign of scam sites':'')+').';}w.appendChild(el('div','v9-note',t));})();
+if(j.note)w.appendChild(el('div','v9-note',j.note));
+w.appendChild(el('div','v9-note','Sources: Cloudflare DNS filters, URLhaus, domain registry age (+ VirusTotal / Google Safe Browsing when keys are set on the server). The page itself is never opened. These lookups are facts from other services; the risk estimate above comes only from the AI.'));
+logAct('scam','multi-source '+j.verdict);
+}).catch(function(e){localScan();});
+}
+function hashHex(alg,buf){return crypto.subtle.digest(alg,buf).then(function(h){return Array.from(new Uint8Array(h),function(b){return b.toString(16).padStart(2,'0');}).join('');});}
+function fileScan(file){
+var host=$('fakeReverseSearch');if(!host)return;
+setTimeout(function(){
+var w=el('div','rep-ai');w.style.width='100%';w.appendChild(el('b','','🔬 Sources scan'));host.appendChild(w);
+var st=el('div','v9-note','Computing the file fingerprint…');w.appendChild(st);
+if(file.size>150*1024*1024){st.textContent='File is too large to fingerprint in the browser (limit 150 MB).';linkRow(w);return;}
+file.arrayBuffer().then(function(buf){return Promise.all([hashHex('SHA-256',buf),hashHex('SHA-1',buf)]);}).then(function(h){
+st.textContent='SHA-256: '+h[0].slice(0,16)+'…  ·  SHA-1: '+h[1].slice(0,12)+'…';var list=el('div');w.appendChild(list);
+fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&list=allimages&aisha1='+h[1]+'&aiprop=url').then(function(r){return r.json();}).then(function(j){
+var m=(j.query&&j.query.allimages)||[];engRows(list,[m.length?{name:'Wikimedia Commons',status:'clean',detail:'This exact file is published on Commons: '+m[0].descriptionurl}:{name:'Wikimedia Commons',status:'unknown',detail:'This exact file is not on Commons (does not prove anything either way).'}]);
+if(m.length){var a=el('a','',m[0].descriptionurl);a.href=safeUrl(m[0].descriptionurl);a.target='_blank';a.rel='noopener noreferrer';list.appendChild(a);}
+}).catch(function(){engRows(list,[{name:'Wikimedia Commons',status:'error',detail:'not reachable from this viewer'}]);});
+if(API.ok)xget('hash',{sha256:h[0]},15000).then(function(j){engRows(list,j.engines||[]);}).catch(function(){});
+logAct('fake',{name:file.name,type:'sources scan',size:file.size,result:'sha256 '+h[0]});
+linkRow(w);
+}).catch(function(){st.textContent='Could not read the file.';});
+},300);
+function linkRow(w){
+w.appendChild(el('div','v9-note','Reverse-image / forensic services (open one and drop the same file there – browsers cannot upload it for you):'));
+var r=el('div','v9-row');[['Google Lens','https://lens.google.com/'],['TinEye','https://tineye.com/'],['Bing Visual Search','https://www.bing.com/visualsearch'],['Yandex Images','https://yandex.com/images/'],['FotoForensics','https://fotoforensics.com/'],['Forensically','https://29a.ch/photo-forensics/'],['InVID (video)','https://www.invid-project.eu/tools-and-services/invid-verification-plugin/']].forEach(function(l){var a=el('a','v9-btn',l[0]);a.href=l[1];a.target='_blank';a.rel='noopener noreferrer';a.style.textDecoration='none';r.appendChild(a);});w.appendChild(r);
+}
+}
+/* ---- quote context search ---- */
+function initQuoteContext(){
+var body=mkPanel('v9Quote','🔎 Find quote context');
+var intro=el('div','v9-note','Paste any word, short phrase or sentence to search Wikipedia, GDELT news and Hacker News directly. Shorter text can return less relevant results; inspect each source and its surrounding passage. This search can miss sources and does not establish whether a claim is true.');body.appendChild(intro);
+var input=el('textarea','');input.id='v9QuoteInput';input.setAttribute('aria-label','Quote to search for');input.maxLength=700;input.placeholder='Paste any text (up to 700 characters)…';input.style.cssText='width:100%;min-height:125px;box-sizing:border-box;margin:10px 0;padding:12px;border:1px solid var(--border2);border-radius:10px;background:var(--bg2);color:var(--text);font:inherit;resize:vertical';body.appendChild(input);
+var run=mkBtn('🔎 Find sources containing this quote','pri',function(){runQuoteSearch();});run.id='v9QuoteRun';body.appendChild(run);
+var status=el('div','v9-note','Exact or partial wording matches are checked against source text when available. Open each original source for fuller context.');status.id='v9QuoteStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');body.appendChild(status);
+var out=el('div','');out.id='v9QuoteResults';body.appendChild(out);
+body.appendChild(aiBlock('🤖 Find the context with AI','quote',function(){var t=input.value.trim();if(t.length<3){input.focus();return 'Paste a quote above first.';}return{text:t.slice(0,700)};},{hint:'AI mode: the site searches the internet for the quote and an AI model tells you where it most likely comes from and whether it may have been changed. It can miss the real source.'}));
+input.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')runQuoteSearch();});
+}
+var quoteRunId=0;
+function quoteTokens(s){var a=[],re=/[\p{L}\p{N}]+/gu,m;while((m=re.exec(String(s||''))))a.push({v:m[0].toLocaleLowerCase(),s:m.index,e:re.lastIndex});return a;}
+function quoteMatch(quote,text){var q=quoteTokens(quote),t=quoteTokens(text);if(q.length<1||!t.length)return null;var best=null;
+for(var i=0;i<q.length;i++){for(var j=0;j<t.length;j++){var n=0;while(i+n<q.length&&j+n<t.length&&q[i+n].v===t[j+n].v)n++;if(n>=(q.length<7?q.length:5)&&(!best||n>best.n))best={n:n,qs:i,te:j};}}
+if(!best)return null;var full=best.n===q.length;return{start:t[best.te].s,end:t[best.te+best.n-1].e,matched:q.slice(best.qs,best.qs+best.n).map(function(x){return x.v;}).join(' '),full:full};
+}
+function quoteAddExcerpt(node,text,match){var start=Math.max(0,match.start-360),end=Math.min(text.length,match.end+360);if(start>0)node.appendChild(document.createTextNode('…'));node.appendChild(document.createTextNode(text.slice(start,match.start)));var mark=el('mark','',text.slice(match.start,match.end));node.appendChild(mark);node.appendChild(document.createTextNode(text.slice(match.end,end)));if(end<text.length)node.appendChild(document.createTextNode('…'));}
+function quoteStrip(s){var raw=String(s||'');try{return new DOMParser().parseFromString(raw,'text/html').body.textContent||'';}catch(e){return raw.replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'\"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');}}
+function quoteDirectSearch(q){
+var phrase=q.length>180?q.slice(0,180):q,quoted='"'+phrase.replace(/["\\]/g,' ')+'"',jobs=[];
+function json(url,timeout){return apiFetch(url,{timeout:timeout||15000,credentials:'omit',referrerPolicy:'no-referrer'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+var lang=/[\u0400-\u04FF]/.test(q)?'bg':'en';
+jobs.push(json('https://'+lang+'.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srlimit=6&srsearch='+encodeURIComponent(quoted)).then(function(j){return((j.query||{}).search||[]).map(function(x){var title=String(x.title||'');return{title:title,url:'https://'+lang+'.wikipedia.org/wiki/'+encodeURIComponent(title.replace(/ /g,'_')),source:'Wikipedia ('+lang.toUpperCase()+')',text:quoteStrip(x.snippet||''),kind:'wiki'};});}));
+jobs.push(json('https://api.gdeltproject.org/api/v2/doc/doc?mode=artlist&format=json&maxrecords=8&sort=datedesc&query='+encodeURIComponent(quoted),6500).then(function(j){return(j.articles||[]).map(function(x){return{title:x.title||x.url,url:x.url,source:x.domain||'GDELT news',text:'',kind:'web'};});}));
+jobs.push(json('https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=8&query='+encodeURIComponent(phrase)).then(function(j){return(j.hits||[]).filter(function(x){return x.title;}).map(function(x){return{title:x.title,url:x.url||('https://news.ycombinator.com/item?id='+x.objectID),source:'Hacker News',text:quoteStrip(x.story_text||''),kind:'hn'};});}));
+return Promise.allSettled(jobs).then(function(results){var rows=[],seen={},ok=0,labels=['Wikipedia','GDELT','Hacker News'],failures=[];results.forEach(function(x,i){if(x.status!=='fulfilled'){var e=x.reason||{},detail=e.name==='AbortError'?'timed out':String(e.message||e.name||'request failed').slice(0,100);failures.push(labels[i]+': '+detail);return;}ok++;(Array.isArray(x.value)?x.value:[]).forEach(function(r){var u=safeUrl(r.url);if(u&&u!=='#'&&!seen[u]){seen[u]=1;r.url=u;rows.push(r);}});});if(!ok)throw new Error('All quote sources failed: '+failures.join('; ')+'.');if(!rows.length)throw new Error('The sources responded, but none returned a result for that wording. Try a shorter or more distinctive phrase.');return rows.slice(0,10);});
+}
+function quoteDirectArticle(r){
+if(r.kind==='wiki'){
+var m=/^https:\/\/([a-z-]+)\.wikipedia\.org\/wiki\//i.exec(r.url),lang=m?m[1]:'en';
+return apiFetch('https://'+lang+'.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&format=json&origin=*&titles='+encodeURIComponent(r.title),{timeout:8500,credentials:'omit',referrerPolicy:'no-referrer'}).then(function(res){if(!res.ok)throw new Error('Wikipedia article fetch failed');return res.json();}).then(function(j){var pages=j.query&&j.query.pages,k=pages&&Object.keys(pages)[0],pg=pages&&pages[k];if(!pg||!pg.extract)throw new Error('No readable article text');return{title:pg.title+' · Wikipedia',text:pg.extract.slice(0,30000),via:'Wikipedia API'};});
+}
+if(r.kind==='hn'&&r.text&&r.text.length>80)return Promise.resolve({title:r.title,text:r.text,via:'Hacker News story text'});
+return apiFetch(r.url,{timeout:7000,credentials:'omit',referrerPolicy:'no-referrer'}).then(function(res){if(!res.ok)throw new Error('The source did not allow a browser read');return res.text();}).then(function(html){var doc=new DOMParser().parseFromString(html,'text/html');doc.querySelectorAll('script,style,noscript,svg,nav,header,footer,aside,form,iframe').forEach(function(n){n.remove();});var txt=(doc.querySelector('article')||doc.querySelector('main')||doc.body).textContent.replace(/\s+/g,' ').trim().slice(0,30000);if(txt.length<120)throw new Error('No readable article text');return{title:(doc.querySelector('title')||{}).textContent||r.title,text:txt,via:'source page'};});
+}
+function runQuoteSearch(){var inp=$('v9QuoteInput'),out=$('v9QuoteResults'),status=$('v9QuoteStatus'),btn=$('v9QuoteRun');if(!inp||!out||!status)return;var quote=inp.value.trim(),qt=quoteTokens(quote),rid=++quoteRunId;hideKeyboard();status.scrollIntoView({block:'nearest',behavior:'smooth'});out.textContent='';
+if(qt.length<1){status.textContent='Paste at least one word to start searching.';return;}
+var defaultLabel='🔎 Find sources containing this quote';status.textContent='Searching Wikipedia, GDELT and Hacker News directly…';if(btn){btn.disabled=true;btn.textContent='Searching…';}
+quoteDirectSearch(quote).then(function(rs){var next=0,answers=[],done=0;status.textContent='Found '+rs.length+' sources. Reading article text…';function worker(){if(next>=rs.length)return Promise.resolve();var r=rs[next++];return quoteDirectArticle(r).then(function(a){var m=quoteMatch(quote,a.text||'');answers.push({r:r,a:a,m:m});}).catch(function(){answers.push({r:r,a:null,m:null});}).then(function(){done++;if(rid===quoteRunId)status.textContent='Checking source text · '+done+' of '+rs.length+'…';return worker();});}return Promise.all([worker(),worker(),worker(),worker()]).then(function(){if(rid!==quoteRunId)return;answers.sort(function(a,b){return (b.m?b.m.n:0)-(a.m?a.m.n:0);});out.textContent='';var matches=answers.filter(function(x){return x.m;});status.textContent=matches.length?'Found '+matches.length+' readable source'+(matches.length===1?'':'s')+' with matching wording. These matches are leads for further reading, not proof.':'No exact or sufficiently long wording match found in readable articles. Some source sites block browser reading; that does not mean the quote is false.';
+answers.forEach(function(x){var card=el('div','v9-card');card.style.cssText='margin:10px 0;padding:12px';var a=el('a','',x.a&&x.a.title||x.r.title||x.r.url);a.href=safeUrl(x.r.url);a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='font-weight:700;color:var(--accent)';card.appendChild(a);card.appendChild(el('div','v9-note',(x.r.source||'Source')+' · '+(x.a?(x.a.via||'article text'):'the source blocked direct reading')));
+if(x.m){card.appendChild(el('b','',x.m.full?'Exact wording found':'Partial wording found ('+x.m.n+' words)'));var ex=el('p','');ex.style.cssText='line-height:1.6';quoteAddExcerpt(ex,x.a.text,x.m);card.appendChild(ex);}else if(x.a){card.appendChild(el('div','v9-note','Related result — the quote wording was not found in the text returned by this source.'));}else{card.appendChild(el('div','v9-note','The source did not allow this browser to read its article. Open the source and check it manually.'));}out.appendChild(card);});}).finally(function(){if(btn&&rid===quoteRunId){btn.disabled=false;btn.textContent=defaultLabel;}});}).catch(function(e){if(rid!==quoteRunId)return;out.textContent='';status.textContent=e&&e.message||'Quote search failed. Check the connection and try again.';if(btn){btn.disabled=false;btn.textContent=defaultLabel;}});
+}
+/* ===================== v9: assemble the UI ===================== */
+(function v9init(){
+var hdr=document.querySelector('.header'),tools=el('div','hdr-tools');
+var wx=el('button','hdr-chip','🌡️ --°');wx.id='wxChip';wx.type='button';wx.setAttribute('aria-label','Weather');tools.appendChild(wx);
+['themeBtn'].forEach(function(id){var e=$(id);if(e)tools.appendChild(e);});hdr.appendChild(tools);setTimeout(function(){var ib=$('installBtn'),vb=$('v9Bar');if(ib&&vb)vb.appendChild(ib);},0);
+var gc=el('div');gc.id='greetCard';gc.setAttribute('role','region');gc.setAttribute('aria-label','Greeting');hdr.parentNode.insertBefore(gc,hdr.nextSibling);
+var bar=el('div');bar.id='v9Bar';
+[['🔎 Quote context',function(){openPanel('v9Quote');}],['🤖 AI Chat',openChat],['⚖️ Compare',openCompare],['📶 Low data',function(){setLow(!LOW());toast(LOW()?'Low data mode ON: text and cached videos only':'Low data mode OFF','var(--accent)',3000);loadFeed(true);}],['🌤️ '+'Weather',function(){wxPanelBody=$('v9WeatherBody');wxRender();openPanel('v9Weather');}]].forEach(function(b){var x=el('button','',b[0]);x.type='button';x.onclick=b[1];if(/Low data/.test(b[0]))x.id='lowBtn';bar.appendChild(x);});labCard('🛡️','Weekly',openWeekly,'rgba(0,200,160,0.16)');labCard('💡','AI Tip',openTip,'rgba(255,215,0,0.16)');setLow(LOW());
+var sh=$('verdict')||document.querySelector('.search-header');sh.parentNode.insertBefore(bar,$('verdict')?sh:sh.nextSibling);
+var wcd=el('div');wcd.id='weeklyCard';wcd.style.cssText='display:none;margin:8px 15px;padding:12px;border-radius:12px;background:var(--bg2);border:1.5px solid var(--accent);cursor:pointer;font-weight:700';wcd.textContent='🛡️ Your weekly security report is ready — tap to read';wcd.onclick=openWeekly;
+bar.parentNode.insertBefore(wcd,bar);if(weeklyDue())wcd.style.display='block';
+var ob=el('div');ob.id='offBar';ob.style.cssText='display:none;margin:8px 15px;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1.5px dashed var(--accent2);font-size:13px;line-height:1.5';
+function renderOff(){ob.textContent='';ob.appendChild(el('b','','📴 You are offline. '));ob.appendChild(document.createTextNode('Saved searches, tips, the feed and downloaded videos still work.'));
+var rc=jget('ai_v9_recent',[]).slice(0,6);if(rc.length){var row=el('div','');row.style.cssText='margin-top:8px;display:flex;flex-wrap:wrap;gap:6px';rc.forEach(function(q){var bt=mkBtn('🕘 '+q.slice(0,28),'',function(){var i=$('q');if(i)i.value=q;doSearch();});row.appendChild(bt);});ob.appendChild(row);}}
+function updOff(){if(window.__netUp===false){renderOff();ob.style.display='block';}else ob.style.display='none';}
+/* the browser's online flag is often wrong, so a small real request decides (twice before it says offline) */
+function netProbe(){var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(e){}},7000);return fetch(location.pathname,{method:'HEAD',cache:'no-store',headers:{'x-ver-check':'1'},signal:c.signal}).then(function(){return true;},function(){return false;}).then(function(v){clearTimeout(t);return v;});}
+var netBusy=false;
+function netCheck(){if(netBusy)return;netBusy=true;netProbe().then(function(v){return v?true:new Promise(function(r){setTimeout(r,1500);}).then(netProbe);}).then(function(v){var was=window.__netUp;window.__netUp=v;updOff();if(v&&was===false)loadFeed(true);}).then(function(){netBusy=false;},function(){netBusy=false;});}
+window.addEventListener('offline',netCheck);window.addEventListener('online',netCheck);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)netCheck();});
+setInterval(function(){if(!document.hidden)netCheck();},15000);setTimeout(netCheck,1500);
+bar.parentNode.insertBefore(ob,bar);updOff();
+var tc=el('div');tc.id='tipCard';tc.onclick=openTip;bar.parentNode.insertBefore(tc,bar.nextSibling);
+var fb=el('div');fb.id='feedBar';fb.style.cssText='margin:12px 15px;background:var(--bg2);border:1.5px solid var(--accent2);border-radius:12px;padding:12px';
+var fh=el('div');fh.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px';fh.appendChild(el('b','','📰 Feed'));fh.appendChild(mkBtn('↻','',function(){loadFeed(true);}));fb.appendChild(fh);var fbody=el('div');fb.appendChild(fbody);
+var scam=$('scamLabBar');scam.parentNode.insertBefore(fb,scam);
+/* ---- Feed: Videos / Posts choices + AI video finder ---- */
+var FM=jget('ai_v9_feedmode',null);if(!FM||typeof FM!=='object')FM={v:true,p:true};FM={v:FM.v!==false,p:FM.p!==false};if(!FM.v&&!FM.p)FM.p=true;window.AI_FEED_MODE=FM;
+var fmRow=el('div','v9-row');fmRow.setAttribute('role','group');fmRow.setAttribute('aria-label','What to show in the Feed');fmRow.style.margin='0 0 8px';
+var fmV=el('button','std-b','🎬 Videos'),fmP=el('button','std-b','📝 Posts');fmV.type='button';fmP.type='button';
+fmRow.appendChild(fmV);fmRow.appendChild(fmP);var fmHint=el('span','v9-note','');fmRow.appendChild(fmHint);fb.insertBefore(fmRow,fbody);
+var fvid=el('div');fvid.style.display='none';fb.insertBefore(fvid,fbody);
+var vaiWrap=el('div');vaiWrap.style.display='none';fb.insertBefore(vaiWrap,fvid);
+var fsumBox=el('div');fsumBox.setAttribute('data-ft','aifeed');fsumBox.style.cssText='margin:0 0 10px';fb.insertBefore(fsumBox,vaiWrap);
+var fsum={busy:false,done:false};
+function dayKey(){return new Date().toISOString().slice(0,10);}
+function fsumDraw(rec,err){
+fsumBox.textContent='';if(!rec&&!err&&!fsum.busy)return;
+var c=el('div','v9-card');c.style.cssText='padding:12px;line-height:1.55';c.appendChild(el('b','','📰 AI summary of the day'));
+var bd=el('div','');bd.style.cssText='margin:8px 0;white-space:pre-wrap';bd.setAttribute('translate','no');bd.className='notranslate';bd.textContent=fsum.busy?'The AI is reading today\'s headlines…':(rec?rec.text:'⚠️ '+err);c.appendChild(bd);
+if(rec&&!fsum.busy)c.appendChild(el('div','v9-note','🤖 AI model ('+aiShort(rec.model)+'), run by Cloudflare. Made from the headlines in the feed on '+rec.d+'. It can be wrong: open the posts to check.'));
+try{var fmr=mkModelRow();var fms=fmr.msel;fmr.removeChild(fmr.lastChild);fms.disabled=fsum.busy;fms.addEventListener('change',function(){fsumRun(true,fms.value);});fmr.style.margin='6px 0';c.appendChild(fmr);}catch(e){}
+var nb=mkBtn('↻ New summary','',function(){fsumRun(true);});nb.disabled=fsum.busy;nb.style.marginTop='6px';c.appendChild(nb);
+fsumBox.appendChild(c);
+}
+function fsumRun(force,pick){
+if(!FT.on('aifeed')||fsum.busy)return;
+try{if(!API.ai)return;}catch(e){return;}
+var cached=jget('ai_v9_feedsum',null);
+if(!force&&cached&&cached.d===dayKey()&&cached.text){fsum.done=true;fsumDraw(cached);return;}
+var items=feedList.filter(function(it){return it&&it.title&&it.type!=='video'&&kidOK({title:it.title,text:it.text,source:it.source});}).slice(0,30);
+if(items.length<5){if(cached&&cached.text)fsumDraw(cached);return;}
+fsum.busy=true;fsum.done=true;fsumDraw();
+var txt=items.map(function(it,i){return(i+1)+'. '+String(it.title).replace(/\s+/g,' ').slice(0,140)+(it.source?' ['+String(it.source).slice(0,30)+']':'');}).join('\n');
+var used=cached&&cached.model?cached.model:'';var nx=pick||'';if(force&&!pick){var al=AI_ALL.filter(function(m){return m!==used;});nx=al[Math.floor(Math.random()*al.length)]||'';}
+aiAsk('feed_day',{text:txt,model:nx||modelPick()}).then(function(j){fsum.busy=false;var rec={d:dayKey(),text:String(j.answer||'').slice(0,1500),model:j.model||nx||''};if(!rec.text)throw new Error('empty');jset('ai_v9_feedsum',rec);fsumDraw(rec);}).catch(function(e){fsum.busy=false;if(cached&&cached.text&&cached.d===dayKey())fsumDraw(cached);else fsumDraw(null,aiErrText(e));});
+}
+function fmApply(){
+if(!FM.v&&!FM.p)FM.p=true;jset('ai_v9_feedmode',FM);
+[[fmV,FM.v],[fmP,FM.p]].forEach(function(x){x[0].setAttribute('aria-pressed',x[1]?'true':'false');x[0].style.outline=x[1]?'2px solid var(--accent)':'none';});
+fmHint.textContent=FM.v&&FM.p?'Both: videos and posts together, with the AI video finder.':FM.v?'Videos only: For you, Search and My player, with the AI video finder.':'Posts only: no videos.';
+var vOnly=FM.v&&!FM.p;
+fvid.style.display=vOnly?'':'none';fsumBox.style.display=vOnly?'none':'';fbody.style.display=vOnly?'none':'';vaiWrap.style.display=FM.v?'':'none';
+if(FM.v&&!vaiWrap._built){vaiWrap._built=1;vaiWrap.appendChild(aiVideoBlock());}
+if(vOnly){var vb=$('v9VideosBody');if(vb&&vb.parentNode!==fvid)fvid.appendChild(vb);var vb2=$('v9VideosBody');if(vb2&&!vb2._built)openVideos(window.__vtab||'fyp',true);}
+if(!vOnly&&window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();
+}
+fmV.onclick=function(){FM.v=!FM.v;fmApply();};fmP.onclick=function(){FM.p=!FM.p;fmApply();};
+fmApply();
+window.AI_FEED_VIDEOS=function(tab){FM.v=true;FM.p=false;window.__vtab=tab||'fyp';fmApply();var vb=$('v9VideosBody');if(vb&&vb._show&&tab)vb._show(tab);try{fb.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}};
+
+var feedKnown=null,feedList=[],feedBusy=false,feedLast=0,feedPage=0,feedEnd=false,feedMoreBusy=false;
+fbody._manual=true;var fst=el('span','v9-note','');fst.id='feedStatus';window.AI_FEED_REFRESH=function(){if(feedList.length)renderFeed(fbody,feedList,Math.max(12,fbody._shown||12),feedEnd?null:feedMore);};fh.insertBefore(fst,fh.lastChild);
+function itemKey(it){return it.src||it.link||it.title;}
+function feedPlaying(){return [].some.call(fbody.querySelectorAll('video'),function(v){return !v.paused&&!v.ended;});}
+function feedMore(){
+if(feedMoreBusy||feedEnd){return;}feedMoreBusy=true;var np=feedPage+1;
+feedItems(np).then(function(items){
+if(!feedKnown)feedKnown={};var add=[];items.forEach(function(it){var k=itemKey(it);if(!feedKnown[k]){feedKnown[k]=1;it.isNew=false;add.push(it);}});
+feedPage=np;if(!add.length&&np>=60)feedEnd=true;
+feedList=feedList.concat(add).slice(0,2000);
+renderFeed(fbody,feedList,Math.min(feedList.length,Math.max(12,(fbody._shown||12)+(fbody._step||10))),feedEnd?null:feedMore);
+}).catch(function(){feedEnd=true;renderFeed(fbody,feedList,Math.max(12,fbody._shown||12),null);}).then(function(){feedMoreBusy=false;});
+}
+function loadFeed(force){
+if(!FT.on('feed'))return;if(feedBusy)return;if(!force&&feedPlaying()){return;}
+feedBusy=true;var cached=jget('ai_v9_feed2_'+country(),null);
+if(!feedList.length){if(cached)renderFeed(fbody,cached.items,8);else{fbody.textContent='';fbody.appendChild(el('div','v9-spin'));}}
+feedItems().then(function(items){
+var first=!feedKnown;if(first){feedKnown={};}
+var fresh=[];items.forEach(function(it){var k=itemKey(it);if(!feedKnown[k]){feedKnown[k]=1;it.isNew=!first;fresh.push(it);}else{it.isNew=false;}});
+feedList.forEach(function(o){o.isNew=false;});
+var keep=feedList.filter(function(o){return !items.some(function(n){return itemKey(n)===itemKey(o);});});
+feedList=(first?items:fresh.concat(items.filter(function(it){return !it.isNew;})).concat(keep)).slice(0,2000);
+var top=window.scrollY;renderFeed(fbody,feedList,Math.max(8,Math.min(feedList.length,Math.max(12,fbody._shown||0))),feedEnd?null:feedMore);window.scrollTo(0,top);
+feedLast=Date.now();fst.textContent='● LIVE · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+(fresh.length&&!first?' · '+fresh.length+' new':'');
+logAct('feed','loaded '+items.length+(fresh.length&&!first?' ('+fresh.length+' new)':''));
+if(!fsum.done)fsumRun(false);
+}).catch(function(){if(!feedList.length&&!cached)fbody.textContent='The feed is not reachable from this viewer.';fst.textContent='offline';}).then(function(){feedBusy=false;});
+}
+setInterval(function(){if(!document.hidden&&feedKnown)loadFeed(false);},90000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&feedKnown&&Date.now()-feedLast>60000)loadFeed(false);});
+if(window.IntersectionObserver){var fio=new IntersectionObserver(function(es){if(es[0].isIntersecting){fio.disconnect();loadFeed(false);}},{rootMargin:'600px'});fio.observe(fb);}else loadFeed(false);
+mkPanel('v9Share','Share');mkPanel('v9Tip','💡 AI Tip');mkPanel('v9Weather','🌤️ Weather');mkPanel('v9Chat','🤖 AI Chat');mkPanel('v9Videos','🎬 Videos');mkPanel('v9Weekly','🛡️ Weekly security report');mkPanel('v9Cmp','⚖️ Compare two sources');
+wx.onclick=function(){wxPanelBody=$('v9WeatherBody');wxRender();openPanel('v9Weather');};
+var eb=$('exportBtn');if(eb)eb.textContent='📄 EXPORT NEW INFORMATION';
+initVoice();
+initTools();
+initA11y();
+initClear();
+initQuiz();
+initBeta();
+initStd();
+initQuoteContext();
+initDict();
+initLang();
+initCache();
+initLegal();
+initCalc();
+initRemind();
+initColor();
+initAge();
+initFeatures();
+
+/* v29: idle warm-up — fetch the feed once the page is idle so the next open is instant (skipped on Low data / Save-Data / slow links) */
+(function(){
+var c=navigator.connection||{};
+if(c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
+function go(){try{if(!FT.on('feed'))return;if(typeof LOW==='function'&&LOW())return;if(document.hidden)return;xget('feed',{},15000).catch(function(){});}catch(e){}}
+if('requestIdleCallback' in window)requestIdleCallback(function(){setTimeout(go,1500);},{timeout:6000});else setTimeout(go,4000);
+})();
+buildWelcome();
+function startWelcome(){if(!welcomeSeen())$('v9Welcome').style.display='flex';else showGreeting();}
+window.AI_AFTER_CONSENT=function(){AGEWAIT(startWelcome);};
+if(CONS)AGEWAIT(startWelcome);
+wxLoad();setInterval(function(){if(!document.hidden)wxLoad();},15*60*1000);
+schedTip();
+var t0=Date.now();var iv=setInterval(function(){if(API.ok||Date.now()-t0>6000){clearInterval(iv);}},300);
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&wxData&&Date.now()-Date.parse(wxData.current.time)>1800000)wxLoad();});
+})();
+
+/* touch: after a long press and a drag the finger-down look (and the green focus ring) must not stay on the button */
+(function(){
+var T=/^(touch|pen)$/;
+function clearTouch(e){
+if(e&&e.pointerType&&!T.test(e.pointerType))return;
+setTimeout(function(){try{var x=document.activeElement;if(x&&x!==document.body&&x.matches&&x.matches('button,[role=button],.scam-card,a,summary,label,.trending-chip'))x.blur();}catch(_){}document.documentElement.classList.remove('touch-hold');},0);}
+['pointerup','pointercancel','touchend','touchcancel'].forEach(function(n){document.addEventListener(n,clearTouch,{passive:true,capture:true});});
+document.addEventListener('pointerdown',function(e){if(e.pointerType&&T.test(e.pointerType))document.documentElement.classList.add('touch-hold');},{passive:true,capture:true});
+document.addEventListener('contextmenu',function(e){try{if(e.target.closest&&e.target.closest('button,[role=button],.scam-card,.trending-chip')&&!e.target.closest('input,textarea'))e.preventDefault();}catch(_){}},true);
+window.addEventListener('blur',function(){document.documentElement.classList.remove('touch-hold');});
+})();
