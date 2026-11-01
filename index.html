@@ -637,7 +637,7 @@ try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
 <h2>Features menu</h2>
 <p>An optional automatic theme picks dark or light from the day and night (and, if chosen, the weather) at the weather place; pressing the theme button turns it off. A Features menu lets the visitor switch most features off, which hides them and stops them from running, and switch them on again at any time. The choice is kept only on the visitor's device. AI features also include an automatic AI summary of the day in the Feed and a comparison of one searched topic on two different days.</p>
 <h2>Tools</h2>
-<p>Scam Lab (URL Scanner, Text Analyzer, Fake Image Checker, Weekly, Tools, AI Tip, Quiz), Translator, Dictionary, Calculator, Weather, Compare Two Sources, Find Quote Context, Feed, notifications, settings, themes, languages, accessibility options and a legal section.</p>
+<p>Scam Lab (URL Scanner, Text Analyzer, Fake Image Checker, Weekly, Tools, AI Tip, Quiz), Translator, Dictionary, Calculator, Weather, Compare Two Sources, Find Quote Context, Feed, notifications, settings, themes, languages, accessibility options and a legal section. In Scam Lab Tools, "Translate from photo" sends a smaller copy of the photo you choose to an AI model (run by Cloudflare) only when you use it; the photo is not stored by us.</p>
 <h2>Feed</h2>
 <p>The Feed replaces the old separate Videos screen. It has two choices: Videos (the former Videos screen: For you, Search, My player, plus the AI video finder), and Posts (news and posts without videos); both together is also possible. Videos come only from Internet Archive and Wikipedia/Wikimedia sources: the script finds and caches them and plays them, the AI only chooses and orders among the candidates the script found, and a small preference memory stays on the device.</p>
 <h2>Children and age</h2>
@@ -673,7 +673,7 @@ try{if(pref()!=='auto')window.AI_ANIM_APPLY();}catch(e){}
 <div style="padding:0 15px;"><div id="filterBox"><div class="filter-row"><input id="filterInput" type="text" placeholder="Filter 953 sources (e.g. factcheck, bulgaria)…" onkeydown="if(event.key==='Enter'){filterSources(this.value); hideKeyboard();}" oninput="filterSources(this.value)"><button class="fav-btn" id="favFilterBtn" type="button" aria-label="Show only favorites" onclick="toggleFavFilter()">⭐</button></div></div><div id="result"></div></div>
 <div id="aiSummaryOverlay" onclick="closeSummary()"></div><div id="aiSummary" role="dialog" aria-modal="true" aria-label="AI summary"></div><div id="shareStatus" role="status" aria-live="polite"></div>
 <div id="breakingNewsBar" style="margin:12px 15px;background:var(--bg2);border:1.5px solid #ff3333;border-radius:12px;padding:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b style="color:#ff4444;font-size:12px;"><span class="live-dot off" id="radarDot"></span>LIVE RADAR · newest stories <span id="radarStatus" style="font-weight:normal;opacity:.7;font-size:10px;"></span></b><button type="button" onclick="loadBreaking(false)" style="padding:4px 10px;background:var(--bg2);border:1px solid #ff3333;border-radius:14px;color:#ff6666;font-size:10px;cursor:pointer;">↻ Refresh</button></div><div id="breakingNewsScroll" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;overscroll-behavior:contain;"></div></div>
-<div id="scamLabBar"><h2>🛡️ Scam Lab</h2><div class="scam-grid"><div class="scam-card" role="button" tabindex="0" onclick="openScam('url')"><div class="icon" style="background:color-mix(in srgb,var(--accent) 15%,transparent);">🔗</div><h4>URL Scanner</h4></div><div class="scam-card" role="button" tabindex="0" onclick="openScam('text')"><div class="icon" style="background:rgba(0,136,255,0.15);">📝</div><h4>Text Analyzer</h4></div></div><div id="scamLabOutput" style="display:none;margin-top:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b id="scamOutputTitle"></b><button type="button" aria-label="Close" onclick="closeScam()" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);width:28px;height:28px;border-radius:50%;cursor:pointer;">✕</button></div><input id="scamInput" placeholder="Paste a link, then press Enter" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;margin-top:10px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);" onkeydown="if(event.key==='Enter'){runScam();}"><textarea id="scamText" rows="6" maxlength="8000" placeholder="Paste the message here (email, SMS, chat)…" style="display:none;width:100%;margin-top:10px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);resize:vertical;font-size:14px;"></textarea><button type="button" id="scamRunBtn" onclick="runScam()" style="margin-top:10px;width:100%;padding:12px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-weight:bold;cursor:pointer;">ANALYZE</button><div id="scamResult" style="margin-top:12px;font-size:12px;"></div></div></div>
+<div id="scamLabBar"><h2>🛡️ Scam Lab</h2><div class="scam-grid"><div class="scam-card" role="button" tabindex="0" onclick="openScam('url')"><div class="icon" style="background:color-mix(in srgb,var(--accent) 15%,transparent);">🔗</div><h4>URL Scanner</h4></div><div class="scam-card" role="button" tabindex="0" onclick="openScam('text')"><div class="icon" style="background:rgba(0,136,255,0.15);">📝</div><h4>Text Analyzer</h4></div></div><div id="scamLabOutput" style="display:none;margin-top:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;"><b id="scamOutputTitle"></b><button type="button" aria-label="Close" onclick="closeScam()" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);width:28px;height:28px;border-radius:50%;cursor:pointer;">✕</button></div><input id="scamInput" placeholder="Paste a link, then press Enter" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;margin-top:10px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);" onkeydown="if(event.key==='Enter'){runScam();}"><div id="scamUrlNote" style="display:none;margin-top:8px;padding:8px 10px;border:1px solid #ffaa00;border-radius:10px;font-size:12px;line-height:1.45;background:rgba(255,170,0,.08)">⚠️ Not every website can be checked: some use anti-bot protection and block automatic checks. When a check cannot run, the result says so. “Nothing found” never proves a site is safe.</div><textarea id="scamText" rows="6" maxlength="8000" placeholder="Paste the message here (email, SMS, chat)…" style="display:none;width:100%;margin-top:10px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);resize:vertical;font-size:14px;"></textarea><button type="button" id="scamRunBtn" onclick="runScam()" style="margin-top:10px;width:100%;padding:12px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-weight:bold;cursor:pointer;">ANALYZE</button><div id="scamResult" style="margin-top:12px;font-size:12px;"></div></div></div>
 <div id="fakeCheckerBar" style="margin:12px 15px;background:var(--bg2);border:1.5px solid #aa44ff;border-radius:12px;padding:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b style="color:#aa44ff;font-size:14px;">🖼️ FAKE IMAGE CHECKER</b><button type="button" onclick="clearFake()" style="padding:6px 12px;background:var(--bg2);border:1px solid #aa44ff;border-radius:16px;color:#aa88ff;font-size:12px;cursor:pointer;">✕ Clear</button></div><div id="fakeDropZone" onclick="document.getElementById('fakeFileInput').click()" style="border:2px dashed #aa44ff;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:rgba(170,68,255,0.05);"><div style="font-size:32px;">📸</div><div style="font-size:14px;margin:8px 0;color:var(--text);">Drop an image or video here, or tap to choose</div><input type="file" id="fakeFileInput" accept="image/*,video/*" style="display:none;" onchange="handleFakeFile(this.files[0])"></div><div id="fakePreviewArea" style="display:none;margin-top:12px;"><div style="display:flex;gap:12px;flex-wrap:wrap;"><div id="fakeMediaPreview" style="flex:1;min-width:200px;"></div><div id="fakeAnalysis" style="flex:1;min-width:200px;font-size:12px;"></div></div><div id="fakeReverseSearch" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;"></div></div></div>
 </main>
 <button id="backToTopBtn" type="button" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -1203,7 +1203,7 @@ function openScam(tool){
 hideKeyboard();scamMode=tool==='text'?'text':'url';
 document.getElementById('scamLabOutput').style.display='block';
 document.getElementById('scamOutputTitle').textContent=scamMode==='url'?'URL Scanner (AI)':'Text Analyzer (AI)';
-document.getElementById('scamInput').style.display=scamMode==='url'?'block':'none';
+document.getElementById('scamInput').style.display=scamMode==='url'?'block':'none';document.getElementById('scamUrlNote').style.display=scamMode==='url'?'block':'none';
 var ta=document.getElementById('scamText');
 ta.style.display=scamMode!=='url'?'block':'none';
 ta.maxLength=8000;
@@ -1230,7 +1230,7 @@ else{inp=document.getElementById('scamText').value.trim();if(inp.length<15){res.
 res.textContent='';
 res.appendChild(aiRisk(mode,function(){return{text:mode==='url'?'Address: '+inp.slice(0,500):inp.slice(0,5000)};}));
 try{res.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}
-if(mode==='url'){serverUrlCheck(inp,res);dnsCheck(inp,res);}
+if(mode==='url'){res.appendChild(el('div','v9-note','⚠️ Not every website can be checked: some use anti-bot protection and block automatic checks. When a check cannot run, the result says so. “Nothing found” never proves a site is safe.'));serverUrlCheck(inp,res);dnsCheck(inp,res);}
 }
 var AI_SIGS=[
 {re:/compositewithtrainedalgorithmicmedia/i,label:'Declared as a composite that includes AI-generated media (IPTC DigitalSourceType)'},
@@ -1554,7 +1554,7 @@ try{
 var rep=await analyzeMedia(file);
 if(token!==fakeRun)return;
 renderReport(out,rep);
-if(file.type.indexOf('image')===0){out.appendChild(aiBlock('🤖 Check this image with AI','image',function(){return imgToDataUrl(file).then(function(d){return{image:d,question:'Is this image AI-generated, edited or misleading?'};});},{hint:'AI mode: a smaller copy of the image is sent to an AI model when you press the button. It can be wrong; metadata and error-level checks above are separate.'}));}
+if(file.type.indexOf('image')===0){out.appendChild(aiBlock('🤖 Check this image with AI','image',function(){return imgToDataUrl(file).then(function(d){return{image:d,question:'Is this image AI-generated, edited or misleading?'};});},{auto:true,hint:'AI mode: a smaller copy of the image is sent to an AI model automatically when the checks finish. It can be wrong; the metadata and error-level measurements above stay and are separate.'}));}
 }catch(e){if(token===fakeRun)out.textContent='Could not analyze this file. Try a JPEG, PNG, WebP or MP4.';}
 }
 function clearFake(){
@@ -2133,7 +2133,7 @@ var mode=scamMode,inp=mode==='url'?$('scamInput').value:$('scamText').value.slic
 setTimeout(function(){var box=$('scamResult');logAct('scam',{mode:mode,input:inp,result:box?box.innerText.replace(/\s+/g,' ').slice(0,400):''});},2500);
 if(mode==='url'&&String(inp||'').trim())multiScan(inp);return r;};
 var _h=window.handleFakeFile;window.handleFakeFile=handleFakeFile=function(f){
-var r=_h.apply(this,arguments);if(f){setTimeout(function(){var a=$('fakeAnalysis');logAct('fake',{name:f.name,type:f.type,size:f.size,result:a?a.innerText.replace(/\s+/g,' ').slice(0,400):''});},3500);fileScan(f);}return r;};
+var r=_h.apply(this,arguments);if(f){setTimeout(function(){var a=$('fakeAnalysis');logAct('fake',{name:f.name,type:f.type,size:f.size,result:a?a.innerText.replace(/\s+/g,' ').slice(0,400):''});},3500);}return r;};
 var _t=window.toggleTheme;window.toggleTheme=toggleTheme=function(){var r=_t.apply(this,arguments);logAct('theme',document.body.classList.contains('light-theme')?'light':'dark');return r;};
 })();
 /* ---- LIVE RADAR: refresh interval + save stories ---- */
@@ -2662,6 +2662,17 @@ var br=el('div','v9-row');
 br.appendChild(mkBtn('↻ New','',make));
 br.appendChild(mkBtn('⧉ Copy','',function(){var t=out.textContent;if(!t||/^Choose/.test(t))return;if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){toast('Copied');},function(){toast('Could not copy. Select the text and copy it.','#ff4444');});else toast('Could not copy. Select the text and copy it.','#ff4444');}));
 p.appendChild(out);p.appendChild(meta);p.appendChild(lr);p.appendChild(row);p.appendChild(br);
+var pwBox=el('div','v9-card');pwBox.style.cssText='margin:10px 0;padding:10px';p.appendChild(pwBox);
+pwBox.appendChild(el('b','','🔎 Rate my password with AI'));
+pwBox.appendChild(el('div','v9-note','Type a password to rate. The password itself is never sent: only its length and shape (how many lowercase, uppercase, digits, symbols, repeats and simple sequences) go to the AI. A stronger one is then made in your browser.'));
+var pwi=document.createElement('input');pwi.type='password';pwi.autocomplete='off';pwi.setAttribute('aria-label','Password to rate');pwi.style.cssText='width:100%;margin-top:8px;padding:8px';pwBox.appendChild(pwi);
+function pwShape(w){var c={lower:0,upper:0,digit:0,symbol:0};for(var i=0;i<w.length;i++){var ch=w[i];if(/[a-z]/.test(ch))c.lower++;else if(/[A-Z]/.test(ch))c.upper++;else if(/[0-9]/.test(ch))c.digit++;else c.symbol++;}
+var rp=0,seq=0;for(var j=1;j<w.length;j++){if(w[j]===w[j-1])rp++;if(Math.abs(w.charCodeAt(j)-w.charCodeAt(j-1))===1)seq++;}
+var uniq=new Set(w.split('')).size;var m=w.slice(0,64).replace(/[a-z]/g,'l').replace(/[A-Z]/g,'U').replace(/[0-9]/g,'d').replace(/[^lUd]/g,'s');
+return 'Length: '+w.length+'. Lowercase: '+c.lower+', uppercase: '+c.upper+', digits: '+c.digit+', symbols: '+c.symbol+'. Distinct characters: '+uniq+'. Repeated neighbours: '+rp+'. Neighbouring sequence steps: '+seq+'. Shape (l=lowercase, U=uppercase, d=digit, s=symbol): '+m+'. Starts with an uppercase letter: '+(/^[A-Z]/.test(w)?'yes':'no')+'. Ends with digits: '+(/[0-9]+$/.test(w)?'yes':'no')+'.';}
+var pwOut=el('div','');
+pwBox.appendChild(aiBlock('🔎 Rate with AI','pw_rate',function(){var w=pwi.value;if(!w)return 'Type a password first.';return{text:pwShape(w)};},{hint:'AI mode: only the shape described above is sent, never the password. The AI cannot know if it was leaked or is a common word; never reuse a password you rate here.',render:function(out,res,redraw){aiRiskRender(out,res,redraw);var b=mkBtn('✨ Make a stronger one for me','pri',function(){var cs='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*-_=+',o='';for(var i=0;i<18;i++)o+=cs[rnd(cs.length)];pwOut.textContent='';var t=el('div','');t.style.cssText='font-family:monospace;word-break:break-all;margin:8px 0';t.textContent=o;pwOut.appendChild(t);pwOut.appendChild(mkBtn('⧉ Copy','',function(){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(o).then(function(){toast('Copied');},function(){toast('Could not copy. Select it by hand.');});}));pwOut.appendChild(el('div','v9-note','Made in your browser with the secure random generator (18 characters). Save it in a password manager.'));});b.type='button';out.appendChild(b);}}));
+pwBox.appendChild(pwOut);
 p.appendChild(aiBlock('🤖 Ask AI for memorable passphrases','passphrase',function(){return{text:'Make five passphrases.'};},{hint:'AI mode: nothing about your passwords is sent. The AI only writes example passphrases from common words. AI text is not truly random, so for important accounts use the generator above.'}));
 p.appendChild(note('Made in your browser with the secure random generator. Nothing is sent or saved anywhere. Use a different password for every account and keep them in a password manager.'));
 make();
@@ -2788,9 +2799,9 @@ return out;
 }
 function photoTab(p){
 p.appendChild(el('div','v9-note','See what a photo reveals before you share it: the place it was taken, the camera and the date. The photo is read in your browser and never uploaded.'));
-var f=document.createElement('input');f.type='file';f.accept='image/*';f.style.cssText='margin-top:12px;width:100%';f.setAttribute('aria-label','Choose a photo');
+var f=dualPick(p,'Choose a photo');
 var res=el('div','');res.style.marginTop='12px';res.setAttribute('aria-live','polite');
-p.appendChild(f);p.appendChild(res);
+p.appendChild(res);
 var run=0;
 f.onchange=function(){
 var file=f.files&&f.files[0];if(!file)return;
@@ -2876,11 +2887,29 @@ return '';
 });
 });
 }
+function dualPick(p,label){
+var f={files:null,onchange:null},row=el('div','');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px';
+function mk(txt,cam){var i=document.createElement('input');i.type='file';i.accept='image/*';if(cam)i.setAttribute('capture','environment');i.style.display='none';i.setAttribute('aria-label',label+(cam?' (camera)':' (file)'));
+i.onchange=function(){f.files=i.files;if(f.onchange)f.onchange();};
+var b=mkBtn(txt,'',function(){i.value='';i.click();});b.type='button';row.appendChild(i);row.appendChild(b);}
+mk('📷 Take a photo',true);mk('🖼️ Choose a file',false);p.appendChild(row);return f;}
+function ocrTab(p){
+p.appendChild(el('div','v9-note','Take or choose a photo of printed text (sign, menu, label, document). An AI model reads the text and translates it. When you press the button, a smaller copy of the photo is sent to an AI model run by Cloudflare. Handwriting, blur and dark photos may be read wrongly.'));
+var f=dualPick(p,'Photo with text');
+var sel=document.createElement('select');sel.setAttribute('aria-label','Translate into');sel.style.cssText='margin:10px 0;width:100%;padding:8px';
+['Bulgarian','English','German','French','Spanish','Italian','Russian','Turkish','Greek','Romanian','Serbian','Ukrainian','Polish','Dutch','Portuguese','Arabic','Chinese','Japanese'].forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+sel.value=aiLang();if(!sel.value)sel.value='English';
+var holder=el('div','');var img=document.createElement('img');img.alt='';img.style.cssText='display:none;max-width:100%;max-height:220px;border-radius:8px;margin-top:6px';
+p.appendChild(el('div','v9-note','Translate into:'));p.appendChild(sel);p.appendChild(img);p.appendChild(holder);
+var url=null;
+f.onchange=function(){holder.textContent='';if(url){URL.revokeObjectURL(url);url=null;}var file=f.files&&f.files[0];if(!file)return;url=URL.createObjectURL(file);img.src=url;img.style.display='block';
+holder.appendChild(aiBlock('🔤 Read and translate','photo_text',function(){return imgToDataUrl(file).then(function(d){return{image:d,question:'Read the text in this photo and translate it.',extra:{to:sel.value}};});},{auto:true,hint:'AI mode: a smaller copy of the photo is sent to an AI model when the check starts. Check names, prices, doses and legal text at the original.'}));};
+}
 function qrTab(p){
 p.appendChild(el('div','v9-note','Take or choose a photo of a QR code. The code is read in your browser and the photo is never uploaded. You see what is inside before anything opens.'));
-var f=document.createElement('input');f.type='file';f.accept='image/*';f.style.cssText='margin-top:12px;width:100%';f.setAttribute('aria-label','Photo of a QR code');
+var f=dualPick(p,'Photo of a QR code');
 var res=el('div','');res.style.marginTop='12px';res.setAttribute('aria-live','polite');
-p.appendChild(f);p.appendChild(res);
+p.appendChild(res);
 var run=0;
 f.onchange=function(){
 var file=f.files&&f.files[0];if(!file)return;
@@ -2918,7 +2947,7 @@ renderReport(res,rep);
 }).catch(function(){if(my===run)res.textContent='Could not read this photo. Try another one.';});
 };
 }
-var t1=tab('gen','🔑 Password generator',gen);tab('pdf','📄 PDF details',pdfTab);tab('photo','📍 Photo location',photoTab);tab('qr','▦ QR from photo',qrTab);
+var t1=tab('gen','🔑 Password generator',gen);tab('pdf','📄 PDF details',pdfTab);tab('photo','📍 Photo location',photoTab);tab('qr','▦ QR from photo',qrTab);tab('ocr','🔤 Translate from photo',ocrTab);
 labCard('🧰','Tools',function(){if(!cur)t1.click();openPanel('v9Tools');},'rgba(160,100,255,0.16)');
 }
 function initQuiz(){
@@ -3803,7 +3832,7 @@ sec(b,'5. Features that contact other services',[
  'Dictionary: the word goes to our server and then to Wiktionary.',
  'AI Summary in Standard Search (the “✨ AI Summary” bubble): after a search the summary is written automatically, unless you turn that off in the bubble or you chose an age group under 18. Your search words and the titles, snippets and links of the results on screen go to our server and to Cloudflare Workers AI, which writes the summary. With automatic summary off, nothing is sent until you press the bubble.',
  'AI Chat and AI Tip: your message goes to our server and is processed by Cloudflare Workers AI (an open model such as Google Gemma or Meta Llama), together with public web results. Cloudflare runs the model; the site does not keep the conversation on its server. Do not type personal data into the chat.',
- 'Scam Lab and link scanner: the address you check goes to our server, which checks it against public security services (for example URLhaus, Google Safe Browsing, VirusTotal and DNS services such as Cloudflare and Quad9), if they are set up on the server.',
+ 'Scam Lab and link scanner: the address you check goes to our server, which checks it against public security services (for example URLhaus, Google Safe Browsing, VirusTotal and Cloudflare DNS filters), if they are set up on the server.',
  'Scam Lab without our server: if our server cannot be reached, your browser may check the domain name directly with public DNS-over-HTTPS services (Cloudflare, and Google as a backup). Only the domain name you entered is sent, and those services see your IP address.',
  'Notifications: only if you press the button and allow them in your browser. The reminder is created and shown on your device by the browser; the site does not use a push server and nothing about it is sent to us.',
  'Voice input: if you use the microphone, your browser’s speech service (for example Google in Chrome) or Cloudflare Workers AI turns speech into text. Audio is used only while you press the button.',
