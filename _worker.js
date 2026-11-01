@@ -2076,9 +2076,9 @@ async function edgeJson(request, ctx, ttl, produce) {
 }
 var PAGE_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; worker-src 'self'; manifest-src 'self' blob:; object-src 'none'; upgrade-insecure-requests; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self' https://gutendex.com https://www.googleapis.com https://www.loc.gov https://doaj.org https://api.semanticscholar.org https://inspirehep.net https://zenodo.org https://api.datacite.org https://api.github.com https://registry.npmjs.org https://api.spaceflightnewsapi.net https://api.gbif.org https://api.inaturalist.org https://openaccess-api.clevelandart.org https://musicbrainz.org https://nominatim.openstreetmap.org https://restcountries.com https://www.themealdb.com https://world.openfoodfacts.org https://*.wikivoyage.org https://*.wikiquote.org https://www.wikidata.org https://openlibrary.org https://api.crossref.org https://api.openalex.org https://www.ebi.ac.uk https://api.stackexchange.com https://api.openverse.org https://images-api.nasa.gov https://api.artic.edu https://*.wikibooks.org https://*.wikisource.org https://*.wikinews.org https://*.wiktionary.org https://*.wikiversity.org https://cloudflare-dns.com https://security.cloudflare-dns.com https://family.cloudflare-dns.com https://dns.google https://hn.algolia.com https://hacker-news.firebaseio.com https://dev.to https://*.wikipedia.org https://wikimedia.org https://*.wikimedia.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://ipwho.is https://upload.wikimedia.org https://api.gdeltproject.org https://archive.org https://*.archive.org https://r.jina.ai";
 var newsCache = { at: 0, data: null };
-var STATIC_OK = /^\/(?:|index\.html|app\.js|ai\.js|style\.css|sw\.js|jsqr\.js|manifest\.webmanifest|icon[\w-]*\.(?:png|svg)|robots\.txt|security\.txt)$/;
+var STATIC_OK = /^\/(?:|index\.html|[a-z0-9-]+\.js|style\.css|manifest\.webmanifest|icon[\w-]*\.(?:png|svg)|robots\.txt|security\.txt)$/;
 var STATIC_ALIAS = { "/index.html": "/", "/.well-known/security.txt": "/security.txt", "/favicon.ico": "/icon-192.png" };
-var STATIC_TYPE = { "/security.txt": "text/plain; charset=utf-8", "/robots.txt": "text/plain; charset=utf-8", "/manifest.webmanifest": "application/manifest+json; charset=utf-8", "/app.js": "text/javascript; charset=utf-8", "/ai.js": "text/javascript; charset=utf-8", "/sw.js": "text/javascript; charset=utf-8", "/jsqr.js": "text/javascript; charset=utf-8", "/style.css": "text/css; charset=utf-8" };
+var STATIC_TYPE = { "/security.txt": "text/plain; charset=utf-8", "/robots.txt": "text/plain; charset=utf-8", "/manifest.webmanifest": "application/manifest+json; charset=utf-8", "/style.css": "text/css; charset=utf-8" };
 async function serveStatic(request, env, url, method) {
   const nf = () => new Response("Not found", { status: 404, headers: secure(new Headers()) });
   const p = STATIC_ALIAS[url.pathname] || url.pathname;
@@ -2099,9 +2099,9 @@ async function serveStatic(request, env, url, method) {
   const h = new Headers();
   const et = r.headers.get("etag");
   if (et) h.set("etag", et);
-  const ct = STATIC_TYPE[p] || (p === "/" ? "text/html; charset=utf-8" : r.headers.get("content-type"));
+  const ct = STATIC_TYPE[p] || (/\.js$/.test(p) ? "text/javascript; charset=utf-8" : "") || (p === "/" ? "text/html; charset=utf-8" : r.headers.get("content-type"));
   if (ct) h.set("content-type", ct);
-  const versioned = url.searchParams.has("v") && /^\/(?:app\.js|ai\.js|style\.css)$/.test(p);
+  const versioned = url.searchParams.has("v") && /^\/(?:[a-z0-9-]+\.js|style\.css)$/.test(p) && p !== "/sw.js" && p !== "/jsqr.js";
   h.set("cache-control", p === "/" || p === "/sw.js" ? "no-cache" : versioned ? "public, max-age=31536000, immutable" : /^\/icon/.test(p) ? "public, max-age=86400, stale-while-revalidate=604800" : "no-cache");
   secure(h);
   if (p === "/") h.set("content-security-policy", PAGE_CSP);
