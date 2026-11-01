@@ -36,7 +36,7 @@ function clean(s, max = 500) {
   if (s === null || s === undefined) return '';
   let t = String(s)
     // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩﻿]/g, ' ')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (t.length > max) t = t.slice(0, max - 1).trimEnd() + '…';
@@ -495,7 +495,7 @@ const ASSIST_TASKS = {
 };
 const LANG_OK = /^[\p{L}\p{M} ()\-,.'’]{2,40}$/u;
 function keepText(s, max) {
-  return String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩﻿]/g, ' ').replace(/[<>]/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, max);
+  return String(s == null ? '' : s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ' ').replace(/[<>]/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, max);
 }
 function parseJsonLoose(t) {
   const m = /\{[\s\S]*\}/.exec(String(t || ''));
