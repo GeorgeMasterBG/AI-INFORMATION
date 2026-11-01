@@ -493,3 +493,21 @@ document.addEventListener('pointerdown',function(e){if(e.pointerType&&T.test(e.p
 document.addEventListener('contextmenu',function(e){try{if(e.target.closest&&e.target.closest('button,[role=button],.scam-card,.trending-chip')&&!e.target.closest('input,textarea'))e.preventDefault();}catch(_){}},true);
 window.addEventListener('blur',function(){document.documentElement.classList.remove('touch-hold');});
 })();
+
+/* warning: a browser's own page translation (Chrome, Edge, Safari, Firefox) can translate the site wrongly */
+(function(){
+function show(){
+try{if(sessionStorage.getItem('ai_trwarn_ok'))return;}catch(e){}
+if(document.getElementById('trWarn'))return;
+var b=document.createElement('div');b.id='trWarn';b.setAttribute('role','note');
+b.style.cssText='margin:8px 12px;padding:10px 12px;border-radius:12px;border:1.5px solid #f5a623;background:var(--bg2);color:var(--text);font-size:13px;line-height:1.45;display:flex;gap:10px;align-items:flex-start';
+var t=document.createElement('div');t.style.flex='1';
+t.textContent='⚠️ Your browser may translate this site into your language wrongly: names, buttons and warnings can lose their meaning. For a checked translation use the Language button of this site, or read the original English.';
+var x=document.createElement('button');x.type='button';x.textContent='✕';x.setAttribute('aria-label','Close');x.style.cssText='background:none;border:none;color:var(--text);font-size:16px;cursor:pointer';
+x.onclick=function(){b.remove();try{sessionStorage.setItem('ai_trwarn_ok','1');}catch(e){}};
+b.appendChild(t);b.appendChild(x);
+var main=document.getElementById('main');if(main&&main.parentNode)main.parentNode.insertBefore(b,main);else document.body.insertBefore(b,document.body.firstChild);}
+function translated(){var h=document.documentElement;return /translated-(ltr|rtl)/.test(h.className)||!!document.querySelector('font[style*="vertical-align: inherit"]');}
+setTimeout(show,2500);
+try{new MutationObserver(function(){if(translated())show();}).observe(document.documentElement,{attributes:true,attributeFilter:['class','lang']});}catch(e){}
+})();

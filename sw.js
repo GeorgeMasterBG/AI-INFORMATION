@@ -1,8 +1,8 @@
 'use strict';
-const CACHE = 'aiinfo-v77';
+const CACHE = 'aiinfo-v79';
 // registered as sw.js?n=1 when the visitor only turned on notifications: no caching, no fetch handling
 const NOTIFY_ONLY = /[?&]n=1/.test(self.location.search);
-const SHELL = ['./', '/style.css?v=137', '/ai.js?v=137', '/sources.js?v=137', '/core.js?v=137', '/search.js?v=137', '/scamlab.js?v=137', '/welcome.js?v=137', '/compare.js?v=137', '/tools.js?v=137', '/quiz.js?v=137', '/dict.js?v=137', '/language.js?v=137', '/settings.js?v=137', '/legal.js?v=137', '/weather.js?v=137', '/video.js?v=137', '/quote.js?v=137', '/app.js?v=137', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
+const SHELL = ['./', '/style.css?v=139', '/ai.js?v=139', '/sources.js?v=139', '/core.js?v=139', '/search.js?v=139', '/scamlab.js?v=139', '/welcome.js?v=139', '/compare.js?v=139', '/tools.js?v=139', '/quiz.js?v=139', '/dict.js?v=139', '/language.js?v=139', '/settings.js?v=139', '/legal.js?v=139', '/weather.js?v=139', '/video.js?v=139', '/quote.js?v=139', '/app.js?v=139', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 // read-only API answers that are safe to show instantly and refresh in the background
 const API_OK = /^\/api\/x\/(videos|feed|search|article|news|digest|weather|define)$/;
 const FRESH = 5 * 60 * 1000, STALE = 6 * 3600 * 1000, MAXN = 60;
