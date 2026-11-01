@@ -1,8 +1,8 @@
 'use strict';
-const CACHE = 'aiinfo-v73';
+const CACHE = 'aiinfo-v74';
 // registered as sw.js?n=1 when the visitor only turned on notifications: no caching, no fetch handling
 const NOTIFY_ONLY = /[?&]n=1/.test(self.location.search);
-const SHELL = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
+const SHELL = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 // read-only API answers that are safe to show instantly and refresh in the background
 const API_OK = /^\/api\/x\/(videos|feed|search|article|news|digest|weather|define)$/;
 const FRESH = 5 * 60 * 1000, STALE = 6 * 3600 * 1000, MAXN = 60;
