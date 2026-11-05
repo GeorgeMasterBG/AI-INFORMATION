@@ -606,3 +606,14 @@ button,[role=button],.scam-card,.trending-chip,summary,label{-webkit-user-select
 html.touch-hold button:focus,html.touch-hold [role=button]:focus,html.touch-hold .scam-card:focus{outline:none}
 button:focus:not(:focus-visible),.scam-card:focus:not(:focus-visible){outline:none;box-shadow:none}
 }
+
+/* phones and tablets (touch only): a scroll handle on the right edge that stays visible a few seconds after scrolling and can be dragged; computers are not changed */
+@media (hover:none) and (pointer:coarse){
+html{scrollbar-width:none}
+html::-webkit-scrollbar{display:none}
+#sbThumb{position:fixed;right:0;top:0;width:26px;z-index:100001;touch-action:none;opacity:0;pointer-events:none;transition:opacity .25s;-webkit-tap-highlight-color:transparent}
+#sbThumb.on{opacity:1;pointer-events:auto}
+#sbThumb i{position:absolute;right:3px;top:0;bottom:0;width:8px;border-radius:6px;background:color-mix(in srgb,var(--accent) 80%,transparent);box-shadow:0 0 0 1px rgba(0,0,0,.25);transition:width .15s}
+#sbThumb.drag i{width:14px;background:var(--accent)}
+}
+@media (prefers-reduced-motion:reduce){#sbThumb,#sbThumb i{transition:none}}

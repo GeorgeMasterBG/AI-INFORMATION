@@ -152,7 +152,7 @@ store.set('ai_ui_lang',code);setDir(code);watch(true);updBtn();if(!quiet)toast('
 var body=mkPanel('v9Lang','🌐 Language');
 body.parentNode.id='v9Lang';
 var lw=el('div','v9-card');lw.style.cssText+=';border-color:#ffaa00;background:rgba(255,170,0,.08)';
-lw.appendChild(el('b','','⚠️ Please note'));lw.appendChild(el('div','v9-note','⏳ Translating the whole site can take some time, from several seconds to a minute or more, because it is done by free services and AI models. The visible part is translated first. Please wait and do not close the page.'));
+lw.appendChild(el('b','','⚠️ Please note'));lw.appendChild(el('div','v9-note','⏳ Translating the whole site can take some time, from several seconds to a minute or more, because it is done by free services and AI models. The visible part is translated first. Please wait and do not close the page.'));lw.appendChild(el('div','v9-note','⚠️ The translation does not always succeed. It can be delayed, and sometimes you need to press the language again for it to translate successfully.'));
 lw.appendChild(el('div','v9-note','Your language may have much longer words than English, so some buttons, icons and animations may not fit or may look cramped. Also, not everything can always be translated: some texts, names, web results and video titles stay in their original language.'));
 body.appendChild(lw);
 body.appendChild(el('div','v9-note','Choose the language of the site. The text is machine-translated and may contain mistakes. Your own text, web results and video titles are not changed.'));
