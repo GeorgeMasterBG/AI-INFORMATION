@@ -1,5 +1,5 @@
 /* AI INFORMATION - search.js
-   home screen: the 950+ source search, filters, search summary, trending, radar, breaking news, live sources.
+   home screen: the source search, filters, search summary, trending, radar, breaking news, live sources.
    Only function declarations: they are called later by app.js (loaded last). */
 
 function sourceUrl(b,q){
@@ -14,7 +14,7 @@ function add(name,type,domain,tpl,region){if(!domain||have[domain])return;have[d
 LIVE.p=Promise.all([
 get('https://meta.wikimedia.org/w/api.php?action=sitematrix&format=json&origin=*&smtype=language&smsiteprop=url|sitename').then(function(j){var m=(j&&j.sitematrix)||{};Object.keys(m).forEach(function(k){if(!/^\d+$/.test(k))return;var L=m[k];(L.site||[]).forEach(function(x){if('closed' in x||'private' in x||'fishbowl' in x||!x.url)return;var h=x.url.replace(/^https?:\/\//,'');add((x.sitename||'Wikimedia')+' ('+(L.localname||L.name||L.code)+')','encyclopedia',h,'https://'+h+'/w/index.php?search={q}','INT');});});}),
 get('https://api.stackexchange.com/2.3/sites?pagesize=500').then(function(j){((j&&j.items)||[]).forEach(function(x){if(x.site_type!=='main_site'||!x.site_url)return;var h=x.site_url.replace(/^https?:\/\//,'');add(x.name+' (Stack Exchange)','tech',h,x.site_url+'/search?q={q}','INT');});})
-]).then(function(){if(LIVE.n){var sp=document.querySelector('.header h1 span:not(.ttl-l)');if(sp&&!window.AI_COUNTED){window.AI_COUNTED=1;sp.textContent=ALL_SOURCES.length+' SOURCES';}var fi=document.getElementById('filterInput');if(fi)fi.placeholder='Filter '+ALL_SOURCES.length+' sources (e.g. factcheck, bulgaria)…';}});
+]).then(function(){if(LIVE.n){var sp=document.querySelector('.header h1 span:not(.ttl-l)');var fi=document.getElementById('filterInput');if(fi)fi.placeholder='Filter sources (e.g. factcheck, bulgaria)…';}});
 return LIVE.p;
 }
 function generateSources(query){
@@ -25,7 +25,7 @@ url:sourceUrl(b,query),source:b.name,type:b.type,domain:b.domain,region:b.region
 });
 }
 function buildItem(s,full){
-var isFav=favorites.indexOf(s.uid)!==-1;
+var isFav=favIsSrc(s.id);
 var div=document.createElement('div');
 div.className='source-item'+(isFav?' favorited':'');
 div.setAttribute('data-uid',s.uid);
@@ -33,8 +33,9 @@ div.innerHTML='<b>['+(Number(s.id)+1)+'] '+esc(s.source)+' - '+esc(s.type)+'</b>
 +'<div style="font-size:11px;font-weight:bold;">'+esc(s.title)+'</div>'
 +'<div style="font-size:11px;opacity:0.8;margin:6px 0;line-height:1.5;">'+esc(s.snippet)+'</div>'
 +'<a href="'+esc(safeUrl(s.url))+'" target="_blank" rel="noopener noreferrer">Open on '+esc(s.domain||s.source)+' ↗</a>'
-+'<div style="font-size:9px;color:var(--gold);">'+esc(s.region||'')+' • '+(Number(s.id)+1)+'/'+ALL_SOURCES.length+'</div>'
-+'<button class="source-fav '+(isFav?'active':'')+'" data-uid="'+esc(s.uid)+'" type="button" aria-label="Favorite" onclick="toggleFav(this)">⭐</button>';
++'<div style="font-size:9px;color:var(--gold);">'+esc(s.region||'')+'</div>'
++'<button class="source-fav '+(isFav?'active':'')+'" data-uid="'+esc(s.uid)+'" data-id="'+Number(s.id)+'" type="button" aria-label="Favorite source (kept for every search)" title="Favorite source" onclick="toggleFav(this)">⭐</button>'
++'<button class="source-fav" style="right:52px" data-uid="'+esc(s.uid)+'" type="button" aria-label="Save this link" title="Save this exact link" onclick="toggleFavLink(this)">🔗</button>';
 return div;
 }
 function renderSources(list){
@@ -43,7 +44,7 @@ var resultDiv=document.getElementById('result');resultDiv.innerHTML='';
 if(!list.length){var e=document.createElement('div');e.style.cssText='text-align:center;padding:16px;opacity:0.8;';e.textContent='No sources match your filter';resultDiv.appendChild(e);}
 var toShow=list.slice(0,150);
 for(var i=0;i<toShow.length;i++)resultDiv.appendChild(buildItem(toShow[i],false));
-if(list.length>150){var more=document.createElement('div');more.style.cssText='text-align:center;padding:12px;background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;margin-top:10px;';more.innerHTML='Showing 150 of '+Number(list.length)+'<br><button type="button" onclick="renderAllSources()" style="margin-top:8px;padding:8px 16px;background:var(--accent);color:var(--bg);border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Load all '+Number(list.length)+'</button>';resultDiv.appendChild(more);}
+if(list.length>150){var more=document.createElement('div');more.style.cssText='text-align:center;padding:12px;background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;margin-top:10px;';more.innerHTML='Showing the first 150 results<br><button type="button" onclick="renderAllSources()" style="margin-top:8px;padding:8px 16px;background:var(--accent);color:var(--bg);border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Load all '+Number(list.length)+'</button>';resultDiv.appendChild(more);}
 resultDiv.style.display='block';document.getElementById('filterBox').style.display='block';document.getElementById('summaryBtn').style.display='block';try{clsAiDraw();}catch(e){}document.getElementById('shareBtn').style.display='block';document.getElementById('exportBtn').style.display='block';
 }
 function renderAllSources(){
@@ -52,7 +53,8 @@ var frag=document.createDocumentFragment();
 for(var i=0;i<currentFiltered.length;i++)frag.appendChild(buildItem(currentFiltered[i],true));
 resultDiv.appendChild(frag);
 }
-function toggleFav(btn){var uid=btn.getAttribute('data-uid');var idx=favorites.indexOf(uid);if(idx>-1){favorites.splice(idx,1);btn.classList.remove('active');btn.closest('.source-item').classList.remove('favorited');}else{favorites.push(uid);btn.classList.add('active');btn.closest('.source-item').classList.add('favorited');}store.set('ai_favorites',JSON.stringify(favorites));var s=document.getElementById('shareStatus');s.textContent=favorites.indexOf(uid)!==-1?'⭐ Added':'☆ Removed';s.style.display='block';setTimeout(function(){s.style.display='none';},1500);}
+function toggleFav(btn){var id=btn.getAttribute('data-id');var on=favToggleSrc(id);btn.classList.toggle('active',on);var it=btn.closest('.source-item');if(it)it.classList.toggle('favorited',on);var s2=document.getElementById('shareStatus');try{toast(on?'⭐ Saved as a favorite source':'Removed from favorite sources','var(--accent)',1800);}catch(e){}}
+function toggleFavLink(btn){var uid=btn.getAttribute('data-uid');var s2=null;for(var i=0;i<currentSources.length;i++)if(currentSources[i].uid===uid){s2=currentSources[i];break;}if(!s2)return;var on=favToggleLink({url:s2.url,title:s2.title,source:s2.source,snippet:s2.snippet});btn.classList.toggle('active',on);toast(on?'🔗 Link saved in Favorites':'Link removed from Favorites','var(--accent)',1800);}
 function fetchWiki(q,box){
 currentWiki=null;
 var lang=/[\u0400-\u04FF]/.test(q)?'bg':'en';
@@ -66,6 +68,9 @@ var p=pages[0];currentWiki={title:p.title,url:p.fullurl,text:p.extract||'',lang:
 box.appendChild(el('b','','📖 '+p.title+' · Wikipedia ('+lang.toUpperCase()+')'));
 box.appendChild(el('div','',(p.extract||'No introduction available.').slice(0,700)));
 var a=el('a','','Read the full article ↗');a.href=safeUrl(p.fullurl);a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='font-size:11px;color:var(--accent2);';box.appendChild(a);
+function wikiFav(pg,btn){var on=favToggleLink({url:pg.fullurl,title:pg.title+' – Wikipedia ('+lang.toUpperCase()+')',source:'Wikipedia '+lang.toUpperCase(),snippet:(pg.extract||'').slice(0,300)});btn.textContent=on?'🔗 Saved':'🔗 Save this article link';toast(on?'🔗 Article link saved in Favorites':'Link removed from Favorites','var(--accent)',1800);}
+var fb=mkBtn(favHasLink(p.fullurl)?'🔗 Saved':'🔗 Save this article link','',function(){wikiFav(p,fb);});fb.type='button';fb.style.cssText='display:block;margin-top:8px';box.appendChild(fb);
+pages.slice(1).forEach(function(pg){var r=el('div','');r.style.cssText='margin-top:8px;padding-top:8px;border-top:1px solid var(--border2);font-size:12px';r.appendChild(el('b','',pg.title));var al=el('a','',' Read ↗');al.href=safeUrl(pg.fullurl);al.target='_blank';al.rel='noopener noreferrer';r.appendChild(al);var b2=mkBtn(favHasLink(pg.fullurl)?'🔗 Saved':'🔗 Save link','',function(){wikiFav(pg,b2);});b2.type='button';b2.style.cssText='margin-left:8px;padding:2px 8px;font-size:11px';r.appendChild(b2);box.appendChild(r);});
 }).catch(function(){if(q===currentQuery)box.textContent='A live Wikipedia excerpt is not available here (network blocked or offline). The buttons below still open real searches.';});
 }
 function setFilterChip(t){var i=document.getElementById('filterInput');i.value=(i.value===t)?'':t;applyFilters();hideKeyboard();}
@@ -77,7 +82,7 @@ if(!q){
 verdict.innerHTML='<div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;text-align:center;">⚠️ Enter a topic first</div>';
 document.getElementById('q').focus();return;
 }
-verdict.innerHTML='<div style="background:var(--bg2);border:1px solid var(--accent);padding:10px;border-radius:8px;text-align:center;">⏳ Preparing searches on '+ALL_SOURCES.length+' sources for "'+esc(q)+'"…</div>';
+verdict.innerHTML='<div style="background:var(--bg2);border:1px solid var(--accent);padding:10px;border-radius:8px;text-align:center;">⏳ Preparing searches for "'+esc(q)+'"…</div>';
 result.style.display='block';
 setTimeout(hideKeyboard,100);
 Promise.race([loadLive(),new Promise(function(r){setTimeout(r,5500);})]).then(function(){
@@ -87,7 +92,7 @@ currentSources=generateSources(q);resetFilters();
 renderSources(currentSources);
 var chips=['factcheck','news','science','health','gov','bulgaria','bigtech'].map(function(t){return'<button type="button" class="src-chip" onclick="setFilterChip(\''+t+'\')">'+t+'</button>';}).join('');
 verdict.innerHTML='<div style="background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--accent);padding:12px;border-radius:8px;">'
-+'<b style="color:var(--accent);font-size:14px;">🔎 '+ALL_SOURCES.length+' sources for "'+esc(q)+'"</b>'
++'<b style="color:var(--accent);font-size:14px;">🔎 Sources for "'+esc(q)+'"</b>'
 +'<div style="font-size:11px;opacity:.85;line-height:1.5;margin-top:6px;">Each button below opens a real search on that website. This tool does not read those pages, so it cannot say whether something is true. Check at least one fact-checker, one news agency and one reference source.</div>'
 +'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">'+chips+'<button type="button" class="src-chip" onclick="if(window.openStd)openStd(currentQuery)">🔎 Standard Mode</button></div>'
 +'<div id="wikiBox" style="margin-top:10px;font-size:12px;line-height:1.5;padding:10px;background:var(--bg3);border-radius:8px;">⏳ Fetching a live Wikipedia excerpt…</div></div>';
@@ -95,14 +100,14 @@ fetchWiki(q,document.getElementById('wikiBox'));
 var lb=document.createElement('div');lb.id='liveBox';lb.style.cssText='margin-top:10px;font-size:12px;line-height:1.5;padding:10px;background:var(--bg3);border-radius:8px';document.getElementById('wikiBox').parentNode.appendChild(lb);if(window.liveSearch)liveSearch(q,lb);
 hideKeyboard();
 setTimeout(hideKeyboard,300);
-toast('Ready: '+currentSources.length+' sources');
+toast('Ready');
 }catch(e){verdict.innerHTML='<div style="background:#ff4444;color:#fff;padding:10px;border-radius:8px;"><b>Error:</b> '+esc(e.message)+'</div>';}
 });
 }
 function applyFilters(){
 var t=(document.getElementById('filterInput').value||'').trim().toLowerCase();
 var list=currentSources.filter(function(s){
-if(showOnlyFav&&favorites.indexOf(s.uid)===-1)return false;
+if(showOnlyFav&&!favIsSrc(s.id))return false;
 if(!t)return true;
 return (s.title+' '+s.source+' '+s.type+' '+(s.domain||'')+' '+(s.region||'')).toLowerCase().indexOf(t)!==-1;
 });
@@ -135,7 +140,7 @@ var box=document.getElementById('aiSummary'),overlay=document.getElementById('ai
 if(!currentSources.length){box.innerHTML='<div style="padding:20px;text-align:center;"><b>No results</b><br>Type a topic and press VERIFY first</div>';box.style.display='block';overlay.style.display='block';return;}
 function links(type,n){return currentSources.filter(function(s){return s.type===type;}).slice(0,n).map(function(s){return'<a href="'+esc(safeUrl(s.url))+'" target="_blank" rel="noopener noreferrer" style="display:block;margin:4px 0;color:var(--accent2);">'+esc(s.source)+' ↗</a>';}).join('');}
 var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h3 style="margin:0;color:var(--accent2);">📖 Summary</h3><button type="button" onclick="closeSummary()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;">✕</button></div>';
-h+='<div class="trust-badge">"'+esc(currentQuery)+'" · '+currentSources.length+' sources</div><div class="summary-text">';
+h+='<div class="trust-badge">"'+esc(currentQuery)+'"</div><div class="summary-text">';
 if(currentWiki&&currentWiki.text)h+='<b style="color:var(--gold);">📚 From Wikipedia ('+esc(currentWiki.lang.toUpperCase())+'): '+esc(currentWiki.title)+'</b><br>'+esc(currentWiki.text)+'<br><a href="'+esc(safeUrl(currentWiki.url))+'" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);">Full article ↗</a><br><br>';
 else h+='<i>No live excerpt is available (network blocked or no matching article).</i><br><br>';
 h+='<b style="color:var(--accent);">✅ Check the claim</b>'+links('factcheck',4)+'<br><b style="color:#ff8800;">📰 News agencies</b>'+links('agency',3)+'<br><b style="color:var(--accent);">🔬 Research</b>'+links('science',3);

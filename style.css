@@ -609,11 +609,25 @@ button:focus:not(:focus-visible),.scam-card:focus:not(:focus-visible){outline:no
 
 /* phones and tablets (touch only): a scroll handle on the right edge that stays visible a few seconds after scrolling and can be dragged; computers are not changed */
 @media (hover:none) and (pointer:coarse){
-html{scrollbar-width:none}
-html::-webkit-scrollbar{display:none}
-#sbThumb{position:fixed;right:0;top:0;width:26px;z-index:100001;touch-action:none;opacity:0;pointer-events:none;transition:opacity .25s;-webkit-tap-highlight-color:transparent}
+html.sb-handle{scrollbar-width:none}
+html.sb-handle::-webkit-scrollbar{display:none}
+#sbThumb{position:fixed;right:0;top:0;width:26px;z-index:100001;touch-action:none;opacity:0;pointer-events:none;transition:opacity .25s;-webkit-tap-highlight-color:transparent;will-change:transform,opacity;contain:strict;transform:translate3d(0,0,0)}
 #sbThumb.on{opacity:1;pointer-events:auto}
-#sbThumb i{position:absolute;right:3px;top:0;bottom:0;width:8px;border-radius:6px;background:color-mix(in srgb,var(--accent) 80%,transparent);box-shadow:0 0 0 1px rgba(0,0,0,.25);transition:width .15s}
-#sbThumb.drag i{width:14px;background:var(--accent)}
+@keyframes sbmove{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,calc(100dvh - var(--sbh,56px)),0)}}
+#sbThumb.cssmove{animation:sbmove linear both;animation-timeline:scroll(root block)}
+#sbThumb i{position:absolute;right:3px;top:0;bottom:0;width:8px;border-radius:6px;background:var(--accent);opacity:.85}
+#sbThumb.drag i{width:14px;opacity:1}
 }
 @media (prefers-reduced-motion:reduce){#sbThumb,#sbThumb i{transition:none}}
+
+/* a panel is open (page locked): hide the scroll progress line and the side handle */
+html[style*="overflow: hidden"] body::after,html[style*="overflow:hidden"] body::after,html[style*="overflow: hidden"] #sbThumb,html[style*="overflow:hidden"] #sbThumb{display:none!important}
+
+/* computers: use the wide screen. Panels get a wide centred column and their controls sit side by side */
+@media (min-width:1000px) and (hover:hover){
+.v9-panel:not(.std) .v9-pb{max-width:none;width:100%;margin:0;padding:20px max(24px,calc((100vw - 1500px)/2))}
+.v9-pb h3{grid-column:1/-1}
+#v9FeatBody,#v9SettingsBody{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:4px 28px;align-items:start}
+#v9FeatBody>*,#v9SettingsBody>*{min-width:0}
+#v9ChatBody>*{min-width:0}
+}

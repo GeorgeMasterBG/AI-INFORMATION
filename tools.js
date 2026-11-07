@@ -330,7 +330,7 @@ labCard('🧰','Tools',function(){if(!cur)t1.click();openPanel('v9Tools');},'rgb
 }
 function initClear(){
 var body=mkPanel('v9Clear','🧹 Quick clear');
-var SEARCH=/^(ai_v9_(recent|snaps|feedsum|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites)$/;
+var SEARCH=/^(ai_v9_(recent|snaps|feedsum|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites|ai_fav_sources|ai_fav_links)$/;
 var VIDEO=/^ai_v9_vidx$/;
 function keys(){var o=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0)o.push(k);}}catch(e){}return o;}
 function groups(){var g={search:[],video:[],settings:[]};keys().forEach(function(k){if(VIDEO.test(k))g.video.push(k);else if(SEARCH.test(k))g.search.push(k);else g.settings.push(k);});return g;}
@@ -442,7 +442,7 @@ body.appendChild(el('p','v9-note','“Auto” slowly goes through all the colour
 body.appendChild(mkBtn('Reset to green','',function(){set(0);}));
 body.appendChild(el('p','v9-note','Reset to green does not change the picture below.'));
 var bgBox=el('div','v9-card');bgBox.style.cssText='margin:14px 0;padding:12px';body.appendChild(bgBox);
-bgBox.appendChild(el('b','','🖼️ AI picture background'));
+bgBox.appendChild(el('b','','🖼️ Picture background'));bgBox.appendChild(el('p','v9-note','Upload your own picture from this device (it is not sent anywhere), or let an AI make one below.'));
 bgBox.appendChild(el('p','v9-note','Describe a picture (for example "calm blue mountains at dawn"). An AI image model on Cloudflare Workers AI makes it, and it is shown softly behind the site. Only your description is sent, and only when you press the button. It is stored on this device if you allow storage. AI pictures can look odd.'));
 var bgIn=document.createElement('input');bgIn.type='text';bgIn.maxLength=120;bgIn.placeholder='calm blue mountains at dawn';bgIn.setAttribute('aria-label','Describe the background picture');bgIn.style.cssText='width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);margin:8px 0 10px';bgBox.appendChild(bgIn);
 var POOL=['misty pine forest at sunrise','northern lights over a frozen lake','neon city street in the rain','soft pastel clouds at sunset','deep blue ocean waves','red desert dunes at dusk','galaxy of purple and teal stars','autumn leaves in golden light','snowy mountain peaks at dawn','calm lavender fields','tropical beach with turquoise water','glowing jellyfish in dark water','minimal green gradient waves','cherry blossoms in soft wind','old stone bridge in fog','aurora above a quiet village','abstract geometric shapes in green','waterfall in a mossy jungle','moonlit clouds over the sea','sunflower field under blue sky','paper-cut layered hills','watercolor sky with soft colours','starry desert night','lighthouse on a stormy coast','bamboo forest with morning light','crystal cave with glowing lights','floating islands in the sky','rainy window with city lights','warm sunset over rice terraces','abstract ink flowing in water','low-poly mountain landscape','foggy lake at first light','fireflies in a summer meadow','retro synthwave horizon','glacier with blue ice','quiet library with warm lamps','coral reef full of colour','sakura petals over a river','dark space with a green nebula','hot air balloons at sunrise'];
@@ -459,7 +459,16 @@ var more=mkBtn('🎲 New AI themes','',function(){more.disabled=true;bgSt.textCo
 aiAsk('bgideas',{text:'Seed: '+Math.random().toString(36).slice(2,10)}).then(function(j){var l=(j.ideas||[]).filter(function(x){return x&&x.length>=3;});if(!l.length)throw new Error('empty');drawChips(l.slice(0,8));bgSt.textContent='New themes from an AI model ('+aiShort(j.model)+'). Press one, then make the picture.';more.disabled=false;}).catch(function(){drawChips(pick6());bgSt.textContent='The AI could not answer, so here are other ready themes.';more.disabled=false;});});
 var rnd=mkBtn('🎲 Surprise me','',function(){var l=[].map.call(chipRow.children,function(c){return c.textContent;});bgIn.value=l[Math.floor(Math.random()*l.length)]||POOL[0];mk.click();});
 var rm=mkBtn('Remove picture','',function(){bgShow('');try{store.set('ai_bgimg','');}catch(e){}bgSt.textContent='Removed.';});
-[mk,rnd,more,rm].forEach(function(x){x.style.margin='0';btnRow.appendChild(x);});bgBox.appendChild(btnRow);bgBox.appendChild(bgSt);
+var upIn=document.createElement('input');upIn.type='file';upIn.accept='image/*';upIn.style.display='none';upIn.setAttribute('aria-label','Choose your own background picture');
+upIn.onchange=function(){var f=upIn.files&&upIn.files[0];upIn.value='';if(!f)return;if(!/^image\//.test(f.type)){bgSt.textContent='Please choose a picture file.';return;}
+bgSt.textContent='Preparing your picture…';var u=URL.createObjectURL(f),im=new Image();
+im.onload=function(){try{var M=1600,w=im.naturalWidth,h=im.naturalHeight,k=Math.min(1,M/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));var g=c.getContext('2d');g.drawImage(im,0,0,c.width,c.height);var d=c.toDataURL('image/jpeg',0.82);URL.revokeObjectURL(u);
+if(!/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(d))throw 0;bgShow(d);var saved=true;try{store.set('ai_bgimg',d);if(store.get('ai_bgimg')!==d)saved=false;}catch(e){saved=false;}
+bgSt.textContent='Done. Your picture stays on this device only and was not sent anywhere.'+(saved?'':' It could not be saved (storage is off or full), so it will be gone after you close the page.');}catch(e){bgSt.textContent='This picture could not be used. Try another one.';}};
+im.onerror=function(){URL.revokeObjectURL(u);bgSt.textContent='This picture could not be read. Try a JPG, PNG or WebP file.';};im.src=u;};
+var up=mkBtn('📁 Upload my own picture','pri',function(){upIn.click();});
+bgBox.appendChild(upIn);
+[up,mk,rnd,more,rm].forEach(function(x){x.style.margin='0';btnRow.appendChild(x);});bgBox.appendChild(btnRow);bgBox.appendChild(bgSt);
 try{var sv=store.get('ai_bgimg');if(sv&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(sv))bgShow(sv);}catch(e){}
 var hb=document.querySelector('.hdr-tools');var cb=el('button','hdr-chip','🎨 Colour');cb.id='colorBtn';cb.type='button';cb.setAttribute('aria-label','Accent colour');cb.onclick=function(){mark();openPanel('v9Color');};
 if(hb)hb.appendChild(cb);

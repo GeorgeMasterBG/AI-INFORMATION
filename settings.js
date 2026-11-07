@@ -121,10 +121,12 @@ body.appendChild(tinfo);window.AI_AUTOTHEME_REFRESH=tmark;tmark();
 var ah=el('h3','','Animations');ah.style.margin='16px 0 6px';body.appendChild(ah);
 body.appendChild(el('div','v9-note','Many animations (the shine around the logo, hover effects, the start animation) are switched off when your device asks to reduce motion. This is often on by default on a computer (Windows: Settings > Accessibility > Visual effects > Animation effects), and usually off on a phone. Here you can choose for this site only.'));
 var arow=el('div','');arow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(arow);
+body.appendChild(el('div','v9-note','⚠️ If animations are forced on (Always on), the site can be slower to start, especially on older phones and on slow connections.'));
 function curAnim(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
 var abtns=[];
 [['auto','Follow my device (default)'],['on','Always on'],['off','Off']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_anim',o[0]);}catch(e){}if(!store.get('ai_v9_anim'))try{localStorage.setItem('ai_v9_anim',o[0]);}catch(e){}if(window.AI_ANIM_APPLY)AI_ANIM_APPLY();if(window.AI_A11Y_APPLY)AI_A11Y_APPLY();mark();toast(o[0]==='on'?'Animations are on':o[0]==='off'?'Animations are off':'Animations follow your device','var(--accent)',2500);});b.style.margin='0';b.dataset.v=o[0];abtns.push(b);arow.appendChild(b);});
 function mark(){var c=curAnim();abtns.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});}mark();
+try{featExtras(body);}catch(e){}
 var all=mkBtn('Turn everything on','pri',function(){Object.keys(FT.off()).forEach(function(k){FT.set(k,true);});Object.keys(boxes).forEach(function(k){boxes[k].checked=true;});toast('All features are on','var(--accent)',2500);});all.style.marginTop='14px';body.appendChild(all);
 body.appendChild(el('p','v9-note','Always on: Accessibility, Language, Quick clear, Content filter, Colour, and this menu.'));
 var hb=document.querySelector('.hdr-tools');var b=el('button','hdr-chip','🎛️ Features');b.id='ftBtn';b.type='button';b.setAttribute('aria-label','Features: switch features on or off');b.onclick=function(){openPanel('v9Feat');};

@@ -55,7 +55,7 @@ btn('📖 Read the guide','pri',function(){tutorialRender('read');});btn('🖱�
 }else if(page==='read'){
 b.appendChild(el('p','','Use these examples as a quick map. Search results come from public sources; compare them and check important claims at the original pages.'));
 var groups=[
-['Search and research','Classic search checks a broad directory of 1918 sources. Standard Mode searches public sources, images and news, with filters and source comparison. Example: search “renewable energy”, then compare two different sources or search for a quote’s wider context.'],
+['Search and research','Classic search checks a broad directory of sources. Standard Mode searches public sources, images and news, with filters and source comparison. Example: search “renewable energy”, then compare two different sources or search for a quote’s wider context.'],
 ['Safety and media','Scam Lab checks URLs and message text with AI. Fake Image Checker can inspect image/video signals; the QR reader is in Tools. Example: paste a suspicious address into URL Scanner. No automated check can guarantee a link is safe.'],
 ['News and discovery','LIVE RADAR shows recent tech stories; Feed (with Videos and Posts choices) and Weekly security report offer more to explore. Example: open a headline, then save or share it.'],
 ['Chat and learning','AI Chat can answer with an open AI model (such as Google Gemma or Meta Llama on Cloudflare Workers AI, not ChatGPT) together with public sources; if the AI is unavailable it falls back to scripts and cited sources. AI Tips and Security Quiz provide short lessons. Example: ask a factual question and open the cited source.'],
@@ -136,27 +136,3 @@ body.appendChild(r3);
 openPanel('v9Share');
 }
 /* ---- EXPORT NEW INFORMATION ---- */
-function doExport(){
-hideKeyboard();
-var L=[],hr=function(t){L.push('');L.push('=== '+t+' ===');};
-L.push('AI INFORMATION – EXPORT NEW INFORMATION');L.push('Generated: '+new Date().toISOString());L.push('Page: '+location.href);
-hr('Current search');L.push('Query: '+(currentQuery||'(none)'));
-if(currentSources.length){L.push('Sources: '+currentSources.length);currentSources.forEach(function(x){L.push('['+(x.id+1)+'] '+x.source+' ('+x.type+') – '+x.title);L.push('    '+x.url);});}
-hr('Favorites');L.push(favorites.length?favorites.join(', '):'(none)');
-hr('LIVE RADAR (shown now)');
-[].forEach.call(document.querySelectorAll('#breakingNewsScroll a.breaking-item'),function(a){L.push('• '+a.textContent.replace(/\s+/g,' ').trim());L.push('    '+a.href);});
-hr('Saved radar stories');var sv=jget('ai_v9_saved',[]);if(!sv.length)L.push('(none)');sv.forEach(function(s){L.push('• '+s.title+' ('+s.time+')');L.push('    '+s.url);});
-hr('Trending');L.push([].map.call(document.querySelectorAll('#trendingScroll > *'),function(x){return x.textContent.trim();}).join(' | ')||'(none)');
-hr('Scam Lab');var any=false;ACT.forEach(function(a){if(a.k==='scam'){any=true;L.push('['+a.t+'] '+a.d.mode+': '+a.d.input);if(a.d.result)L.push('    Result: '+a.d.result);}});if(!any)L.push('(nothing run)');
-var sr=$('scamResult');if(sr&&sr.textContent.trim()){L.push('Latest result on screen:');L.push(sr.innerText.trim());}
-hr('Fake Image Checker');any=false;ACT.forEach(function(a){if(a.k==='fake'){any=true;L.push('['+a.t+'] '+a.d.name+' ('+a.d.type+', '+fmtBytes(a.d.size)+')');if(a.d.result)L.push('    '+a.d.result);}});if(!any)L.push('(nothing checked)');
-hr('AI Chat');var ch=jget('ai_v9_chat',[]);if(!ch.length)L.push('(no conversation)');ch.forEach(function(m){L.push((m.role==='user'?'You: ':'AI: ')+m.content);});
-hr('AI tips');var tp=jget('ai_v9_tips',[]);if(!tp.length)L.push('(none)');tp.forEach(function(t){L.push('['+t.t+'] ('+t.topic+') '+t.text);});
-hr('Videos / feed / weather');
-ACT.forEach(function(a){if(/^(video|weather|feed|player)$/.test(a.k))L.push('['+a.t+'] '+a.k+': '+(typeof a.d==='string'?a.d:JSON.stringify(a.d)));});
-var wx=$('wxChip');if(wx)L.push('Weather chip: '+wx.textContent.trim());
-hr('Everything you did in this site (newest last)');
-ACT.forEach(function(a){L.push('['+a.t+'] '+a.k+' '+(typeof a.d==='string'?a.d:JSON.stringify(a.d)).slice(0,300));});
-logAct('export','new information');
-saveFile('ai-information-export-'+new Date().toISOString().slice(0,10)+'.txt',L.join('\n'),'text/plain');
-}

@@ -51,7 +51,13 @@ function how(){return ios?'On iPhone: Settings → Privacy & Security → Locati
 if(!window.isSecureContext){finish(function(){approx('Phones only allow location on secure (https://) pages, and this page is not secure.');});return;}
 if(!navigator.geolocation){finish(function(){approx('This browser has no location access.');});return;}
 try{
-navigator.geolocation.getCurrentPosition(function(p){finish(function(){logAct('weather','geolocation');use('My location',p.coords.latitude,p.coords.longitude,'');});},
+navigator.geolocation.getCurrentPosition(function(p){finish(function(){logAct('weather','geolocation');use('My location',p.coords.latitude,p.coords.longitude,'Finding your city…');
+var la=p.coords.latitude,lo=p.coords.longitude;
+fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en&latitude='+la+'&longitude='+lo).then(function(r){return r.json();}).then(function(g){
+var city=g&&(g.city||g.locality||g.principalSubdivision);if(!city)throw 0;var nm=city+(g.countryName?', '+g.countryName:'');
+if(wxLoc&&wxLoc.lat===la&&wxLoc.lon===lo){wxLoc={name:nm,lat:la,lon:lo};jset('ai_wx_loc',wxLoc);}
+say('Your location was found automatically: '+nm+' (city name looked up with bigdatacloud.net).',true);try{wxRender();}catch(e){}
+}).catch(function(){say('Location found. The city name could not be looked up.',true);});});},
 function(e){finish(function(){approx(e&&e.code===1?(embedded?'This preview window is not allowed to ask for your location, so the browser shows no permission prompt.':'Location permission is blocked for this site. '+how()):'Your device could not provide a location (turn on GPS/Location Services and try again).');if(embedded)openOut();});},{timeout:9000,maximumAge:600000,enableHighAccuracy:false});
 }catch(e){finish(function(){approx('Location is blocked in this window.');});}
 }

@@ -1,8 +1,8 @@
 'use strict';
-const CACHE = 'aiinfo-v81';
+const CACHE = 'aiinfo-v105';
 // registered as sw.js?n=1 when the visitor only turned on notifications: no caching, no fetch handling
 const NOTIFY_ONLY = /[?&]n=1/.test(self.location.search);
-const SHELL = ['./', '/style.css?v=141', '/ai.js?v=141', '/sources.js?v=141', '/core.js?v=141', '/search.js?v=141', '/scamlab.js?v=141', '/welcome.js?v=141', '/compare.js?v=141', '/tools.js?v=141', '/quiz.js?v=141', '/dict.js?v=141', '/language.js?v=141', '/settings.js?v=141', '/legal.js?v=141', '/weather.js?v=141', '/video.js?v=141', '/quote.js?v=141', '/app.js?v=141', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
+const SHELL = ['./', '/style.css?v=165', '/ai.js?v=165', '/sources.js?v=165', '/core.js?v=165', '/search.js?v=165', '/scamlab.js?v=165', '/welcome.js?v=165', '/compare.js?v=165', '/tools.js?v=165', '/quiz.js?v=165', '/dict.js?v=165', '/language.js?v=165', '/settings.js?v=165', '/legal.js?v=165', '/weather.js?v=165', '/video.js?v=165', '/quote.js?v=165', '/extras.js?v=165', '/app.js?v=165', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 // read-only API answers that are safe to show instantly and refresh in the background
 const API_OK = /^\/api\/x\/(videos|feed|search|article|news|digest|weather|define)$/;
 const FRESH = 5 * 60 * 1000, STALE = 6 * 3600 * 1000, MAXN = 60;
@@ -18,7 +18,6 @@ self.addEventListener('activate', e => {
     const old = ks.filter(k => /^aiinfo-/.test(k) && k !== CACHE); // never touch the video cache
     await Promise.all(old.map(k => caches.delete(k)));
     await self.clients.claim();
-    if (old.length) (await self.clients.matchAll()).forEach(c => c.postMessage({ type: 'sw-updated' }));
   })());
 });
 async function trim(c) {
