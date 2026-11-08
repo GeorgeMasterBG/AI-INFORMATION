@@ -1,4 +1,4 @@
-[AI INFORMATION Banner](icon-maskable-512.png)
+[AI INFORMATION Banner](https://raw.githubusercontent.com/GeorgeMasterBG/AI-INFORMATION/main/icon-maskable-512.png)
 
 # AI-INFORMATION
 
@@ -20,7 +20,7 @@ I built the idea, I directed the project, and AI helped me write the code. I und
 ## Features
 
 - **AI Assistant** — ask questions, get clear answers
-- **ScamLab** — check links, messages and offers for scams (AI Security)
+- **Scam Lab** — check links, messages and offers for scams (AI Security)
 - **Search & Compare** — search information and compare two things
 - **Quiz, Weather, Video, Tools** — everyday tools in one place
 - **Privacy first** — no ads, no selling data, open source
@@ -30,7 +30,7 @@ I built the idea, I directed the project, and AI helped me write the code. I und
 1. **Face — `index.html`** — what the user sees
 2. **Brain — `app.js` + `core.js`** — main logic, connects all parts
 3. **AI — `ai.js`** — talks to the AI, sends questions, gets answers
-4. **Guardian — `scamlab.js`** — checks for scams and protects the user
+4. **Guardian — `scamlab.js` — Scam Lab** — checks for scams and protects the user
 5. **Tools — `search.js`, `compare.js`, `quiz.js`, `weather.js`, `video.js`** — daily tools
 6. **Cloud — `_worker.js` + Cloudflare Pages / Workers** — hosted on fast global servers
 
@@ -44,7 +44,7 @@ I built the idea, I directed the project, and AI helped me write the code. I und
 ## How to use
 
 1. Open https://ai-information.pages.dev/
-2. Choose a tool — AI, ScamLab, Search, Quiz
+2. Choose a tool — AI, Scam Lab, Search, Quiz
 3. Use it — no account, no install
 
 ## For developers
@@ -65,5 +65,4 @@ Main files: `index.html`, `app.js`, `core.js`, `ai.js`, `scamlab.js`
 ## Project
 
 - **Author:** GeorgeMasterBG
-- **Status:** Active, updated weekly
 - **License:** Open source
