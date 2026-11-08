@@ -1,4 +1,4 @@
-[AI INFORMATION Banner](https://raw.githubusercontent.com/GeorgeMasterBG/AI-INFORMATION/main/icon-maskable-512.png)
+[AI INFORMATION Banner](./icon-maskable-512.png)
 
 # AI-INFORMATION
 
