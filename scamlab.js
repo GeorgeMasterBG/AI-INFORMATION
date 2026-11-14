@@ -258,20 +258,12 @@ var bmp2=await createImageBitmap(blob);
 var c2=document.createElement('canvas');c2.width=cw;c2.height=ch;
 var x2=c2.getContext('2d',{willReadFrequently:true});x2.drawImage(bmp2,0,0);
 var a=x1.getImageData(0,0,cw,ch),A=a.data,B=x2.getImageData(0,0,cw,ch).data;
-var gx=16,gy=16,cells=new Float64Array(gx*gy),cnt=new Uint32Array(gx*gy),sum=0;
-for(var y=0;y<ch;y++){
-var cy=Math.min(gy-1,Math.floor(y*gy/ch));
-for(var x=0;x<cw;x++){
-var p=(y*cw+x)*4,d=(Math.abs(A[p]-B[p])+Math.abs(A[p+1]-B[p+1])+Math.abs(A[p+2]-B[p+2]))/3;
-sum+=d;var ci=cy*gx+Math.min(gx-1,Math.floor(x*gx/cw));cells[ci]+=d;cnt[ci]++;
-var v=Math.min(255,d*20);A[p]=v;A[p+1]=v;A[p+2]=v;A[p+3]=255;
-}
-}
+await FASTLAB.ready;var res=FASTLAB.ela(A,B,cw,ch),cells=res.cells,cnt=res.cnt,sum=res.sum;
 x1.putImageData(a,0,0);
 var means=[];for(var k=0;k<cells.length;k++)if(cnt[k])means.push(cells[k]/cnt[k]);
 var sorted=means.slice().sort(function(m,n){return m-n;}),median=sorted[Math.floor(sorted.length/2)]||0,flagged=0;
 means.forEach(function(m){if(m>4&&m>median*3.5)flagged++;});
-return{canvas:c1,mean:sum/(cw*ch),median:median,flagged:flagged,total:means.length,cropped:cropped,cw:cw,ch:ch};
+return{canvas:c1,mean:sum/(cw*ch),median:median,flagged:flagged,total:means.length,cropped:cropped,cw:cw,ch:ch,engine:'Rust',ms:FASTLAB.ms,why:FASTLAB.why};
 }
 async function analyzeMedia(file){
 var isVideo=file.type.indexOf('video')===0,size=file.size,items=[],nodes=[];
@@ -326,12 +318,12 @@ var holder=el('div','');holder.id='fakeEla';holder.appendChild(ela.canvas);holde
 if(ela.flagged>0&&ela.flagged<=ela.total*0.1)items.push({sev:'low',title:'ELA: '+ela.flagged+' of '+ela.total+' zones compress differently from the rest',detail:'A few isolated zones. This can mean part of the picture was edited, but sharp edges and text trigger it too. Look at the map.'});
 else if(ela.flagged>ela.total*0.1)items.push({sev:'info',title:'ELA: uneven across much of the image',detail:'Detailed textures, noise and sharp edges cause this. It does not point to one specific edit.'});
 else items.push({sev:'info',title:'ELA: compression level looks uniform',detail:'No obvious local edit found. This does not rule out AI generation or edits to the whole picture.'});
-}catch(e){items.push({sev:'info',title:'ELA could not run on this file',detail:''});}
+}catch(e){items.push({sev:'info',title:'ELA could not run on this file',detail:/^Rust/.test(String(e&&e.message))?String(e.message):''});}
 }else if(fmt==='jpeg'&&big)items.push({sev:'info',title:'File too large for in-browser ELA',detail:'Only the first 40 MB were read for metadata.'});
 else if(fmt!=='jpeg')items.push({sev:'info',title:'ELA skipped',detail:'It works on JPEG files. PNG and other lossless formats carry no compression history.'});
 }else{
-try{await analyzeVideo(file,items,nodes);}
-catch(e){items.push({sev:'info',title:'Frames could not be read in this browser',detail:'Only metadata and markers were checked. The browser may not support this video codec.'});}
+try{await FASTLAB.ready;await analyzeVideo(file,items,nodes);}
+catch(e){items.push({sev:'info',title:'Frames could not be read in this browser',detail:(/^Rust/.test(String(e&&e.message))?String(e.message)+'. ':'')+'Only metadata and markers were checked. The browser may not support this video codec.'});}
 }
 if(!big&&window.crypto&&crypto.subtle&&size<=40*1048576){
 try{var buf=await file.arrayBuffer(),h=await crypto.subtle.digest('SHA-256',buf),hex=Array.prototype.map.call(new Uint8Array(h),function(x){return('0'+x.toString(16)).slice(-2);}).join('');
@@ -353,13 +345,7 @@ var done=false,to=setTimeout(function(){if(!done){done=true;rej(new Error('seek 
 v.onseeked=function(){if(!done){done=true;clearTimeout(to);res();}};
 v.currentTime=t;});}
 function frameStats(ctx,w,h,prev){
-var d=ctx.getImageData(0,0,w,h).data,n=w*h,g=new Float32Array(n),i,x,y;
-for(i=0;i<n;i++)g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
-var noise=0,l1=0,l2=0,cnt=0,diff=null;
-for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){
-var c=g[y*w+x],dev=c-(g[y*w+x-1]+g[y*w+x+1]+g[(y-1)*w+x]+g[(y+1)*w+x])/4;
-noise+=Math.abs(dev);l1+=dev*4;l2+=dev*dev*16;cnt++;
-}
+var d=ctx.getImageData(0,0,w,h).data,n=w*h,i,r=FASTLAB.frame(d,w,h),g=r.gray,noise=r.noise,l1=r.l1,l2=r.l2,cnt=r.cnt,diff=null;
 if(prev){var s=0;for(i=0;i<n;i++)s+=Math.abs(g[i]-prev[i]);diff=s/n;}
 return{gray:g,noise:noise/cnt,sharp:l2/cnt-(l1/cnt)*(l1/cnt),diff:diff};
 }

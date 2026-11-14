@@ -111,7 +111,7 @@ function h(t){var x=el('h3','',t);x.style.margin='16px 0 6px';body.appendChild(x
 h('Scrolling');body.lastChild.id='sbSection';
 body.appendChild(el('div','v9-note','On a phone or tablet the site has its own scroll handle at the right edge. It is different from the standard scroll bar: press and hold it, then drag to the place where you want to be. It stays visible for a few seconds after you scroll. On a computer nothing changes.'));
 var sr=el('div','');sr.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(sr);var sb=[];
-[['handle','Quick scroll handle (new)'],['standard','Standard scroll']].forEach(function(o){var b=mkBtn(o[1],'',function(){store.set('ai_sbmode',o[0]);if(window.AI_SB_APPLY)AI_SB_APPLY();mk();});b.dataset.v=o[0];b.type='button';sr.appendChild(b);sb.push(b);});
+[['handle','Quick scroll handle'],['standard','Standard scroll']].forEach(function(o){var b=mkBtn(o[1],'',function(){store.set('ai_sbmode',o[0]);if(window.AI_SB_APPLY)AI_SB_APPLY();mk();});b.dataset.v=o[0];b.type='button';sr.appendChild(b);sb.push(b);});
 function mk(){var c=sbMode();sb.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});}mk();
 /* favourite functions */
 h('⭐ My favorite functions');
@@ -154,6 +154,10 @@ var LBL={open:'Opened',search:'Searched',chat:'Asked the AI',dict:'Dictionary',c
 function human(a){var d=a.d;if(d==null)return '';if(typeof d==='string')return /^(loaded )?\d+( \(\d+ new\))?$/.test(d)?'':d;if(typeof d==='object')return Object.keys(d).map(function(k){var v=d[k];return typeof v==='string'||typeof v==='number'?v:'';}).filter(function(v){return v!==''&&!/^\d+$/.test(String(v));}).join(' · ');return String(d);}
 var used={};ACT.forEach(function(a){if(a.k==='open'&&typeof a.d==='string')used[a.d]=(used[a.d]||0)+1;});
 s=sec('🧰','Functions you used');var un=Object.keys(used);if(!un.length)row(s,'(none yet)');un.forEach(function(k){row(s,k+' – opened '+used[k]+(used[k]===1?' time':' times'));});
+var ALLF=[['📰 Feed','feed'],['🎬 Videos and Reels','video|reel'],['🚨 Breaking news bar','news'],['🔥 Trending bar','trend'],['🔎 Classic Search','search'],['🔎 Standard Search','standard|std'],['⭐ Favorite sources and links','favou?rite|fav'],['🤖 AI Chat','ai chat|asked the ai|chat'],['✨ AI Summary of search results','summary'],['🌤️ Weather','weather'],['🌍 Translator','translat'],['📖 Dictionary','dict'],['🧮 Calculator','calc'],['⚖️ Compare','compar'],['🔎 Quote context','quote'],['⏰ Reminders','remind'],['🔗 URL Scanner','url scan|scamlab|scan'],['📝 Text Analyzer','text analy'],['🖼️ Fake image checker','fake'],['🛡️ Weekly report','weekly'],['💡 AI Tip','tip'],['🧰 Tools (password rating, photo text, QR, photo location, Multi-Source Scan)','tools|password|qr|location|multi'],['🎮 Quiz','quiz'],['🎨 Colour, theme and picture background','colou?r|theme|background|picture'],['🌐 Language','language'],['⚙️ Features and settings','features|settings'],['💾 Session save and load','session'],['📲 Install','install'],['📄 Export','export']];
+var ALLT=ACT.map(function(a){return (a.k+' '+human(a)).toLowerCase();}).join('\n');
+s=sec('🧭','All functions of the site (✓ = you used it in this session)');
+ALLF.forEach(function(f){var u=false;try{u=new RegExp(f[1],'i').test(ALLT);}catch(e){}row(s,(u?'✓ ':'– ')+f[0]);});
 s=sec('🕘','Everything you did in this site (newest last)');var shown=0;ACT.forEach(function(a){if(/^(feed|player|cache|session|export)$/.test(a.k))return;var t=human(a).slice(0,300);if(!t)return;shown++;row(s,(LBL[a.k]||a.k)+': '+t,'',a.t);});if(!shown)row(s,'(nothing yet)');
 var css='*{box-sizing:border-box}html{color-scheme:dark light}body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#0b110e;color:#e8f1ec}'
 +'.wrap{max-width:860px;margin:0 auto;padding:0 16px 48px}header{padding:44px 16px 30px;text-align:center;background:radial-gradient(120% 140% at 50% 0%,#0f3d2a 0%,#0b110e 70%);border-bottom:1px solid #1d3a2c}'
@@ -265,3 +269,10 @@ function chatSet(m,text){m.textContent='';m.appendChild(richText(text));if(Strin
 
 /* every opened panel is written to the activity log so the export can list the functions that were used */
 (function(){if(typeof openPanel!=='function')return;var _op=openPanel,lastO='';openPanel=function(id){try{var p=document.getElementById(id),t=p&&p.getAttribute('aria-label');if(t&&t!==lastO){lastO=t;logAct('open',t);}setTimeout(function(){lastO='';},800);}catch(e){}return _op.apply(this,arguments);};})();
+
+/* Export becomes available only when the search and every AI answer are finished */
+(function(){var N=0,lab='📄 EXPORT NEW INFORMATION';
+if(typeof xpost==='function'){var _x=xpost;xpost=function(path){var ai=/^(assist|chat|chatstream|summary|advice)$/.test(String(path||''));if(ai)N++;var p;try{p=_x.apply(this,arguments);}catch(e){if(ai)N--;throw e;}if(ai){var d=function(){N=Math.max(0,N-1);};Promise.resolve(p).then(d,d);}return p;};}
+function tick(){try{var b=document.getElementById('exportBtn');if(!b||b.style.display==='none')return;var v=document.getElementById('verdict'),busy=N>0||(v&&/⏳/.test(v.textContent||''));
+if(busy){if(!b.disabled){b.disabled=true;}b.textContent='⏳ Waiting for the search and the AI to finish…';}else if(b.disabled){b.disabled=false;b.textContent=lab;}}catch(e){}}
+setInterval(tick,400);})();

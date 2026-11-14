@@ -122,9 +122,9 @@ var ah=el('h3','','Animations');ah.style.margin='16px 0 6px';body.appendChild(ah
 body.appendChild(el('div','v9-note','Many animations (the shine around the logo, hover effects, the start animation) are switched off when your device asks to reduce motion. This is often on by default on a computer (Windows: Settings > Accessibility > Visual effects > Animation effects), and usually off on a phone. Here you can choose for this site only.'));
 var arow=el('div','');arow.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin:8px 0';body.appendChild(arow);
 body.appendChild(el('div','v9-note','⚠️ If animations are forced on (Always on), the site can be slower to start, especially on older phones and on slow connections.'));
-function curAnim(){var p='auto';try{p=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}return p==='on'||p==='off'?p:'auto';}
+function curAnim(){var p='on';try{p=localStorage.getItem('ai_v9_anim')||'on';}catch(e){}return p==='auto'||p==='off'?p:'on';}
 var abtns=[];
-[['auto','Follow my device (default)'],['on','Always on'],['off','Off']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_anim',o[0]);}catch(e){}if(!store.get('ai_v9_anim'))try{localStorage.setItem('ai_v9_anim',o[0]);}catch(e){}if(window.AI_ANIM_APPLY)AI_ANIM_APPLY();if(window.AI_A11Y_APPLY)AI_A11Y_APPLY();mark();toast(o[0]==='on'?'Animations are on':o[0]==='off'?'Animations are off':'Animations follow your device','var(--accent)',2500);});b.style.margin='0';b.dataset.v=o[0];abtns.push(b);arow.appendChild(b);});
+[['auto','Follow my device'],['on','Always on (default)'],['off','Off']].forEach(function(o){var b=mkBtn(o[1],'',function(){try{store.set('ai_v9_anim',o[0]);}catch(e){}if(!store.get('ai_v9_anim'))try{localStorage.setItem('ai_v9_anim',o[0]);}catch(e){}if(window.AI_ANIM_APPLY)AI_ANIM_APPLY();if(window.AI_A11Y_APPLY)AI_A11Y_APPLY();mark();toast(o[0]==='on'?'Animations are on':o[0]==='off'?'Animations are off':'Animations follow your device','var(--accent)',2500);});b.style.margin='0';b.dataset.v=o[0];abtns.push(b);arow.appendChild(b);});
 function mark(){var c=curAnim();abtns.forEach(function(b){b.style.outline=b.dataset.v===c?'3px solid var(--text)':'none';});}mark();
 try{featExtras(body);}catch(e){}
 var all=mkBtn('Turn everything on','pri',function(){Object.keys(FT.off()).forEach(function(k){FT.set(k,true);});Object.keys(boxes).forEach(function(k){boxes[k].checked=true;});toast('All features are on','var(--accent)',2500);});all.style.marginTop='14px';body.appendChild(all);
@@ -290,6 +290,7 @@ function strip(h){try{return new DOMParser().parseFromString(String(h||''),'text
 var imgIO=null;
 function imgAuto(S){
 if(imgIO){imgIO.disconnect();imgIO=null;}
+try{if(!localStorage.getItem('ai_v9_imgauto_off1')){localStorage.setItem('ai_v9_imgauto_off1','1');jset('ai_v9_imgauto',false);}}catch(e){}/* once: pictures Auto starts switched off for everybody */
 var lb=el('label','v9-note');lb.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 4px;cursor:pointer';var cb=document.createElement('input');cb.type='checkbox';cb.checked=jget('ai_v9_imgauto',false)===true;
 cb.onchange=function(){jset('ai_v9_imgauto',cb.checked);imgAuto(S);};lb.appendChild(cb);lb.appendChild(document.createTextNode('Auto: load more pictures while I scroll'));more.appendChild(lb);
 if(!cb.checked||!window.IntersectionObserver||S.items.length<S.shown)return;
@@ -470,7 +471,7 @@ if(!sumSt.open)return;
 var box=el('div','v9-card');box.style.cssText='margin:6px 0 10px;padding:12px;line-height:1.55';box.setAttribute('role','region');box.setAttribute('aria-label','AI Summary');
 box.appendChild(el('b','','✨ AI Summary of '+Math.min(curList.length,14)+' results'));
 var mr=mkModelRow();var ms=mr.msel;mr.removeChild(mr.lastChild);
-ms.addEventListener('change',function(){genSum(ms.value);});box.appendChild(mr);
+ms.addEventListener('change',function(){genSum(ms.value);});box.appendChild(mr);try{box.appendChild(mkStyleBox());}catch(e){}
 var al=el('label','v9-note');al.style.cssText='display:flex;gap:8px;align-items:center;margin:4px 0;cursor:pointer';var acb=document.createElement('input');acb.type='checkbox';acb.checked=autoSumOn();acb.onchange=function(){jset('ai_v9_autosum',acb.checked);};al.appendChild(acb);al.appendChild(document.createTextNode('Write the summary automatically after each search (sends the shown results to the AI model; turn off to send only when you press ✨)'));box.appendChild(al);
 var body=el('div','');body.style.cssText='margin:8px 0;white-space:pre-wrap';
 if(sumSt.busy){body.textContent='Asking the AI model… (it reads only the titles and snippets of the results)';}
@@ -579,7 +580,7 @@ function load(){var o=null;try{o=JSON.parse(store.get('ai_a11y')||'null');}catch
 if(!o||typeof o!=='object'){var rm=false;try{rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}o={size:0,hc:false,rm:rm};}
 o.size=[0,1,2].indexOf(o.size)!==-1?o.size:0;o.hc=!!o.hc;o.rm=!!o.rm;return o;}
 var st=load();
-function apply(){D.classList.toggle('a11y-l',st.size===1);D.classList.toggle('a11y-xl',st.size===2);D.classList.toggle('a11y-hc',st.hc);var ap='auto';try{ap=localStorage.getItem('ai_v9_anim')||'auto';}catch(e){}D.classList.toggle('a11y-rm',ap==='on'?false:ap==='off'?true:st.rm);}
+function apply(){D.classList.toggle('a11y-l',st.size===1);D.classList.toggle('a11y-xl',st.size===2);D.classList.toggle('a11y-hc',st.hc);var ap='on';try{ap=localStorage.getItem('ai_v9_anim')||'on';}catch(e){}D.classList.toggle('a11y-rm',ap==='on'?false:ap==='off'?true:st.rm);}
 window.AI_A11Y_APPLY=apply;
 function save(){store.set('ai_a11y',JSON.stringify(st));apply();}
 apply();

@@ -52,6 +52,7 @@ var m=/-([A-Za-z]{2})\b/.exec(navigator.language||'');return m?m[1].toUpperCase(
 }
 function xurl(route,q){var p=new URLSearchParams(q||{});p.set('country',country());if(route==='videos'||route==='feed')p.set('qv','2');return '/api/x/'+route+'?'+p.toString();}
 function waitApi(){return new Promise(function(res){var t0=Date.now();(function chk(){if(API.ok||API.done||Date.now()-t0>4000||!/^https?:$/.test(location.protocol))res();else setTimeout(chk,100);})();});}
+function waitApiOk(){return waitApi().then(function(){if(!API.ok&&window.apiRetry)return window.apiRetry();});}
 function xget(route,q,timeout){
 var ttl=XCT[route],key=ttl?xurl(route,q):'',now=Date.now();
 if(key&&XC[key]){if(XC[key].j&&now-XC[key].t<ttl)return Promise.resolve(XC[key].j);if(XC[key].p)return XC[key].p;}
@@ -60,7 +61,7 @@ if(key){XC[key]={t:now,p:pr};pr.then(function(j){XC[key]={t:Date.now(),j:j};},fu
 return pr;
 }
 function xpost(route,body,timeout,signal){
-return waitApi().then(function(){if(!API.ok)throw new Error('needs-server');return apiFetch('/api/x/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),timeout:timeout||25000,signal:signal});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.ok===false)throw new Error(j.error||('http '+r.status));return j;});});
+return waitApiOk().then(function(){if(!API.ok)throw new Error('needs-server');return apiFetch('/api/x/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),timeout:timeout||25000,signal:signal});}).then(function(r){return r.json().then(function(j){if(!r.ok||j.ok===false)throw new Error(j.error||('http '+r.status));return j;});});
 }
 function needsServer(box){box.textContent='';box.appendChild(el('div','v9-note','This feature needs the Cloudflare Worker (or the Node server). It is not available in this preview.'));}
 function extOf(type,url){

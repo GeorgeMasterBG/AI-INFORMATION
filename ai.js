@@ -8,7 +8,7 @@ if(!clsSt||clsSt.q!==currentQuery){clsSt={q:currentQuery,versions:[],cur:-1,busy
 w.textContent='';var st=clsSt;
 var box=document.createElement('div');box.className='v9-card';box.style.cssText='margin:8px 0;padding:12px;line-height:1.55';box.setAttribute('role','region');box.setAttribute('aria-label','AI Summary');
 var h=document.createElement('b');h.textContent='✨ AI Summary of "'+currentQuery+'"';box.appendChild(h);
-try{var mr=mkModelRow();var ms=mr.msel;mr.removeChild(mr.lastChild);ms.addEventListener('change',function(){clsGen(ms.value);});box.appendChild(mr);}catch(e){}
+try{var mr=mkModelRow();var ms=mr.msel;mr.removeChild(mr.lastChild);ms.addEventListener('change',function(){clsGen(ms.value);});box.appendChild(mr);box.appendChild(mkStyleBox());}catch(e){}
 var b=document.createElement('div');b.style.cssText='margin:8px 0;white-space:pre-wrap';
 b.textContent=st.busy?'Asking the AI model… (it reads only the names and short descriptions of the sources found)':(st.cur>=0?st.versions[st.cur].text:(st.err?'⚠️ '+st.err:''));box.appendChild(b);
 if(st.versions.length){var vr=document.createElement('div');vr.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;max-width:100%;min-width:0';
@@ -64,7 +64,7 @@ function aiShort(m){return AI_SHORT[m]||String(m||'').replace(/^@cf\//,'');}
 
 function aiLang(){var l=String(document.documentElement.lang||navigator.language||'en');if(/^bg/i.test(l))return 'Bulgarian';try{var n=new Intl.DisplayNames(['en'],{type:'language'}).of(l.split('-')[0]);if(n&&/^[A-Za-z ()\-]{2,30}$/.test(n)&&n!==l)return n;}catch(e){}return 'English';}
 
-function aiAsk(task,req,signal){var o=Object.assign({task:task,model:modelPick()},req||{});o.extra=Object.assign({lang:aiLang()},o.extra||{});return xpost('assist',o,45000,signal);}
+function aiAsk(task,req,signal){var o=Object.assign({task:task,model:modelPick(),style:getStyle().slice(0,1200)},req||{});o.extra=Object.assign({lang:aiLang()},o.extra||{});return xpost('assist',o,45000,signal);}
 
 function aiErrText(e){var m=String((e&&e.message)||e);return /needs-server|501|needs Workers AI/.test(m)?'AI needs the Cloudflare Worker with Workers AI switched on.':'The AI model did not answer ('+m.slice(0,150)+'). Try another model.';}
 
@@ -161,7 +161,7 @@ var STYLE_PRE=[['🧭 Honest and direct (default)',STYLE_DEF],
 ['🎓 Explain simply','Explain things in very simple words, with a small everyday example, as if to a curious beginner. Never invent facts. If you are not sure, say so.'],
 ['🔬 Detailed and technical','Be detailed and technical. Give the reasoning step by step, note the edge cases and the trade-offs, and say how sure you are. Never invent facts, names, links or numbers.'],
 ['🛠️ Code helper','You are a senior developer. Ask nothing unless it is truly needed. Give complete working code in one block, then a short note on how it works and what could go wrong. Say plainly when something will not work.']];
-function getStyle(){var v=jget('ai_v9_style',null);return typeof v==='string'&&v!==STYLE_OLD_BG?v:STYLE_DEF;}
+function getStyle(){var v=jget('ai_v9_style',null);return typeof v==='string'&&v!==STYLE_OLD_BG&&!/^\s*Ти си фактически/.test(v)?v:STYLE_DEF;}
 function mkStyleBox(){
 var d=document.createElement('details');d.style.cssText='margin:6px 0;padding:8px 10px;border:1px solid var(--border2);border-radius:10px';
 var sm=document.createElement('summary');sm.textContent='🎭 How should the AI answer? (tap to change)';sm.style.cssText='cursor:pointer;font-weight:600';d.appendChild(sm);
@@ -295,7 +295,7 @@ var lr=API.ai?null:localReply(q,hist);
 if(lr!==null){fin2();wait.textContent=lr;hist.push({role:'assistant',content:lr});jset('ai_v9_chat',hist.slice(-40));b.scrollTop=b.scrollHeight;return;}
 var msgs=hist.slice(-12);
 function streamChat(){
-return waitApi().then(function(){if(!API.ok||!window.ReadableStream)throw new Error('no stream');return apiFetch('/api/x/chatstream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,web:!!wcb.checked,model:msel.value,style:getStyle().slice(0,1200)}),timeout:20000,signal:sig});}).then(function(r){
+return waitApiOk().then(function(){if(!API.ok||!window.ReadableStream)throw new Error('no stream');return apiFetch('/api/x/chatstream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,web:!!wcb.checked,model:msel.value,style:getStyle().slice(0,1200)}),timeout:20000,signal:sig});}).then(function(r){
 if(!r.ok||!r.body||!r.body.getReader)throw new Error('no stream');
 var rd=r.body.getReader(),dec=new TextDecoder(),buf='',lastS=0,MK='\n\u0001META';wait.style.whiteSpace='pre-wrap';
 function disp(t){var p=t.split('```'),o='';for(var k=0;k<p.length;k++){if(k%2===0)o+=p[k];else o+='\n⌨️ Writing code… ('+p[k].split('\n').length+' lines, it will open in the code menu)\n';}return o;}

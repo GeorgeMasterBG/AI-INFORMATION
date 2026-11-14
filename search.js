@@ -211,19 +211,21 @@ function devto(){return apiFetch('https://dev.to/api/articles?per_page=40',{time
 return algolia().catch(firebase).catch(devto);
 }
 function loadBreaking(auto){
-if(radarBusy)return;radarBusy=true;
+if(radarBusy){if(auto===false)toast('Already updating…','var(--accent)',2000);return;}radarBusy=true;
+if(auto===false)toast('Refreshing the radar…','var(--accent)',1500);
 var sc=document.getElementById('breakingNewsScroll');
 if(!auto&&!radarLive){sc.textContent='Loading…';}
 radarSet(radarLive,radarLive?'updating…':'connecting…');
 radarFetch().then(function(r){
 if(!r.items||!r.items.length)throw new Error('empty');
 r.items=r.items.filter(function(h){return h.t;}).sort(function(a,b){return(b.a||0)-(a.a||0);}).slice(0,40);
-var first=!radarSeen;if(first)radarSeen={};
+var first=!radarSeen;if(first)radarSeen={};var nNew=r.items.filter(function(h){return !radarSeen[h.u];}).length;
 renderRadar(r.items,'● LIVE · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+r.from+' · newest first · refreshes every '+(radarEvery>=60?(radarEvery/60)+' min':radarEvery+' s'),!first);
 r.items.forEach(function(h){radarSeen[h.u]=1;});
-radarLive=true;radarLast=Date.now();radarSet(true,'LIVE');
+radarLive=true;radarLast=Date.now();radarSet(true,'LIVE');if(auto===false)toast(nNew?('Radar updated – '+nNew+' new stor'+(nNew===1?'y':'ies')):'Radar updated – no new stories right now','var(--accent)',3000);
 trendTech=trendKeywords(r.items);renderTrending();
 }).catch(function(){
+if(auto===false)toast('Could not refresh – no connection to the news feeds','#ffaa00',3500);
 if(radarLive){radarSet(false,'connection lost – retrying');return;}
 renderRadar(RADAR_SNAPSHOT.items,'NOT LIVE – this viewer cannot reach the news feeds, so you see a saved snapshot from '+RADAR_SNAPSHOT.taken+'. It will switch to live automatically when a connection works (retry every 30 s).');
 radarSet(false,'offline snapshot');
@@ -321,7 +323,7 @@ return((d.items&&d.items[0]&&d.items[0].articles)||[])
 });
 }
 function get(lang){return top(lang,1).catch(function(){return top(lang,2);}).catch(function(){return top(lang,3);}).catch(function(){return[];});}
-var ul=String(navigator.language||'en').slice(0,2).toLowerCase(),langs=['en'];if(ul!=='en'&&/^[a-z]{2,3}$/.test(ul))langs.push(ul);
+var ul=String(navigator.language||'en').slice(0,2).toLowerCase(),langs=['en'];/* global (English) Wikipedia only */
 function shortT(t){t=String(t||'').replace(/\s+/g,' ').trim();if(t.length>46)t=t.slice(0,44).replace(/\s+\S*$/,'')+'…';return t;}
 var hn=apiFetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=14',{timeout:7000}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){return(j.hits||[]).map(function(h){return shortT(h.title);}).filter(function(t){return t.length>6;});}).catch(function(){return[];});
 var EVER=['artificial intelligence','climate change','space exploration','electric cars','cybersecurity','renewable energy','quantum computing','vaccines','ocean life','the Moon','Mars','volcanoes','black holes','recycling','robotics','the human brain','coffee','chess','dinosaurs','the Olympic Games','solar eclipse','earthquakes','privacy online','fake news'];
@@ -343,10 +345,16 @@ var ctl=window.AbortController?new AbortController():null,t=setTimeout(function(
 var ext=o.signal;delete o.timeout;if(ctl){o.signal=ctl.signal;if(ext){if(ext.aborted)ctl.abort();else ext.addEventListener('abort',function(){ctl.abort();});}}
 return fetch(p,o).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
 }
+var cfgBusy=null;
+function cfgTry(ms){if(API.ok)return Promise.resolve();if(cfgBusy)return cfgBusy;
+cfgBusy=apiFetch('/api/config',{timeout:ms}).then(function(r){
+if(!r.ok||!/json/.test(r.headers.get('content-type')||''))throw new Error('no api');return r.json();
+}).then(function(c){API.ok=true;API.urlCheck=!!c.urlCheck;API.country=c.country||'';API.ai=!!c.ai;API.stt=!!c.stt;API.geo=c.geo||null;if(window.wxGeoInit)wxGeoInit();API.done=true;cfgBusy=null;}).catch(function(){API.done=true;cfgBusy=null;});
+return cfgBusy;}
+/* a slow first answer (cold start, weak phone signal) must not switch the AI off for the whole visit: it is asked again, and once more when the chat needs it */
+window.apiRetry=function(){return cfgTry(12000);};
 function initApi(){
 loadBreaking();
 if(!/^https?:$/.test(location.protocol)||!window.fetch)return;
-apiFetch('/api/config',{timeout:3500}).then(function(r){
-if(!r.ok||!/json/.test(r.headers.get('content-type')||''))throw new Error('no api');return r.json();
-}).then(function(c){API.ok=true;API.urlCheck=!!c.urlCheck;API.country=c.country||'';API.ai=!!c.ai;API.stt=!!c.stt;API.geo=c.geo||null;if(window.wxGeoInit)wxGeoInit();API.done=true;}).catch(function(){API.done=true;});
+cfgTry(3500).then(function(){if(!API.ok)setTimeout(function(){cfgTry(9000).then(function(){if(!API.ok)setTimeout(function(){cfgTry(15000);},8000);});},3000);});
 }

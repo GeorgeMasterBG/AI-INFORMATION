@@ -80,9 +80,22 @@ if(LOW()||!cacheOK())return;try{var cn=navigator.connection;if(VC.wifi&&cn&&cn.t
 if(VC.idx[src]){VC.state[src]='ok';cb&&cb();return;}
 var j={src:src,cb:cb,mime:mime};while(VC.q.length>=4)VC.q.pop();front?VC.q.unshift(j):VC.q.push(j);if('requestIdleCallback' in window)requestIdleCallback(vcPump,{timeout:1500});else setTimeout(vcPump,300);
 }
+function bufAhead(v){try{var b=v.buffered,t=v.currentTime;for(var i=0;i<b.length;i++)if(b.start(i)<=t+0.5&&b.end(i)>=t)return b.end(i)-t;}catch(e){}return 0;}
+/* while a video plays, the next ones are saved in the background only when the playing one already has 30 s buffered (or is fully loaded); if its buffer drops under 10 s the background saving waits again */
+function vBuf(v){if(v.paused)return;var a=bufAhead(v),d=v.duration;if(VC.hold&&(a>=30||(d&&isFinite(d)&&a>=d-v.currentTime-1))){VC.hold=0;vcPump();}else if(!VC.hold&&a<10&&!(d&&isFinite(d)&&a>=d-v.currentTime-1))VC.hold=1;}
 function vPlaying(on){VC.hold=on?1:0;document.body.classList.toggle('v-busy',!!on);if(!on)vcPump();}
 /* ===================== v9: video card (custom controls) ===================== */
 function fmtT(s){if(!isFinite(s))return'0:00';s=Math.floor(s);var m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
+/* in full screen the phone's own drop-down list is drawn off to the side and cut; so there a list inside the page is shown instead */
+function fsMenu(sel){
+var lastO=0;function open(e){var f=document.fullscreenElement||document.webkitFullscreenElement;if(!f)return;e.preventDefault();e.stopPropagation();if(Date.now()-lastO<450)return;lastO=Date.now();
+var old=f.querySelector('.vd-menu');if(old){old.remove();return;}
+var m=el('div','vd-menu');m.setAttribute('role','listbox');
+[].forEach.call(sel.options,function(o){var x=el('button',o.value===sel.value?'sel':'',o.textContent);x.type='button';x.disabled=o.disabled;x.onclick=function(ev){ev.stopPropagation();sel.value=o.value;try{sel.dispatchEvent(new Event('change',{bubbles:true}));}catch(_){}m.remove();};m.appendChild(x);});
+m.addEventListener('click',function(ev){ev.stopPropagation();});m.addEventListener('pointerdown',function(ev){ev.stopPropagation();});
+f.appendChild(m);setTimeout(function(){function away(ev){if(!m.contains(ev.target)){m.remove();document.removeEventListener('pointerdown',away,true);}}document.addEventListener('pointerdown',away,true);},0);}
+sel.addEventListener('mousedown',open);sel.addEventListener('touchstart',function(e){if(document.fullscreenElement||document.webkitFullscreenElement)e.preventDefault();open(e);},{passive:false});sel.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')open(e);});
+}
 function controls(v,opts){
 opts=opts||{};var c=el('div','vd-ctl');
 function b(txt,title,fn){var x=el('button','',txt);x.type='button';x.title=title;x.setAttribute('aria-label',title);x.onclick=fn;c.appendChild(x);return x;}
@@ -95,8 +108,8 @@ var tm=el('span','v9-note','0:00');c.appendChild(tm);
 var dragging=false;seek.oninput=function(){dragging=true;if(v.duration)v.currentTime=v.duration*seek.value/1000;};seek.onchange=function(){dragging=false;};
 var lastU=0;v.addEventListener('timeupdate',function(){var n=performance.now();if(n-lastU<400)return;lastU=n;if(!dragging&&v.duration)seek.value=Math.round(1000*v.currentTime/v.duration);tm.textContent=fmtT(v.currentTime)+' / '+fmtT(v.duration);});
 v.addEventListener('play',function(){pp.textContent='⏸';});v.addEventListener('pause',function(){pp.textContent='▶';});
-if(opts.speed){var sp=el('select','v9-sel');['0.5','0.75','1','1.25','1.5','2'].forEach(function(s){var o=el('option','',s+'×');o.value=s;sp.appendChild(o);});sp.value='1';sp.onchange=function(){v.playbackRate=parseFloat(sp.value);};c.appendChild(sp);}
-if(opts.item){var qs=el('select','v9-sel');qs.title='Video quality';qs.setAttribute('aria-label','Video quality');vqFill(qs,opts.item);
+if(opts.speed){var sp=el('select','v9-sel');['0.5','0.75','1','1.25','1.5','2'].forEach(function(s){var o=el('option','',s+'×');o.value=s;sp.appendChild(o);});sp.value='1';sp.onchange=function(){v.playbackRate=parseFloat(sp.value);};c.appendChild(sp);fsMenu(sp);}
+if(opts.item){var qs=el('select','v9-sel');qs.title='Video quality';qs.setAttribute('aria-label','Video quality');vqFill(qs,opts.item);fsMenu(qs);
 var rs=el('span','v9-note vd-res','');rs.title='Quality being played';
 qs.onchange=function(){vqSet(qs.value);if(opts.onQuality)opts.onQuality(qs.value);};
 function det(){var b=vqSeen(opts.item,v);if(!b)return;rs.textContent='▶ '+VQN[b].split(' ')[0];rs.title='Playing '+v.videoWidth+'×'+v.videoHeight;vqFill(qs,opts.item);}
@@ -119,7 +132,7 @@ function busy(x){wrap.classList.toggle('loading',!!x);}
 ['loadstart','waiting','stalled','seeking'].forEach(function(n){v.addEventListener(n,function(){if(card._started&&(v.src||v.currentSrc))busy(true);});});['canplay','playing','loadeddata','error','seeked','pause','emptied'].forEach(function(n){v.addEventListener(n,function(){if(n!=='pause'||v.readyState>=3)busy(false);});});
 var tag=el('span','vd-cached',''),blobU=null,on=false,stallT=0;
 v.addEventListener('play',function(){[].forEach.call(document.querySelectorAll('.vd-card video'),function(o){if(o!==v)o.pause();});vPlaying(true);logAct('video','play '+it.title);});
-v.addEventListener('pause',function(){vPlaying(false);});v.addEventListener('ended',function(){vPlaying(false);});
+v.addEventListener('pause',function(){vPlaying(false);});v.addEventListener('progress',function(){vBuf(v);});v.addEventListener('timeupdate',function(){vBuf(v);});v.addEventListener('ended',function(){vPlaying(false);});
 v.addEventListener('waiting',function(){clearTimeout(stallT);stallT=setTimeout(function(){if(v.paused||v.readyState>2)return;var t=v.currentTime,s0=v.currentSrc;v.load();v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t;}catch(e){}v.play().catch(function(){});});},9000);});
 v.addEventListener('playing',function(){clearTimeout(stallT);});
 v.addEventListener('timeupdate',function(){if(v.currentTime>0.5)card._pos=v.currentTime;});v.addEventListener('ended',function(){card._pos=0;});
@@ -144,8 +157,10 @@ if(blobU){URL.revokeObjectURL(blobU);blobU=null;}
 card._on=attach;card._off=detach;
 /* nothing loads or spins until the visitor presses start; after the press the video starts by itself */
 var startB=el('button','v9-btn','▶');startB.type='button';startB.setAttribute('aria-label','Start video');startB.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;width:64px;height:64px;border-radius:50%;font-size:26px;cursor:pointer';
-wrap.style.position='relative';wrap.appendChild(startB);
-startB.onclick=function(){startB.remove();card._forced=true;card._started=true;attach();var go=function(){var p=v.play();if(p&&p.catch)p.catch(function(){});};if(v.readyState>=2)go();else{v.addEventListener('canplay',function f(){v.removeEventListener('canplay',f);go();});setTimeout(function(){if(v.paused&&v.readyState<2){try{v.load();}catch(e){}}},12000);}};
+wrap.appendChild(startB);
+v.addEventListener('click',function(e){if(!card._started)return;e.stopPropagation();if((document.fullscreenElement||document.webkitFullscreenElement)===card&&card._wasIdle){card._wasIdle=false;return;}if(v.paused){var pp=v.play();if(pp&&pp.catch)pp.catch(function(){});}else v.pause();});
+startB.onclick=function(){startB.remove();card._forced=true;card._started=true;attach();var go=function(){var p=v.play();if(p&&p.catch)p.catch(function(){});};var t0=Date.now(),pw=setInterval(function(){if(!card._started||!v.paused){clearInterval(pw);return;}try{if(v.preload!=='auto')v.preload='auto';}catch(e){}var d=v.duration,a=bufAhead(v);if(v.readyState>=2&&(v.readyState>=4||a>=10||(d&&isFinite(d)&&a>=d-0.5)||Date.now()-t0>8000)){clearInterval(pw);go();}},250);/* start only after about 10 s are buffered (8 s at most) so it does not stall at once */
+{setTimeout(function(){if(v.paused&&v.readyState<2){try{v.load();}catch(e){}}},12000);}};
 var tried=0,failBox=null;
 function failUi(){
 busy(false);tag.textContent='⚠️ cannot play';if(failBox)return;
@@ -248,9 +263,14 @@ return fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPag
 }
 function renderFeed(box,items,limit,moreFn){
 if(window.AI_FEED_MODE&&window.AI_FEED_MODE.p&&!window.AI_FEED_MODE.v)items=items.filter(function(it){return it.type!=='video';});
-if(kidsOn())items=items.filter(kidOK);box.textContent='';var n=0;box._shown=limit;
+if(kidsOn())items=items.filter(kidOK);
+/* when only more items are asked for, the cards already on the screen stay (a playing video is not cut off); otherwise everything is built again */
+var fk=items[0]?String(items[0].src||items[0].link||items[0].title):'',kd=kidsOn()?1:0,skip=0;
+if(box._built&&box._fk===fk&&box._kd===kd&&box._shown>0&&limit>=box._shown){skip=box._shown;if(box._moreEl&&box._moreEl.parentNode)box._moreEl.parentNode.removeChild(box._moreEl);if(box._aio){try{box._aio.disconnect();}catch(e){}box._aio=null;}}
+else{box.textContent='';}
+box._built=true;box._fk=fk;box._kd=kd;var n=0;box._shown=limit;
 items.forEach(function(it){
-if(n>=limit)return;n++;
+if(n>=limit)return;n++;if(n<=skip)return;
 if(it.type==='video'&&it.src){box.appendChild(videoCard({title:it.title,thumb:it.image,src:it.src,page:it.link,license:it.license||it.text,source:it.source||'',mime:it.mime||'video/mp4',duration:it.duration,subs:it.subs,full:it.full,qualities:it.qualities},{next:nextCard}));return;}
 var p=el('div','fd-post');
 if(it.image&&!LOW()){var im=new Image();im.loading='lazy';im.decoding='async';try{im.fetchPriority='low';}catch(e){}im.alt='';im.referrerPolicy='no-referrer';im.src=it.image;p.appendChild(im);}
@@ -266,8 +286,15 @@ if(box._manual){
 var ctl=el('div','fd-more');ctl.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:16px';
 ctl.appendChild(el('div','v9-note','Showing '+Math.min(n,items.length)+' items. Load more:')).style.width='100%';
 [10,25,50,100].forEach(function(k){var bt=mkBtn('+'+k,'',function(){box._step=k;if(items.length>limit){renderFeed(box,items,limit+k,moreFn);}else if(moreFn){[].forEach.call(ctl.querySelectorAll('button'),function(x){x.disabled=true;});moreFn();}});bt.setAttribute('aria-label','Load '+k+' more');ctl.appendChild(bt);});
-box.appendChild(ctl);
+var al=el('label','v9-note');al.style.cssText='width:100%;display:flex;align-items:center;gap:8px;justify-content:center;cursor:pointer';var ac=document.createElement('input');ac.type='checkbox';ac.checked=store.get('ai_feed_auto')==='1';ac.setAttribute('aria-label','Auto Loading');
+ac.onchange=function(){store.set('ai_feed_auto',ac.checked?'1':'0');if(!ac.checked&&box._aio){try{box._aio.disconnect();}catch(e){}box._aio=null;}else if(ac.checked)renderFeed(box,items,limit,moreFn);};
+al.appendChild(ac);al.appendChild(document.createTextNode('Auto Loading (off by default): load the next items by itself while scrolling'));ctl.appendChild(al);
+box.appendChild(ctl);box._moreEl=ctl;
 if(items.length<=limit&&!moreFn)ctl.style.display='none';
+else if(store.get('ai_feed_auto')==='1'&&window.IntersectionObserver){/* only when Auto Loading is on: keeps about 1500 px of videos and articles ready below the screen: loads the next ones by itself, but never while a video is playing */
+var aio=new IntersectionObserver(function(es){if(!es[0].isIntersecting)return;var bs=ctl.querySelectorAll('button');if(!bs.length||bs[0].disabled)return;if(Date.now()-(box._lastAuto||0)<1500){setTimeout(function(){if(box._aio===aio){aio.disconnect();aio.observe(ctl);}},1600);return;}box._lastAuto=Date.now();
+if([].some.call(box.querySelectorAll('video'),function(v){return !v.paused&&!v.ended;})){setTimeout(function(){if(box._aio===aio){aio.disconnect();aio.observe(ctl);}},3000);return;}
+aio.disconnect();bs[0].click();},{rootMargin:'1500px'});aio.observe(ctl);box._aio=aio;}
 }else if(items.length>limit){moreBtn=mkBtn('Load more','',function(){renderFeed(box,items,limit+24,moreFn);});box.appendChild(moreBtn);}
 else if(moreFn&&!box._manual){moreBtn=mkBtn('Load more','',function(){moreBtn.disabled=true;moreBtn.textContent='Loading…';moreFn();});box.appendChild(moreBtn);}
 if(moreBtn&&window.IntersectionObserver){var io=new IntersectionObserver(function(es){if(es[0].isIntersecting){io.disconnect();moreBtn.click();}},{rootMargin:'1200px'});io.observe(moreBtn);}
@@ -488,8 +515,8 @@ function close(){
 if(shut)return;shut=true;closeQ();
 document.removeEventListener('keydown',key,true);document.removeEventListener('fullscreenchange',onFs);document.removeEventListener('webkitfullscreenchange',onFs);
 slides.forEach(function(s){s.on=true;detach(s);});
+var f=document.fullscreenElement||document.webkitFullscreenElement;if(f){try{var xp=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(xp&&xp.catch)xp.catch(function(){});}catch(e){}}/* leave full screen too, not only the video */
 if(stopIdle)stopIdle();R.remove();document.documentElement.style.overflow=V9.stack.length?'hidden':'';
-var f=document.fullscreenElement||document.webkitFullscreenElement;if(f===R){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(e){}}
 }
 document.addEventListener('keydown',key,true);document.addEventListener('fullscreenchange',onFs);document.addEventListener('webkitfullscreenchange',onFs);
 document.body.appendChild(R);document.documentElement.style.overflow='hidden';
