@@ -175,7 +175,7 @@ initApi();
 window.toggleTheme=toggleTheme;window.hideKeyboard=hideKeyboard;
 window.doSearch=doSearch;window.filterSources=filterSources;window.toggleFavFilter=toggleFavFilter;window.toggleFav=toggleFav;
 window.doSummary=doSummary;window.closeSummary=closeSummary;window.doShare=doShare;window.doExport=doExport;
-window.saveProgress=saveProgress;window.loadProgress=loadProgress;window.loadBreaking=loadBreaking;
+window.loadProgress=loadProgress;window.loadBreaking=loadBreaking;
 window.openScam=openScam;window.closeScam=closeScam;window.runScam=runScam;
 window.handleFakeFile=handleFakeFile;window.clearFake=clearFake;window.loadTrending=loadTrending;
 /* ===================== v9: core ===================== */
@@ -325,7 +325,7 @@ window.AI_AUTOTHEME_STOP=function(){if(atMode()==='off')return;try{store.set('ai
 setInterval(function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}},300000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}});
 /* ===================== v9: video cache ===================== */
-var VC={name:'ai-v9-videos',max:1024*1024*1024,per:512*1024*1024,blobMax:6*1024*1024,lastScroll:0,busy:0,hold:0,q:[],state:{},idx:jget('ai_v9_vidx',{}),par:2,ahead:2,wifi:true};
+var VC={name:'ai-v9-videos',max:1024*1024*1024,per:512*1024*1024,blobMax:6*1024*1024,lastScroll:0,busy:0,hold:0,q:[],state:{},pct:{},idx:jget('ai_v9_vidx',{}),par:2,ahead:2,wifi:true};
 var VC_SIZES=[150,1024,3072,5120,9216];
 vcApplySize(store.get('ai_vcsize')||1024);VC.wifi=store.get('ai_vcwifi')!=='0';
 /* ===================== v33: video quality (smallest → 8K) ===================== */
@@ -334,7 +334,8 @@ var vcObs=window.IntersectionObserver?new IntersectionObserver(function(es){es.f
 document.addEventListener('visibilitychange',function(){if(document.hidden)[].forEach.call(document.querySelectorAll('.vd-card video'),function(v){v.pause();});});
 /* ===================== v9: video sources (server, with browser fallback) ===================== */
 var PAIDRE=/fair use|non-?free|all rights reserved|proprietary|\bpaid\b|premium|subscription|\brent(al)?\b|purchase|pay[- ]per/i;
-var KIDRE=/(?<![\p{L}])(sex\w*|porn\w*|nude|nudes|nudity|naked|nsfw|xxx|erotic\w*|fetish\w*|strip\s?tease|striptease|escort\w*|onlyfans|hentai|bdsm|orgy|milf|boob\w*|topless|lingerie|bikini\s+model|adult\s+(only|content|video)|18\+|gore|beheading|murder\w*|massacre|torture|rape\w*|suicide|self[- ]harm|cocaine|heroin|meth\b|weed|cannabis|marijuana|drug\s+(deal|use)\w*|casino|gambl\w*|betting|slot\s+machine|секс\w*|порн\w*|еротик\w*|еротичн\w*|голи\s+(жени|мъже|момичета|тела)|гола|голо\s+тяло|проститут\w*|насилие|убийств\w*|самоубийств\w*|изнасилван\w*|наркотик\w*|хазарт\w*|казино|залагани\w*)(?![\p{L}])/iu;
+var KIDRE=/(?<![\p{L}])(sex\w*|porn\w*|nude|nudes|nudity|naked|nsfw|xxx|erotic\w*|fetish\w*|strip\s?tease|striptease|escort\w*|onlyfans|hentai|bdsm|orgy|milf|boob\w*|topless|lingerie|bikini\s+model|adult\s+(only|content|video)|18\+|gore|beheading|murder\w*|massacre|torture|rape\w*|suicide|self[- ]harm|cocaine|heroin|meth\b|weed|cannabis|marijuana|drug\s+(deal|use)\w*|casino|gambl\w*|betting|slot\s+machine|секс\p{L}*|порн\p{L}*|еротик\p{L}*|еротичн\p{L}*|голи\s+(жени|мъже|момичета|тела)|гола|голо\s+тяло|проститут\p{L}*|насилие|убийств\p{L}*|самоубийств\p{L}*|изнасилван\p{L}*|наркотик\p{L}*|хазарт\p{L}*|казино|залагани\p{L}*)(?![\p{L}])/iu;
+var RUDERE=/(?<![\p{L}])(fuck\p{L}*|motherfuck\p{L}*|shit\p{L}*|bullshit|bitch\p{L}*|bastard\p{L}*|asshole\p{L}*|dickhead\p{L}*|cunt\p{L}*|whore\p{L}*|slut\p{L}*|twat\p{L}*|wanker\p{L}*|nigg\p{L}*|fagg?ot\p{L}*|retard\p{L}*|хуй\p{L}*|хуя\p{L}*|хуе\p{L}*|пизд\p{L}*|путк\p{L}*|путан\p{L}*|ебан\p{L}*|ебат\p{L}*|ебал\p{L}*|ебах\p{L}*|ебаси|курв\p{L}*|лайн\p{L}*|шибан\p{L}*|педал\p{L}*|педер\p{L}*|дебил\p{L}*|идиот\p{L}*|мръсник\p{L}*|мамка\s+ти|майка\s+ти)(?![\p{L}])/iu;
 var KIDSRC=/mastodon|lemmy|peertube|reddit|4chan|tumblr/i;
 /* ===================== v9: videos panel ===================== */
 var TOPICS=['documentary','nature','space','science','technology','history','music','art','travel','animals','ocean','city'];
@@ -552,3 +553,57 @@ window.addEventListener('scroll',function(){VC.lastScroll=Date.now();},{passive:
 setTimeout(function(){try{hdrRotate();}catch(e){}try{favAddSearch();}catch(e){}try{fnRender();}catch(e){}},1800);
 setTimeout(function(){try{favAddSearch();fnRender();}catch(e){}},5000);
 
+
+/* scroll handle inside full-screen panels (AI Chat and the others): the page handle is hidden while a panel is open because the panel scrolls by itself.
+   Same two modes as the page: Standard = thin always-visible track you hold and drag; Quick = handle that appears while scrolling. Touch only. */
+(function(){
+var touch=false;try{touch=!!(window.matchMedia&&matchMedia('(hover:none) and (pointer:coarse)').matches);}catch(e){}
+if(!touch)return;
+function attach(p){var pb=p.querySelector('.v9-pb');if(!pb||pb._ph)return;
+var th=document.createElement('div');th.className='phT';th.setAttribute('aria-hidden','true');var i=document.createElement('i'),b=document.createElement('b');th.appendChild(i);th.appendChild(b);p.appendChild(th);pb._ph=th;pb.classList.add('has-ph');
+var tm=0,drag=false,last=0;
+function std(){try{return sbMode()==='standard';}catch(e){return false;}}
+function upd(){var sh=pb.scrollHeight,ch=pb.clientHeight,need=sh>=ch*1.4;th.style.top=pb.offsetTop+'px';th.style.height=ch+'px';
+var mx=Math.max(1,sh-ch),y=Math.min(1,Math.max(0,pb.scrollTop/mx));b.style.transform='translateY('+Math.round(y*(ch-56))+'px)';
+th.classList.toggle('std',std());
+var show=need&&(std()||drag||Date.now()-last<3500);th.classList.toggle('on',show);}
+function go(e){var r=th.getBoundingClientRect(),pp=(e.clientY-r.top-28)/Math.max(1,r.height-56);pp=pp<0?0:pp>1?1:pp;pb.scrollTop=pp*(pb.scrollHeight-pb.clientHeight);upd();}
+pb.addEventListener('scroll',function(){last=Date.now();upd();clearTimeout(tm);tm=setTimeout(upd,3600);},{passive:true});
+th.addEventListener('pointerdown',function(e){drag=true;th.classList.add('drag');try{th.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();go(e);});
+th.addEventListener('pointermove',function(e){if(drag)go(e);});
+function end(){if(!drag)return;drag=false;th.classList.remove('drag');last=Date.now();clearTimeout(tm);tm=setTimeout(upd,3600);upd();}
+th.addEventListener('pointerup',end);th.addEventListener('pointercancel',end);
+setInterval(function(){if(p.classList.contains('open'))upd();},700);upd();}
+document.addEventListener('v9open',function(e){var p=e.target;if(p&&p.classList&&p.classList.contains('v9-panel'))setTimeout(function(){attach(p);},0);},true);
+})();
+
+/* v206: which system the visitor uses. Best effort from the browser's own user-agent data (browsers may hide the phone brand). No data is sent anywhere. */
+(function(){
+var ua=navigator.userAgent||'',pl='';try{pl=(navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'';}catch(e){}
+var os='other';
+if(/CrOS/.test(ua)||/Chrome OS/i.test(pl))os='chromeos';
+else if(/iPhone|iPad|iPod/.test(ua)||(/Mac/.test(pl)&&navigator.maxTouchPoints>1))os='ios';
+else if(/Android/i.test(ua)||/Android/i.test(pl))os='android';
+else if(/Mac/i.test(pl)||/Macintosh/.test(ua))os='macos';
+else if(/Win/i.test(pl)||/Windows/.test(ua))os='windows';
+else if(/Linux|X11/i.test(pl+ua))os='linux';
+var brand='';
+function guess(s){s=String(s||'');
+if(/HarmonyOS|OpenHarmony/i.test(ua+s))return'harmony';
+if(/SM-|Samsung|GT-I|SAMSUNG/i.test(s+ua))return'oneui';
+if(/Pixel/i.test(s+ua))return'pixel';
+if(/Nothing|A0\d{2}\b|Phone \(\d/i.test(s))return'nothing';
+if(/Redmi|POCO|Xiaomi|MIUI|HyperOS|23\d{6}|22\d{6}|24\d{6}|M2\d{3}/i.test(s+ua))return'xiaomi';
+if(/OnePlus|CPH2|PJ[A-Z]\d|LE2|IN20|NE22/i.test(s+ua))return'oneplus';
+if(/OPPO|Realme|RMX|CPH1/i.test(s+ua))return'oppo';
+if(/vivo|V2\d{3}|PD2\d{3}/i.test(s+ua))return'vivo';
+if(/HUAWEI|HONOR|ELS-|LIO-|NOH-|MAR-|JAD-/i.test(s+ua))return'huawei';
+if(/Infinix|TECNO|itel/i.test(s+ua))return'transsion';return'';}
+brand=guess('');
+var LBL={chromeos:'ChromeOS',ios:'iOS',android:'Android',macos:'macOS',windows:'Windows',linux:'Linux',other:'your system'};
+var BL={oneui:'One UI (Samsung)',pixel:'Pixel (Android)',nothing:'Nothing OS',xiaomi:'HyperOS / MIUI (Xiaomi)',oneplus:'OxygenOS / OnePlus',oppo:'ColorOS / realme',vivo:'OriginOS / Funtouch (vivo)',huawei:'HarmonyOS / EMUI (Huawei, Honor)',harmony:'HarmonyOS',transsion:'HiOS / XOS (Infinix, TECNO)'};
+function apply(){var r=document.documentElement;r.setAttribute('data-os',os);if(brand)r.setAttribute('data-brand',brand);
+window.AI_SYS={os:os,brand:brand,label:(brand&&BL[brand])?BL[brand]:LBL[os]};}
+apply();
+try{if(os==='android'&&navigator.userAgentData&&navigator.userAgentData.getHighEntropyValues){navigator.userAgentData.getHighEntropyValues(['model']).then(function(v){var b=guess(v&&v.model);if(b&&b!==brand){brand=b;apply();}}).catch(function(){});}}catch(e){}
+})();

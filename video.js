@@ -24,9 +24,9 @@ var q=vqChoose(it,pref===undefined?vqPref():pref);if(!q)return null;
 if(it._vqs!==q.src){it.src=q.src;if(q.mime)it.mime=q.mime;it._vqs=q.src;}
 it._vqb=q.b;if(q.b>720)VQBIG[q.src]=1;return q;
 }
-function vqStepDown(it){
+function vqStepDown(it,msg){
 var a=vqList(it),i=-1,k;for(k=0;k<a.length;k++)if(a[k].src===it.src)i=k;
-if(i<1)return false;var q=a[i-1];it.src=q.src;if(q.mime)it.mime=q.mime;it._vqs=q.src;it._vqb=q.b;toast('Could not play this quality — switched to '+VQN[q.b],'#ffaa00');return true;
+if(i<1)return false;var q=a[i-1];it.src=q.src;if(q.mime)it.mime=q.mime;it._vqs=q.src;it._vqb=q.b;toast(msg?msg.replace('%Q',VQN[q.b]):'Could not play this quality — switched to '+VQN[q.b],'#ffaa00');return true;
 }
 function vqSeen(it,v){var w=v.videoWidth,h=v.videoHeight;if(!(w&&h))return 0;var sh=Math.min(w,h),b=vqBucket(sh);it._vqd=b;if(!it._vql||!it._vql.length)it._vql=[{h:sh,b:b,src:it.src,mime:it.mime||''}];return b;}
 function vqFill(sel,it){
@@ -39,14 +39,47 @@ sel.value=cur;if(sel.value!==cur)sel.value='best';
 function vqSet(val){store.set('ai_vq',String(val));try{document.dispatchEvent(new Event('aivq'));}catch(e){}}
 function vcURL(src){
 if(!window.caches||!cacheOK())return Promise.resolve(null);
+var pe=VC.idx[src];if(pe&&pe.p){if(navigator.serviceWorker&&navigator.serviceWorker.controller){pe.t=Date.now();return Promise.resolve('/__vc/'+encodeURIComponent(src));}return Promise.resolve(null);}
 var big=!!(VC.idx[src]&&VC.idx[src].s>VC.blobMax);
 if(big&&!(navigator.serviceWorker&&navigator.serviceWorker.controller))return Promise.resolve(null);
 return caches.open(VC.name).then(function(c){return c.match(src);}).then(function(r){if(!r)return null;VC.idx[src]&&(VC.idx[src].t=Date.now());if(big)return '/__vc/'+encodeURIComponent(src);return r.blob().then(function(b){return b.size>VC.blobMax?null:URL.createObjectURL(b);});}).catch(function(){return null;});
 }
+/* Chunked saving (v212). A video is saved in 8 MB pieces, each one its own cache entry, so:
+   - nothing is lost when saving is paused or interrupted: it continues from the next piece;
+   - big (4K) videos are saved only as a beginning of about 24 MB (they start at once), the rest is streamed normally; the service worker plays the saved pieces and fetches the rest from the original address by itself;
+   - videos up to 120 MB are saved completely. */
+var VCH=8*1048576,VPRE=3,VFULL=120*1048576;
+function vcCK(src,i){return src+(src.indexOf('?')<0?'?':'&')+'__vcc='+i;}
+function vcDropChunks(c,k,e){try{c.delete(k);var n=(e&&e.c)||0;for(var i=0;i<n;i++)c.delete(vcCK(k,i));}catch(x){}}
+function vcChunkJob(job){
+if(typeof Response==='undefined'||!window.caches)return Promise.resolve('fallback');
+var src=job.src,e=VC.idx[src];if(e&&!e.p)return Promise.resolve('fallback');
+return caches.open(VC.name).then(function(c){
+var cnt=e&&e.p?e.c:0,tot=e&&e.p?e.tot:0,type=(e&&e.type)||job.mime||'video/mp4';
+function pct(){var p=tot?Math.min(99,Math.floor(cnt*VCH/tot*100)):0;VC.pct[src]=p;try{job.pg&&job.pg(p);}catch(x){}}
+function goal(){return tot?Math.min(Math.ceil(tot/VCH),tot<=VFULL?1e9:VPRE):VPRE;}
+function step(){
+if(tot&&cnt>=goal()){return finish();}
+if(VC.hold&&cnt>0){VC.q.unshift(job);return 'paused';}
+var from=cnt*VCH;
+return fetch(src,{mode:'cors',priority:'low',headers:{Range:'bytes='+from+'-'+(from+VCH-1)}}).then(function(r){
+if(r.status!==206){try{r.body&&r.body.cancel();}catch(x){}if(cnt===0)return 'fallback';throw new Error('range');}
+var cr=/\/(\d+)\s*$/.exec(r.headers.get('content-range')||''),T=cr?parseInt(cr[1],10):0;if(!T){try{r.body&&r.body.cancel();}catch(x){}if(cnt===0)return 'fallback';throw new Error('range');}
+if(cnt===0&&T>VC.per){try{r.body&&r.body.cancel();}catch(x){}VC.state[src]='big';return 'skip';}
+var ct=r.headers.get('content-type')||'';if(/^(video|audio)\//.test(ct))type=ct.split(';')[0];
+tot=T;return r.arrayBuffer().then(function(buf){
+var hd={'content-type':type,'x-total':String(tot),'x-ch':String(VCH),'x-type':type};
+return c.put(vcCK(src,cnt),new Response(buf,{status:200,headers:hd}));}).then(function(){
+cnt++;VC.idx[src]={s:Math.min(tot,cnt*VCH),t:Date.now(),p:1,c:cnt,tot:tot,type:type};vcSave();pct();
+return new Promise(function(ok){setTimeout(ok,25);}).then(step);});
+});}
+function finish(){VC.state[src]='ok';VC.pct[src]=100;vcSave();vcEvict();try{job.pg&&job.pg(100);}catch(x){}job.cb&&job.cb();return 'done';}
+return step();
+});}
 function vcEvict(){
 var tot=0,k;for(k in VC.idx)tot+=VC.idx[k].s;if(tot<=VC.max)return;
 var keys=Object.keys(VC.idx).sort(function(a,b){return VC.idx[a].t-VC.idx[b].t;});
-caches.open(VC.name).then(function(c){keys.forEach(function(k){if(tot<=VC.max*0.8)return;tot-=VC.idx[k].s;delete VC.idx[k];c.delete(k);});vcSave();});
+caches.open(VC.name).then(function(c){keys.forEach(function(k){if(tot<=VC.max*0.8)return;tot-=VC.idx[k].s;vcDropChunks(c,k,VC.idx[k]);delete VC.idx[k];});vcSave();});
 }
 var _vcPT=0;
 function vcPump(){
@@ -55,30 +88,33 @@ if(VC.q.length&&!VC.hold){var quiet=Date.now()-(VC.lastScroll||0)>900&&!document
 while(!VC.hold&&VC.busy<VC.par&&VC.q.length){
 var job=VC.q.shift();VC.busy++;
 (function(job){
-fetch(job.src,{mode:'cors',priority:'low'}).then(function(r){
+vcChunkJob(job).then(function(res){if(res!=='fallback')return;return fetch(job.src,{mode:'cors',priority:'low'}).then(function(r){
 if(!r.ok||r.status!==200)throw 0;var len=parseInt(r.headers.get('content-length')||'0',10);
 if(len>VC.per){try{r.body&&r.body.cancel();}catch(e){}VC.state[job.src]='big';throw 0;}
 var ct=r.headers.get('content-type')||'',mt=/^(video|audio)\//.test(ct)?ct.split(';')[0]:(job.mime||'video/mp4');
 if((len>VC.blobMax||!len)&&r.body&&typeof TransformStream==='function'){
 /* large file: stream straight into the cache, never held in memory */
-var n=0,ts=new TransformStream({transform:function(ch,ctl){n+=ch.byteLength;if(n>VC.per){ctl.error(new Error('big'));return;}ctl.enqueue(ch);}});
+var n=0,ly=0,lp=-1,ts=new TransformStream({transform:function(ch,ctl){n+=ch.byteLength;if(n>VC.per){ctl.error(new Error('big'));return;}ctl.enqueue(ch);
+/* cached in parts: every 4 MB it pauses a moment so memory and the page can breathe, and the percent is reported */
+var pc=len?Math.min(99,Math.floor(n/len*100)):-1;if(pc!==lp){lp=pc;VC.pct[job.src]=pc;try{job.pg&&job.pg(pc);}catch(e){}}
+if(n-ly>=4194304){ly=n;return new Promise(function(r){setTimeout(r,25);});}}});
 var hd={'content-type':mt};if(len)hd['content-length']=String(len);
 return caches.open(VC.name).then(function(c){return c.put(job.src,new Response(r.body.pipeThrough(ts),{status:200,headers:hd})).then(function(){return c;});}).then(function(c){
-VC.idx[job.src]={s:len||n,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';job.cb&&job.cb();
+VC.idx[job.src]={s:len||n,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';VC.pct[job.src]=100;try{job.pg&&job.pg(100);}catch(e){}job.cb&&job.cb();
 }).catch(function(e){try{caches.open(VC.name).then(function(c){c.delete(job.src);});}catch(x){}delete VC.idx[job.src];throw e;});
 }
 return r.blob().then(function(b){
 if(b.size>VC.blobMax*4&&!r.body){VC.state[job.src]='big';throw 0;}
-b=new Blob([b],{type:mt});return caches.open(VC.name).then(function(c){return c.put(job.src,new Response(b,{headers:{'content-type':mt}}));}).then(function(){VC.idx[job.src]={s:b.size,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';job.cb&&job.cb();});
+b=new Blob([b],{type:mt});return caches.open(VC.name).then(function(c){return c.put(job.src,new Response(b,{headers:{'content-type':mt}}));}).then(function(){VC.idx[job.src]={s:b.size,t:Date.now()};vcSave();vcEvict();VC.state[job.src]='ok';VC.pct[job.src]=100;try{job.pg&&job.pg(100);}catch(e){}job.cb&&job.cb();});
 });
-}).catch(function(){if(!VC.state[job.src])VC.state[job.src]='fail';}).then(function(){VC.busy--;vcPump();});
+});}).catch(function(){if(!VC.state[job.src]&&!(VC.idx[job.src]&&VC.idx[job.src].p))VC.state[job.src]='fail';}).then(function(){VC.busy--;vcPump();});
 })(job);
 }
 }
-function vcWarm(src,cb,front,mime){
+function vcWarm(src,cb,front,mime,pg){
 if(LOW()||!cacheOK())return;try{var cn=navigator.connection;if(VC.wifi&&cn&&cn.type==='cellular')return;}catch(e){}if(!window.caches||!/^https:/.test(src))return;if(VC.state[src]||VC.q.some(function(j){return j.src===src;}))return;
-if(VC.idx[src]){VC.state[src]='ok';cb&&cb();return;}
-var j={src:src,cb:cb,mime:mime};while(VC.q.length>=4)VC.q.pop();front?VC.q.unshift(j):VC.q.push(j);if('requestIdleCallback' in window)requestIdleCallback(vcPump,{timeout:1500});else setTimeout(vcPump,300);
+var ex=VC.idx[src];if(ex&&!(ex.p&&ex.c<(ex.tot<=VFULL?Math.ceil(ex.tot/VCH):VPRE))){VC.state[src]='ok';cb&&cb();return;}
+var j={src:src,cb:cb,mime:mime,pg:pg};while(VC.q.length>=4)VC.q.pop();front?VC.q.unshift(j):VC.q.push(j);if('requestIdleCallback' in window)requestIdleCallback(vcPump,{timeout:1500});else setTimeout(vcPump,300);
 }
 function bufAhead(v){try{var b=v.buffered,t=v.currentTime;for(var i=0;i<b.length;i++)if(b.start(i)<=t+0.5&&b.end(i)>=t)return b.end(i)-t;}catch(e){}return 0;}
 /* while a video plays, the next ones are saved in the background only when the playing one already has 30 s buffered (or is fully loaded); if its buffer drops under 10 s the background saving waits again */
@@ -145,7 +181,7 @@ if(u){blobU=u;v.src=u;tag.textContent='⚡ cached';}
 else if(LOW()&&!card._forced){busy(false);tag.textContent='📶 low data';var lb=mkBtn('⬇️ Load video (uses data)','pri',function(){card._forced=true;lb.remove();on=false;attach();});lb.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3';wrap.appendChild(lb);}
 else if(!netUp()){busy(false);tag.textContent='📴 not saved offline';}
 else{v.src=it.src;v.preload='metadata';
-card._warm=function(){vcWarm(it.src,function(){tag.textContent='⚡ cached';},opts.front,it.mime);};
+card._warm=function(){vcWarm(it.src,function(){var e=VC.idx[it.src];tag.textContent=e&&e.p&&e.c*VCH<e.tot?'⚡ start saved ('+Math.round(e.s/1048576)+' of '+Math.round(e.tot/1048576)+' MB), the rest streams':'⚡ cached 100%';},opts.front,it.mime,function(p){if(p>=0&&p<100)tag.textContent='⏳ caching '+p+'%';});};
 setTimeout(function(){if(on&&v.paused&&!card._wd)card._warm();},1200);}
 });
 }
@@ -185,6 +221,8 @@ failUi();
 card.appendChild(el('div','vd-ttl',it.title));
 var meta=el('div','vd-meta',[it.source,it.license,it.duration?fmtT(it.duration):''].filter(Boolean).join(' · ')+' ');meta.appendChild(tag);
 if(it.page){var a=el('a','','↗');a.href=safeUrl(it.page);a.target='_blank';a.rel='noopener noreferrer';meta.appendChild(document.createTextNode(' '));meta.appendChild(a);}
+var hb=el('button','v9-btn','');hb.type='button';hb.style.cssText='padding:2px 10px;margin-left:6px';function hbS(){var on=fvHas(it.src);hb.textContent=on?'⭐':'☆';hb.setAttribute('aria-pressed',on?'true':'false');hb.setAttribute('aria-label',on?'Remove from favourite videos':'Save as favourite video');}hbS();hb.onclick=function(){var on=fvToggle(it);hbS();toast(on?'⭐ Video saved in favourites':'Video removed from favourites','var(--accent)',1600);};meta.appendChild(hb);
+card._maxh=(function(){var l=vqList(it);return l.length?l[l.length-1].h:0;})();
 card.appendChild(meta);
 var subEl=el('div','vd-sub');subEl.style.display='none';card.insertBefore(subEl,wrap.nextSibling);
 var subOn=false,subLoaded=false;
@@ -196,8 +234,14 @@ var pick=L.filter(function(x){return x.lang===lang;})[0]||L.filter(function(x){r
 fetch(pick.url).then(function(r){if(!r.ok)throw 0;return r.text();}).then(function(t){
 if(!/^\s*WEBVTT/.test(t))t=srt2vtt(t);
 var tr=document.createElement('track');tr.kind='subtitles';tr.label=pick.label;tr.srclang=pick.lang||'en';tr.src=URL.createObjectURL(new Blob([t],{type:'text/vtt'}));v.appendChild(tr);tr.track.mode='hidden';
-subEl.textContent='Subtitles on — they appear here while someone speaks.';
-tr.track.addEventListener('cuechange',function(){var c=tr.track.activeCues,out=[];if(c)for(var i=0;i<c.length;i++)out.push(String(c[i].text).replace(/<[^>]+>/g,''));subEl.textContent=out.join('\n')||'\u00a0';});
+if(!subOn){tr.track.mode='disabled';return;}subEl.textContent='Subtitles on'+(String((pick.lang||'en')).slice(0,2).toLowerCase()!==(navigator.language||'en').slice(0,2).toLowerCase()?' — the AI translates them into your language while you watch.':' — they appear here while someone speaks.');
+var myLang=(navigator.language||'en').slice(0,2).toLowerCase(),srcLang=(pick.lang||'en').slice(0,2).toLowerCase(),doTr=/^[a-z]{2}$/.test(myLang)&&myLang!==srcLang,tmap={},busyT=false,failT=0;
+/* subtitles in another language are translated by the AI, a few lines ahead of the playing position */
+function trAhead(idx){if(!doTr||busyT||failT>2)return;var cues=tr.track.cues;if(!cues)return;var need=[],ids=[];for(var i=idx;i<cues.length&&i<idx+30&&need.length<15;i++){if(tmap[i]==null){need.push(String(cues[i].text).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,300));ids.push(i);}}
+if(!ids.length)return;busyT=true;xpost('translate',{from:srcLang,to:myLang,texts:need,prefer:'ai'},60000).then(function(j){if(j&&Array.isArray(j.out))ids.forEach(function(k,n){tmap[k]=j.out[n]||need[n];});else throw 0;failT=0;}).catch(function(){failT++;ids.forEach(function(k,n){tmap[k]=need[n];});}).then(function(){busyT=false;show();});}
+function show(){if(!subOn)return;var c=tr.track.activeCues,out=[],cues=tr.track.cues;if(c)for(var i=0;i<c.length;i++){var ix=cues?Array.prototype.indexOf.call(cues,c[i]):-1,tx=String(c[i].text).replace(/<[^>]+>/g,'');out.push(doTr&&ix>=0&&tmap[ix]?tmap[ix]:tx);}subEl.textContent=out.join('\n')||'\u00a0';if(c&&c.length&&doTr){var f=cues?Array.prototype.indexOf.call(cues,c[0]):-1;if(f>=0)trAhead(f);}}
+tr.track.addEventListener('cuechange',function(){if(!subOn)return;show();});
+if(doTr)setTimeout(function(){trAhead(0);},300);
 }).catch(function(){subLoaded=false;subOn=false;subEl.style.display='none';toast('Subtitles could not be loaded','#ffaa00');});
 }
 var ctl=controls(v,{speed:true,item:it,onQuality:function(val){
@@ -205,13 +249,14 @@ var q=vqApply(it,val==='best'?'best':+val);if(!q||!on)return;
 var t=v.currentTime,was=!v.paused;if(blobU){URL.revokeObjectURL(blobU);blobU=null;}tag.textContent=VQN[q.b]||'';busy(true);tried=0;
 v.src=it.src;v.preload='auto';v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t;}catch(e){}if(was)v.play().catch(function(){});});
 },next:opts.next&&function(){opts.next(card);},dl:function(ev){var bt=ev&&ev.currentTarget;dl(it.src,(it.title||'video').replace(/[^\wЀ-ӿ.-]+/g,'_').slice(0,80)||'video',bt,blobU);logAct('video','download '+it.title);}});card.appendChild(ctl);
-if(it.subs&&it.subs.length){var cc=el('button','','CC');cc.type='button';cc.title='Subtitles';cc.setAttribute('aria-label','Subtitles');cc.onclick=function(){subOn=!subOn;cc.style.opacity=subOn?'1':'.6';cc.style.outline=subOn?'2px solid var(--accent)':'none';subEl.style.display=subOn?'block':'none';store.set('ai_cc',subOn?'1':'0');if(subOn)loadSubs();};cc.style.opacity='.6';ctl.appendChild(cc);if(store.get('ai_cc')==='1'&&!LOW())v.addEventListener('play',function f(){v.removeEventListener('play',f);cc.click();});}
+if(it.subs&&it.subs.length){var cc=el('button','','CC');cc.type='button';cc.title='Subtitles';cc.setAttribute('aria-label','Subtitles');cc.onclick=function(ev){if(ev&&ev.stopPropagation)ev.stopPropagation();subOn=!subOn;cc.style.opacity=subOn?'1':'.6';cc.style.outline=subOn?'2px solid var(--accent)':'none';cc.setAttribute('aria-pressed',subOn?'true':'false');subEl.style.setProperty('display',subOn?'block':'none',subOn?'':'important');try{for(var ti=0;ti<v.textTracks.length;ti++)v.textTracks[ti].mode=subOn?'hidden':'disabled';}catch(e){}if(!subOn)subEl.textContent='';store.set('ai_cc',subOn?'1':'0');if(subOn)loadSubs();};cc.style.opacity='.6';ctl.appendChild(cc);if(store.get('ai_cc')==='1'&&!LOW())v.addEventListener('play',function f(){v.removeEventListener('play',f);cc.click();});}
 return card;
 }
 function nextCard(card){var n=card.nextElementSibling;while(n&&!n.classList.contains('vd-card'))n=n.nextElementSibling;if(n){n.scrollIntoView({behavior:'smooth',block:'start'});var v=n.querySelector('video');if(v)setTimeout(function(){v.play().catch(function(){});},400);}}
 function ageG(){return window.AI_AGE||'';}
 function kidsOn(){try{var g=ageG();if(g==='u13'||g==='13-15'||g==='16-17')return true;return store.get('ai_kids')!=='0';}catch(e){return true;}}
-function kidOK(it){if(!kidsOn()||!it)return true;if(KIDSRC.test(String(it.source||'')))return false;return !KIDRE.test([it.title,it.text,it.license].join(' '));}
+function rudeOn(){return kidsOn();}
+function kidOK(it){if(!it)return true;if(rudeOn()&&RUDERE.test([it.title,it.text,it.license].join(' ')))return false;if(!kidsOn())return true;if(KIDSRC.test(String(it.source||'')))return false;return !KIDRE.test([it.title,it.text,it.license].join(' '));}
 function freeVid(it){return !!it&&!PAIDRE.test(String(it.license||''))&&kidOK(it);}
 function commonsClient(q,page){
 var u='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50&gsroffset='+((page||0)*50)+'&gsrsearch='+encodeURIComponent(q+' filetype:video')+'&prop=videoinfo|imageinfo&viprop=url|mime|extmetadata|size|mediatype|derivatives&viurlwidth=480&iiprop=url|mime|size|extmetadata&iiurlwidth=480';
@@ -263,9 +308,9 @@ return fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPag
 }
 function renderFeed(box,items,limit,moreFn){
 if(window.AI_FEED_MODE&&window.AI_FEED_MODE.p&&!window.AI_FEED_MODE.v)items=items.filter(function(it){return it.type!=='video';});
-if(kidsOn())items=items.filter(kidOK);
+if(kidsOn()||rudeOn())items=items.filter(kidOK);
 /* when only more items are asked for, the cards already on the screen stay (a playing video is not cut off); otherwise everything is built again */
-var fk=items[0]?String(items[0].src||items[0].link||items[0].title):'',kd=kidsOn()?1:0,skip=0;
+var fk=items[0]?String(items[0].src||items[0].link||items[0].title):'',kd=(kidsOn()?1:0)+(rudeOn()?2:0),skip=0;
 if(box._built&&box._fk===fk&&box._kd===kd&&box._shown>0&&limit>=box._shown){skip=box._shown;if(box._moreEl&&box._moreEl.parentNode)box._moreEl.parentNode.removeChild(box._moreEl);if(box._aio){try{box._aio.disconnect();}catch(e){}box._aio=null;}}
 else{box.textContent='';}
 box._built=true;box._fk=fk;box._kd=kd;var n=0;box._shown=limit;
@@ -316,10 +361,34 @@ if(name==='fyp')vidFyp(body);else if(name==='search')vidSearch(body);else vidPla
 if(!b._pc){b._pc=1;['https://upload.wikimedia.org','https://archive.org'].forEach(function(h){var l=document.createElement('link');l.rel='preconnect';l.href=h;l.crossOrigin='anonymous';document.head.appendChild(l);});}
 b._show(tab||'fyp');if(!inline)openPanel('v9Videos');
 }
+
+/* favourite videos: only on this device (ai_v9_favvid), travel with Export / Load */
+function fvList(){var a=jget('ai_v9_favvid',[]);return Array.isArray(a)?a.filter(function(x){return x&&typeof x.src==='string'&&/^https:/.test(x.src);}):[];}
+function fvHas(src){return fvList().some(function(x){return x.src===src;});}
+function fvToggle(it){var a=fvList(),i=-1;a.forEach(function(x,k){if(x.src===it.src)i=k;});
+if(i>-1){a.splice(i,1);jset('ai_v9_favvid',a);return false;}
+a.unshift({src:it.src,title:String(it.title||'').slice(0,160),thumb:it.thumb&&/^https:/.test(it.thumb)?it.thumb:'',page:it.page&&/^https:/.test(it.page)?it.page:'',license:String(it.license||'').slice(0,80),source:String(it.source||'').slice(0,40),mime:it.mime||'video/mp4',duration:it.duration||0,qualities:(Array.isArray(it.qualities)?it.qualities:[]).filter(function(q){return q&&/^https:/.test(q.src||'');}).slice(0,8)});
+jset('ai_v9_favvid',a.slice(0,200));return true;}
+/* quality filter + favourites bar for a list of video cards: only shows cards whose best quality is at least the chosen one (most popular first, as the list already is) */
+var VQF=[[0,'🎞 Any quality'],[720,'720p HD and better'],[1080,'1080p Full HD and better'],[1440,'1440p 2K and better'],[2160,'2160p 4K and better']];
+function vdBar(feed,more,favHost){
+var bar=el('div','v9-row'),sel=el('select','v9-sel'),info=el('div','v9-note'),q=0,tries=0;
+sel.setAttribute('aria-label','Show only videos of this quality');sel.title='Best videos of the quality you choose';
+VQF.forEach(function(o){var op=el('option','',o[1]);op.value=String(o[0]);sel.appendChild(op);});
+function apply(){var n=0,all=0;[].forEach.call(feed.querySelectorAll('.vd-card'),function(c){all++;var ok=!q||(c._maxh||0)>=q*0.88;c.style.display=ok?'':'none';if(ok)n++;});
+info.style.display=q?'':'none';info.textContent=q?('Showing '+n+' of '+all+' videos with '+VQN[q]+' or better (the most popular first). '+(n<8&&tries<12?'Looking for more…':(n<1?'None found yet; some archives list no quality.':''))):'';
+if(q&&n<8&&tries<12&&more){tries++;Promise.resolve(more()).then(function(){setTimeout(apply,0);}).catch(function(){});}}
+feed._qf=function(){if(q)apply();};
+sel.onchange=function(){q=+sel.value||0;tries=0;apply();try{logAct('video','quality filter '+(q||'any'));}catch(e){}};
+var fb=mkBtn('⭐ Favourite videos','',function(){var on=favHost.style.display==='none';
+if(on){favHost.textContent='';var l=fvList();if(!l.length)favHost.appendChild(el('div','v9-note','No favourite videos yet. Tap ☆ under a video to save it here.'));l.forEach(function(it){favHost.appendChild(videoCard(it,{next:nextCard}));});}
+favHost.style.display=on?'':'none';feed.style.display=on?'none':'';fb.textContent=on?'↩ Back to videos':'⭐ Favourite videos';});
+bar.appendChild(sel);bar.appendChild(fb);bar._info=info;return bar;}
 function vidFyp(body){
 var feed=el('div','vd-feed');feed.id='v9Scroller';var note=el('div','v9-note');
 note.textContent='Viral videos — the most downloaded this week from free-licensed archives (Internet Archive, Wikimedia Commons). Videos are downloaded ahead into your device cache so scrolling and seeking stay instant.';
-body.appendChild(note);body.appendChild(feed);
+var favHost=el('div','vd-feed');favHost.style.display='none';
+body.appendChild(note);body.appendChild(feed);body.appendChild(favHost);
 var topics=TOPICS.slice(),page=0,loading=false,seen={},all=[],dry=0;
 var rbtn=reelBtn(function(){return all;},function(){return more();},function(){var cs=[].slice.call(feed.querySelectorAll('.vd-card')),i;for(i=0;i<cs.length;i++){var vv=cs[i].querySelector('video');if(vv&&!vv.paused)return i;}var top=$('v9VideosBody').getBoundingClientRect().top;for(i=0;i<cs.length;i++){if(cs[i].getBoundingClientRect().bottom>top+80)return i;}return 0;});
 body.insertBefore(rbtn,body.firstChild);
@@ -330,10 +399,11 @@ var rnd=Math.floor(page/topics.length),qs=[topics[page%topics.length],topics[(pa
 return Promise.all(qs.map(function(q){return findVideos(q,{popular:true,page:rnd}).catch(function(){return[];});})).then(function(rs){
 var got=0,keep=[];rs.forEach(function(arr){arr.forEach(function(it){if(seen[it.src])return;seen[it.src]=1;got++;keep.push(it);all.push(it);feed.appendChild(videoCard(it,{next:nextCard}));});});if(keep.length&&page<=2)jset('ai_v9_fyp_q_'+country(),keep.slice(0,40));
 loading=false;dry=got?0:dry+1;if(dry>=6){sentinel.className='v9-note';sentinel.textContent='No more free videos right now.';}else if(!got)more();
-[].slice.call(feed.querySelectorAll('.vd-card')).slice(0,Math.max(2,VC.ahead)).forEach(function(c){c._warm&&c._warm();});
+[].slice.call(feed.querySelectorAll('.vd-card')).slice(0,Math.max(2,VC.ahead)).forEach(function(c){c._warm&&c._warm();});if(feed._qf)feed._qf();
 });
 }
 body.appendChild(sentinel);
+var vbar=vdBar(feed,function(){return more();},favHost);body.insertBefore(vbar._info,feed);body.insertBefore(vbar,vbar._info);
 var fc=jget('ai_v9_fyp_q_'+country(),null);
 if(fc&&fc.length){fc.forEach(function(it){if(seen[it.src])return;seen[it.src]=1;all.push(it);feed.appendChild(videoCard(it,{next:nextCard}));});}
 more();logAct('video','opened For you');
@@ -344,12 +414,12 @@ var row=el('div','v9-row'),inp=el('input','v9-in');inp.placeholder='Search video
 var out=el('div','vd-feed');
 function go(){var q=inp.value.trim();if(q.length<2)return;out.textContent='';out.appendChild(el('div','v9-spin'));logAct('video','search '+q);
 var items=[],seenS={},pg=0,mb=null;
-function add(a){var n=0;a.forEach(function(it){if(seenS[it.src])return;seenS[it.src]=1;n++;items.push(it);out.insertBefore(videoCard(it,{next:nextCard,front:items.length<4}),mb);});return n;}
+function add(a){var n=0;a.forEach(function(it){if(seenS[it.src])return;seenS[it.src]=1;n++;items.push(it);out.insertBefore(videoCard(it,{next:nextCard,front:items.length<4}),mb);});if(out._qf)out._qf();return n;}
 function more(){if(mb){mb.disabled=true;mb.textContent='Loading…';}pg++;findVideos(q,{page:pg}).then(function(a){var n=add(a);if(!n&&pg>=3){mb.remove();out.appendChild(el('div','v9-note','No more results.'));}else{mb.disabled=false;mb.textContent='Load more videos';if(!n)more();}}).catch(function(){mb.disabled=false;mb.textContent='Load more videos';});}
 findVideos(q).then(function(a){out.textContent='';if(!a.length){out.appendChild(el('div','v9-note','Nothing found in the free video archives.'));return;}out.appendChild(reelBtn(function(){return items;},function(){return new Promise(function(res){if(!mb){res();return;}pg++;findVideos(q,{page:pg}).then(function(b){add(b);res();}).catch(function(){res();});});}));mb=mkBtn('Load more videos','',more);out.appendChild(mb);add(a);}).catch(function(){out.textContent='Search failed.';});}
 inp.onkeydown=function(e){if(e.key==='Enter'){go();hideKeyboard();}};row.appendChild(inp);row.appendChild(mkBtn('Search','pri',go));body.appendChild(row);
 body.appendChild(el('div','v9-note','Results come from Wikimedia Commons and the Internet Archive (free licenses). Each card has a download button.'));
-body.appendChild(out);
+var favS=el('div','vd-feed');favS.style.display='none';var sbar=vdBar(out,function(){var b=out.querySelector('.v9-btn:not(.v9-tab)');return Promise.resolve();},favS);body.appendChild(sbar);body.appendChild(sbar._info);body.appendChild(out);body.appendChild(favS);
 }
 function vidPlayer(body){
 var drop=el('div','v9-card');drop.style.cssText+=';text-align:center;border-style:dashed;cursor:pointer';drop.textContent='📂 '+'Choose or drop a video file here';

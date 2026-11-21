@@ -147,7 +147,11 @@ s=sec('🔥','Trending');row(s,[].map.call(document.querySelectorAll('#trendingS
 s=sec('🛡️','Scam Lab');any=false;ACT.forEach(function(a){if(a.k==='scam'){any=true;row(s,a.d.mode+': '+a.d.input,'',a.t+(a.d.result?' · '+a.d.result:''));}});if(!any)row(s,'(nothing run)');
 var sr=$('scamResult');if(sr&&sr.textContent.trim())row(s,'Latest result on screen: '+sr.innerText.trim().slice(0,1200));
 s=sec('🖼️','Fake Image Checker');any=false;ACT.forEach(function(a){if(a.k==='fake'){any=true;row(s,a.d.name+' ('+a.d.type+', '+fmtBytes(a.d.size)+')','',a.t+(a.d.result?' · '+a.d.result:''));}});if(!any)row(s,'(nothing checked)');
-s=sec('🤖','AI Chat');var ch=jget('ai_v9_chat',[]);if(!ch.length)row(s,'(no conversation)');ch.forEach(function(m){row(s,(m.role==='user'?'You: ':'AI: ')+m.content);});
+s=sec('🤖','AI Chat');var ch=jget('ai_v9_chat',[]);if(!ch.length)row(s,'(no conversation)');ch.forEach(function(m){row(s,(m.role==='user'?'You: ':'AI: ')+m.content,'',m.t?'asked at '+new Date(m.t).toLocaleString()+' ('+new Date(m.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+')':'');});
+var mm=jget('ai_v9_mem','');if(mm)row(s,'Memory for the AI: '+mm);
+var VL=[];try{Object.keys(VC.idx||{}).forEach(function(k){if(/^https:\/\/[^\s"<>]{4,500}$/.test(k)&&VL.length<60)VL.push({src:k,s:VC.idx[k].s||0});});}catch(e){}
+s=sec('🎬','Videos you cached on this device (links; load this file to download them again)');if(!VL.length)row(s,'(none)');VL.forEach(function(v){row(s,v.src.replace(/^https:\/\//,'').slice(0,90),v.src,v.s?Math.round(v.s/1048576)+' MB':'');});
+s=sec('📎','Files, pictures and videos you gave the AI (only what is kept on this device: the last few; large videos are listed by name only)');var ups=jget('ai_v9_uploads',[]);if(!ups.length)row(s,'(none)');ups.forEach(function(u){row(s,(u.kind==='image'?'Picture: ':'File: ')+u.name+' · your question: '+u.q,'',new Date(u.t).toLocaleString());var r=s.rows[s.rows.length-1];if(u.img&&/^data:image\//.test(u.img))r.i=u.img;else if(u.text)r.s=(r.s?r.s+' · ':'')+'Content (start): '+u.text.slice(0,600).replace(/\s+/g,' ');});
 s=sec('💡','AI tips');var tp=jget('ai_v9_tips',[]);if(!tp.length)row(s,'(none)');tp.forEach(function(t){row(s,t.text,'','('+t.topic+') '+t.t);});
 s=sec('🎬','Videos, feed and weather');any=false;ACT.forEach(function(a){if(/^(video|weather)$/.test(a.k)&&typeof a.d==='string'&&!/^\d+$/.test(a.d)){any=true;row(s,a.k+': '+a.d,'',a.t);}});var wx=$('wxChip');if(wx)row(s,'Weather chip: '+wx.textContent.trim());if(!any&&!wx)row(s,'(none)');
 var LBL={open:'Opened',search:'Searched',chat:'Asked the AI',dict:'Dictionary',compare:'Compared',weekly:'Weekly report',radar:'Radar',tip:'AI tip',theme:'Theme',share:'Shared',video:'Video',weather:'Weather',scam:'Scam Lab',fake:'Fake image check',quote:'Quote'};
@@ -167,11 +171,17 @@ var css='*{box-sizing:border-box}html{color-scheme:dark light}body{margin:0;font
 +'.r{padding:9px 0;border-top:1px solid #1a2c22;overflow-wrap:anywhere}.r:first-of-type{border-top:0}.r a{color:#5cc8ff}.sub{font-size:12px;opacity:.7;margin-top:2px}footer{text-align:center;opacity:.65;font-size:12px;margin-top:30px}'
 +'@media (prefers-color-scheme:light){body{background:#f4f8f6;color:#13201a}header{background:radial-gradient(120% 140% at 50% 0%,#d7f5e6 0%,#f4f8f6 70%);border-color:#cfe5da}h1,h2{color:#087a47}.pill,nav a{background:#e6f3ec;border-color:#cfe5da;color:#12603c}section{background:#fff;border-color:#d8e8df;box-shadow:0 6px 18px rgba(0,0,0,.06)}.r{border-color:#e4eee8}.r a{color:#0b61a4}}'
 +'@media print{body{background:#fff;color:#000}section{box-shadow:none;break-inside:avoid}}';
+var SNAPK=['ai_fav_sources','ai_fav_links','ai_v9_saved','ai_v9_chat','ai_v9_mem','ai_v9_style','ai_v9_uploads','ai_v9_vidlearn','ai_v9_act'],snap={v:1,made:Date.now(),search:{query:currentQuery,sources:currentSources.slice(0,2000),favorites:(typeof favorites!=='undefined'&&Array.isArray(favorites))?favorites:[]},keys:{}};
+SNAPK.forEach(function(k){try{var v=jget(k,null);if(v!==null&&v!==undefined)snap.keys[k]=v;}catch(e){}});
+snap.videos=VL;
+snap.raw={};try{var RX=/^ai_[A-Za-z0-9_]{1,80}$/,NO=/^(ai_consent|ai_v9_vidx|ai_installed|ai_voice_native_fail|ai_.*seen.*|ai_.*hint.*)$/,tot=0,ks={};Object.keys(MEM).forEach(function(k){ks[k]=1;});try{for(var qi=0;qi<localStorage.length;qi++)ks[localStorage.key(qi)]=1;}catch(e){}
+Object.keys(ks).forEach(function(k){if(!RX.test(k)||NO.test(k))return;var v=store.get(k);if(typeof v!=='string'||v.length>400000||tot+v.length>4000000)return;tot+=v.length;snap.raw[k]=v;});}catch(e){}
+var snapJson='';try{snapJson=JSON.stringify(snap).replace(/</g,'\\u003c').replace(/\u2028|\u2029/g,'');}catch(e){}
 var out='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>AI INFORMATION – new information</title><style>'+css+'</style></head><body>'
 +'<header><h1>AI INFORMATION</h1><p>Export of new information</p><span class="pill">'+xEsc(new Date().toLocaleString())+'</span></header><div class="wrap"><nav>'
 +S.map(function(x,i){return'<a href="#s'+i+'">'+x.icon+' '+xEsc(x.title)+'</a>';}).join('')+'</nav>'
-+S.map(function(x,i){return'<section id="s'+i+'"><h2>'+x.icon+' '+xEsc(x.title)+'</h2>'+x.rows.map(function(r){var u=xUrl(r.u);return'<div class="r">'+(u?'<a href="'+xEsc(u)+'" target="_blank" rel="noopener noreferrer">'+xEsc(r.t)+'</a>':xEsc(r.t))+(r.s?'<div class="sub">'+xEsc(r.s)+'</div>':'')+'</div>';}).join('')+'</section>';}).join('')
-+'<footer>Made by AI INFORMATION on this device. Check important facts at the sources.</footer></div></body></html>';
++S.map(function(x,i){return'<section id="s'+i+'"><h2>'+x.icon+' '+xEsc(x.title)+'</h2>'+x.rows.map(function(r){var u=xUrl(r.u);return'<div class="r">'+(r.i&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(r.i)?'<div><img src="'+r.i+'" alt="" style="max-width:100%;max-height:260px;border-radius:8px"></div>':'')+(u?'<a href="'+xEsc(u)+'" target="_blank" rel="noopener noreferrer">'+xEsc(r.t)+'</a>':xEsc(r.t))+(r.s?'<div class="sub">'+xEsc(r.s)+'</div>':'')+'</div>';}).join('')+'</section>';}).join('')
++'<footer>Made by AI INFORMATION on this device. Check important facts at the sources. Load this file back in the site (LOAD) to restore what is in it.</footer></div>'+(snapJson?'<script type="application/json" id="ai-restore">'+snapJson+'<\/script>':'')+'</body></html>';
 logAct('export','new information');
 saveFile('ai-information-export-'+new Date().toISOString().slice(0,10)+'.html',out,'text/html');
 }
@@ -225,6 +235,36 @@ var cp=mkBtn('⧉ Copy','',function(){if(navigator.clipboard&&navigator.clipboar
 card.appendChild(bar);card.appendChild(area);
 showP=prev;showC=!prev;draw();return card;
 }
+/* plain markdown from the AI shown as clean text: headings, bold, lists, tables, no raw ** | --- marks. Built only with textContent, never innerHTML */
+function mdInline(parent,t){var re=/(\*\*([^*\n]+?)\*\*|__([^_\n]+?)__|`([^`\n]+?)`|\*([^*\s][^*\n]*?)\*)/g,last=0,m;
+while((m=re.exec(t))){if(m.index>last)parent.appendChild(document.createTextNode(t.slice(last,m.index)));
+if(m[2]!=null||m[3]!=null){var b=document.createElement('strong');b.textContent=m[2]!=null?m[2]:m[3];parent.appendChild(b);}
+else if(m[4]!=null){var c=document.createElement('code');c.textContent=m[4];c.style.cssText='background:rgba(127,127,127,.2);padding:1px 5px;border-radius:5px';parent.appendChild(c);}
+else{var i=document.createElement('em');i.textContent=m[5];parent.appendChild(i);}
+last=m.index+m[0].length;}
+if(last<t.length)parent.appendChild(document.createTextNode(t.slice(last)));}
+function mdText(t){var f=document.createDocumentFragment(),L=String(t).replace(/\r/g,'').split('\n'),i=0;
+function isRow(x){return /^\s*\|.*\|\s*$/.test(x);}
+function cells(x){return x.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});}
+function isSep(x){return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(x)&&x.indexOf('-')>=0;}
+while(i<L.length){var ln=L[i];
+if(!ln.trim()){i++;continue;}
+if(isRow(ln)&&i+1<L.length&&isSep(L[i+1])){var hd=cells(ln);i+=2;var rows=[];while(i<L.length&&isRow(L[i])){rows.push(cells(L[i]));i++;}
+var w=document.createElement('div');w.style.cssText='overflow-x:auto;margin:8px 0;max-width:100%';var tb=document.createElement('table');tb.style.cssText='border-collapse:collapse;font-size:.95em;white-space:normal';
+var th=document.createElement('tr');hd.forEach(function(h){var c=document.createElement('th');c.style.cssText='border:1px solid rgba(127,127,127,.4);padding:5px 8px;text-align:left;background:rgba(127,127,127,.15)';mdInline(c,h);th.appendChild(c);});tb.appendChild(th);
+rows.forEach(function(r){var tr=document.createElement('tr');r.forEach(function(x){var c=document.createElement('td');c.style.cssText='border:1px solid rgba(127,127,127,.3);padding:5px 8px;vertical-align:top';mdInline(c,x);tr.appendChild(c);});tb.appendChild(tr);});
+w.appendChild(tb);f.appendChild(w);continue;}
+var h=/^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$/.exec(ln);
+if(h){var d=document.createElement('div');d.style.cssText='font-weight:700;margin:12px 0 4px;font-size:'+(h[1].length<=2?'1.15em':'1.05em');mdInline(d,h[2]);f.appendChild(d);i++;continue;}
+if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)){var hr=document.createElement('hr');hr.style.cssText='border:0;border-top:1px solid rgba(127,127,127,.4);margin:10px 0';f.appendChild(hr);i++;continue;}
+var li=/^(\s*)([-*•]|\d+[.)])\s+(.*)$/.exec(ln);
+if(li){var ord=/\d/.test(li[2]);var list=document.createElement(ord?'ol':'ul');list.style.cssText='margin:6px 0;padding-left:24px;white-space:normal';
+while(i<L.length){var m2=/^(\s*)([-*•]|\d+[.)])\s+(.*)$/.exec(L[i]);if(!m2)break;var it=document.createElement('li');it.style.margin='2px 0';mdInline(it,m2[3]);list.appendChild(it);i++;}
+f.appendChild(list);continue;}
+var p=document.createElement('div');p.style.cssText='margin:4px 0;white-space:pre-wrap';var buf=[ln];i++;
+while(i<L.length&&L[i].trim()&&!isRow(L[i])&&!/^\s{0,3}#{1,6}\s/.test(L[i])&&!/^(\s*)([-*•]|\d+[.)])\s+/.test(L[i])){buf.push(L[i]);i++;}
+mdInline(p,buf.join('\n'));f.appendChild(p);}
+return f;}
 function richText(text){
 var s=String(text==null?'':text),re=/```([A-Za-z0-9+#-]*)[ \t]*\n?([\s\S]*?)(```|$)/g,parts=[],last=0,m;
 while((m=re.exec(s))){if(m[0]==='')break;if(m.index>last)parts.push({t:s.slice(last,m.index)});parts.push({lang:m[1].toLowerCase(),code:m[2].replace(/\n$/,'')});last=m.index+m[0].length;}
@@ -233,16 +273,16 @@ if(last<s.length)parts.push({t:s.slice(last)});
 var cssB=[],jsB=[],hasHtml=parts.some(function(p){return p.code!=null&&(/^(html?|xhtml)$/.test(p.lang)||(!p.lang&&looksHtml(p.code)));});
 if(hasHtml)parts.forEach(function(p){if(p.code==null)return;if(p.lang==='css')cssB.push(p.code);else if(/^(javascript|js|mjs)$/.test(p.lang))jsB.push(p.code);});
 var f=document.createDocumentFragment();
-parts.forEach(function(p){if(p.code==null){f.appendChild(document.createTextNode(p.t));return;}
+parts.forEach(function(p){if(p.code==null){f.appendChild(mdText(p.t));return;}
 var isH=/^(html?|xhtml)$/.test(p.lang)||(!p.lang&&looksHtml(p.code));
 if(hasHtml&&(p.lang==='css'||/^(javascript|js|mjs)$/.test(p.lang))){f.appendChild(codeCard(p.lang,p.code,null,true));return;}
 f.appendChild(codeCard(p.lang,p.code,isH?{css:cssB,js:jsB}:null));});
 return f;
 }
-function copyBar(text){var r=el('div','');r.style.cssText='margin-top:6px;text-align:right';var b=mkBtn('⧉ Copy answer','',function(){var done=function(){b.textContent='✓ Copied';setTimeout(function(){b.textContent='⧉ Copy answer';},1800);};
+function copyBar(text,mine){var L=mine?'⧉ Copy message':'⧉ Copy answer';var r=el('div','');r.style.cssText='margin-top:6px;text-align:right';var b=mkBtn(L,'',function(){var done=function(){b.textContent='✓ Copied';setTimeout(function(){b.textContent=L;},1800);};
 if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done,function(){fallback();});else fallback();
 function fallback(){try{var t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(t);t.select();var ok=document.execCommand('copy');t.remove();if(ok)done();else toast('Could not copy','#ff4444',2500);}catch(e){toast('Could not copy','#ff4444',2500);}}});
-b.type='button';b.style.cssText='font-size:12px;padding:4px 10px';b.setAttribute('aria-label','Copy the whole answer');r.appendChild(b);
+b.type='button';b.style.cssText='font-size:12px;padding:4px 10px';b.setAttribute('aria-label',mine?'Copy my message':'Copy the whole answer');r.appendChild(b);
 var sb=mkBtn('✂ Select part','',function(){selBox(text);});sb.type='button';sb.style.cssText='font-size:12px;padding:4px 10px;margin-left:6px';sb.setAttribute('aria-label','Open the answer in a field where you can select a part and copy it');r.appendChild(sb);return r;}
 /* a plain text field with the answer: select only the part you want, then copy just that part */
 function selBox(text){

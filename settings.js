@@ -496,7 +496,7 @@ function msel0(){var v=jget('ai_v9_model','');return typeof v==='string'?v:'';}
 function genSum(model){
 if(!FT.on('aisum'))return;if(!sumSt||sumSt.busy)return;var st=sumSt;st.busy=true;st.err='';drawSum();
 var items=curList.slice(0,14).map(function(r){return{title:String(r.title||'').slice(0,140),text:String(r.text||'').slice(0,320),source:String(r.source||'').slice(0,50),url:r.url};});
-xpost('summary',{query:q,items:items,model:model||''},40000).then(function(j){
+xpost('summary',{query:q,items:items,model:model||'',lang:/[\u0400-\u04FF]/.test(q)?'Bulgarian':'English'},40000).then(function(j){
 st.busy=false;if(!j.summary)throw new Error('empty');st.versions.push({model:j.model||model||'',text:j.summary,n:items.length});st.cur=st.versions.length-1;if(sumSt===st)drawSum();
 }).catch(function(e){st.busy=false;st.err=/needs-server|501|needs Workers AI/.test(String(e&&e.message))?'AI summary needs the Cloudflare Worker with Workers AI switched on.':'The AI model did not answer ('+String((e&&e.message)||e).slice(0,160)+'). Try another model.';if(sumSt===st)drawSum();});
 }

@@ -39,7 +39,7 @@ function anyTr(texts,from,to){
 /* all translations come from our own server (open translation services and AI models), asked 12 texts at a time */
 var out=texts.map(function(){return null;}),chunks=[];for(var c=0;c<texts.length;c+=12)chunks.push(c);
 var sq=Promise.resolve();
-chunks.forEach(function(c){sq=sq.then(function(){return xpost('translate',{from:from,to:to,texts:texts.slice(c,c+12)},50000).then(function(j){if(j.engine&&lastSrc.indexOf(j.engine)<0)lastSrc+=(lastSrc?' + ':'')+j.engine;(j.out||[]).forEach(function(v,k){if(v)out[c+k]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});});});
+chunks.forEach(function(c){sq=sq.then(function(){return xpost('translate',{from:from,to:to,texts:texts.slice(c,c+12),prefer:'ai'},80000).then(function(j){if(j.engine&&lastSrc.indexOf(j.engine)<0)lastSrc+=(lastSrc?' + ':'')+j.engine;(j.out||[]).forEach(function(v,k){if(v)out[c+k]=v;});}).catch(function(e){lastErr=String((e&&e.message)||e);});});});
 return sq.then(function(){if(!out.some(Boolean))throw new Error('no translator could be reached (check the internet connection)');return out;});
 }
 function serverEngine(code){return function(texts){return anyTr(texts,'en',code);};}

@@ -484,7 +484,7 @@ function build(){
 body.textContent='';
 body.appendChild(el('p','lg-p','Content filter. The site does not ask for your age.'));
 var fcb=document.createElement('input');fcb.type='checkbox';fcb.checked=kidsOn();fcb.id='ageFilterCb';
-var fl=el('label','lg-p','');fl.style.cssText='display:block;margin:14px 0';fl.appendChild(fcb);fl.appendChild(document.createTextNode(' Content filter: hide adult, violent, drug and gambling content (recommended)'));
+var fl=el('label','lg-p','');fl.style.cssText='display:block;margin:14px 0';fl.appendChild(fcb);fl.appendChild(document.createTextNode(' Content filter: hide adult, violent, drug and gambling content and insults or swear words (English and Bulgarian) (recommended)'));
 var fn=el('span','v9-note','');fn.style.display='block';fn.textContent='It is on by default. The site cannot check anyone\'s age, so you decide here. If a child uses this device, keep it on.';fl.appendChild(fn);
 fcb.onchange=function(){store.set('ai_kids',fcb.checked?'1':'0');if(window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();};
 body.appendChild(fl);

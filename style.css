@@ -661,3 +661,29 @@ html[style*="overflow: hidden"] body::after,html[style*="overflow:hidden"] body:
 #feedBar{animation:none!important}
 .vd-card video{transform:none!important}
 }
+
+/* chat sources: the picture Wikipedia gives for the page (received, never made by AI) */
+.chat-src a.has-img{display:inline-flex;align-items:center;gap:8px}
+.chat-src-img{width:48px;height:48px;object-fit:cover;border-radius:8px;flex:none;background:#222}
+/* scroll handle inside panels */
+.phT{position:absolute;right:0;top:0;width:26px;z-index:6;touch-action:none;opacity:0;pointer-events:none;transition:opacity .25s;-webkit-tap-highlight-color:transparent}
+.phT.on{opacity:1;pointer-events:auto}
+.phT i{position:absolute;right:5px;top:0;bottom:0;width:3px;border-radius:2px;background:rgba(235,235,235,.35)}
+.phT b{position:absolute;right:3px;top:0;width:7px;height:56px;border-radius:5px;background:rgba(235,235,235,.75);box-shadow:0 0 2px rgba(0,0,0,.4);will-change:transform}
+.phT:not(.std) i{display:none}
+.phT.drag b{width:12px;right:1px;background:var(--accent)}
+.v9-pb.has-ph{scrollbar-width:none}
+.v9-pb.has-ph::-webkit-scrollbar{display:none}
+
+/* the bottom gap is only kept while the cookie banner is on screen */
+body:has(#cBanner) #vtFoot{margin-bottom:110px!important}
+/* phones: the browser's own thin scrollbar line is hidden everywhere; the site's own handle replaces it */
+@media (pointer:coarse){*{scrollbar-width:none!important}*::-webkit-scrollbar{display:none!important;width:0;height:0}html:not(.sb-handle){scrollbar-width:none!important}}
+/* per-system tuning (data-os is set by app.js) */
+html[data-os="ios"] input,html[data-os="ios"] textarea,html[data-os="ios"] select{font-size:max(16px,1em)}
+html[data-os="ios"] body{-webkit-touch-callout:none}
+html[data-os="ios"] .cb,html[data-os="android"] .cb{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+html[data-os="macos"] body,html[data-os="ios"] body{-webkit-font-smoothing:antialiased}
+html[data-os="windows"] body{text-rendering:optimizeLegibility}
+
+.chat-msg.a{max-width:100%}
