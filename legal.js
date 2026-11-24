@@ -24,7 +24,7 @@ var NOTES=[
 'Source files: all the files this site works with are public on GitHub: https://github.com/GeorgeMasterBG/AI-INFORMATION . Anyone can read them. Copies of the site that are not at the official addresses are not run by the owner, so check the address before you trust a copy.',
 'Made with AI help: some parts of the site, including parts of its code, were written with the help of AI. That does not mean those parts use AI while you use the site. Most features use ordinary scripts and fixed answers. A few can use a real AI model, namely AI Chat, AI Tip, voice input and some translations, which run on Cloudflare Workers AI (an open model, not ChatGPT). AI answers are marked “🤖 AI model” and can be wrong.',
 'HTML for bots: most of the site is JavaScript, which many bots and AI assistants cannot run. So the page also contains a plain HTML text, not shown on screen, that describes the whole site. This HTML is the tool by which bots review the site. It changes nothing for visitors.',
-'AI helpers: the optional AI buttons (translator, dictionary, calculator, weather, compare, quote, quiz, Scam Lab tools, video finder, children filter, chat with a picture or file) send only the text, picture or file you choose to our script and on to Cloudflare Workers AI. Nothing is sent for a button you do not press; the automatic summaries send the shown titles and snippets and are off for under-18 profiles. AI answers can be wrong.',
+'AI helpers: the optional AI buttons (translator, dictionary, calculator, weather, compare, quote, quiz, Scam Lab tools, AI Finder, children filter, chat with a picture or file) send only the text, picture or file you choose to our script and on to Cloudflare Workers AI. Nothing is sent for a button you do not press; the automatic summaries send the shown titles and snippets and are off for under-18 profiles. AI answers can be wrong.',
 'Purpose: the site does not want to compete with anyone or win anything. It is just one more small tool that can be useful in everyday life.'
 ];
 function sec(body,title,parts){
@@ -58,7 +58,7 @@ sec(b,'2a. How this site works, in plain words',[
  'No system is perfectly safe, so we do not promise that the risk is zero. What we do: HTTPS, a strict content-security policy, no third-party scripts, and no ads or trackers. If you notice anything unexpected, write to the e-mail address in the footer.']
 ]);
 sec(b,'2b. Optional AI helpers and what they send',[
-'These helpers are optional. Each one sends data only when you press its button (or when you switch on its automatic option): Translator and Dictionary send the text or word you typed; Calculator sends your question; Weather Scout sends the place name you typed or chose (and lets the AI search the internet for it); Compare, Quote, Quiz and the Scam Lab tools send the text, links, e-mail headers or image you give them; AI Chat sends your message, the memory notes you wrote in its settings (they are sent with each message so the AI can use them; keep them short and never write secrets there) and, if you attach one, a picture or file; the video finder sends your wish (an AI first turns it into English search words) and the titles of free videos the script found; the children filter sends result titles and short snippets; AI Summary sends the shown titles and snippets; “For you” in Standard Search sends your last searches (kept on your device); the AI summary of the day in the Feed sends the headlines shown in the feed (public news, not your data); the two-day comparison sends the saved titles and short descriptions of one topic you searched; the AI picture background sends your picture description to an AI image model (Workers AI) and keeps the finished picture on your device.',
+'These helpers are optional. Each one sends data only when you press its button (or when you switch on its automatic option): Translator and Dictionary send the text or word you typed; Calculator sends your question; Weather Scout sends the place name you typed or chose (and lets the AI search the internet for it); Compare, Quote, Quiz and the Scam Lab tools send the text, links, e-mail headers or image you give them; AI Chat sends your message, the memory notes you wrote in its settings (they are sent with each message so the AI can use them; keep them short and never write secrets there) and, if you attach one, a picture or file; the AI Finder sends your wish (an AI first turns it into English search words) and the titles of the articles your browser found; the children filter sends result titles and short snippets; AI Summary sends the shown titles and snippets; “For you” in Standard Search sends your last searches (kept on your device); the AI summary of the day in the Feed sends the headlines shown in the feed (public news, not your data); the two-day comparison sends the saved titles and short descriptions of one topic you searched; the AI picture background sends your picture description to an AI image model (Workers AI) and keeps the finished picture on your device.',
 'The data goes to our Cloudflare script and from there to Cloudflare Workers AI, which runs the model. Our script does not store it. Pictures and files are read only by the AI model: the site never opens, runs or follows them, and an attached file cannot start anything else on the site. Cloudflare may process it under its own terms. Do not send secrets, passwords or other people\'s private data.',
 'You can switch automatic AI summaries off in the summary box. The AI children filter runs only if you switch it on with the Filter button.',
 'AI answers can be wrong, out of date or made up. They are not advice and not a verdict. Check the sources.'
@@ -71,14 +71,14 @@ sec(b,'4. What is saved on your device (cookies and similar)',[
 '⚠️ Even if you reject everything here, your browser and the services that deliver this site may still keep their own cache files or set their own cookies. These are not set by the site itself: your browser’s normal HTTP cache keeps copies of site files, and the hosting provider (Cloudflare) can set technical cookies or logs for security and delivery. We do not control them. You can delete them in your browser settings. The Feed cache does not collect personal data: it only stores images so they can be shown faster. If you see a website setting third-party cookies, that comes from that website’s own policy, not from this site.',
 'This site itself sets no cookies. It uses your browser’s storage (localStorage, the Cache API and a service worker). Under EU rules this is treated like cookies, so you choose:',
 ['Necessary (always on): one small record of your choice below (ai_consent) so that we do not ask you every time. It holds your choices, the time you made them, and whether you have seen the welcome message.',
- 'Preferences (only if you allow): language, light/dark theme, video quality, the city you picked for the weather, quiz progress, recent searches, your own activity list and similar settings. Nothing in it is sent to us.',
- 'Offline cache (only if you allow): the service worker and a cache with the site files, the latest feed/search answers and the videos you or the feed downloaded, up to the size you choose. They never leave your device. You choose the size in the Feed (💾 Cache) and can clear it there.'],
+ 'Preferences (only if you allow): language, light/dark theme, the city you picked for the weather, quiz progress, recent searches, your own activity list and similar settings. Nothing in it is sent to us.',
+ 'Offline cache (only if you allow): the service worker and a cache with the site files, the latest feed/search answers. They never leave your device. You can clear them in Storage and consent.'],
 'If you refuse, the site still works. Your settings are then kept only until you close the tab. You can change your choice any time with “Cookie settings” in the footer, and you can delete all stored data with “Quick clear”. Legal basis for the optional storage: your consent (Art. 5(3) ePrivacy Directive and Art. 6(1)(a) GDPR).'
 ]);
 sec(b,'5. Features that contact other services',[
 'Some features only work by asking other services. When that happens, that service can see your IP address and what is sent to it. We do not control them. What is sent, per feature:',
 ['Search and source checks: your search words go to our server, which asks public sources (for example Wikipedia and Wikimedia, DuckDuckGo instant answers, Hacker News, GDELT news). In Standard Mode your browser can also ask other free sources directly with your search words: other Wikimedia projects (Wikibooks, Wikisource, Wikinews, Wiktionary, Wikiversity, Wikivoyage, Wikiquote, Wikispecies, Wikidata and other language editions of Wikipedia), Internet Archive, Open Library, Project Gutenberg, Google Books, Library of Congress, Crossref, OpenAlex, Europe PMC, DOAJ, Semantic Scholar, INSPIRE, Zenodo, DataCite, Stack Exchange sites, GitHub, npm, Spaceflight News, GBIF, iNaturalist, Cleveland Museum of Art, MusicBrainz, OpenStreetMap (Nominatim), REST Countries, TheMealDB, Open Food Facts, Openverse, NASA and the Art Institute of Chicago. Their own privacy policies apply to those requests.',
- 'Feed and videos: our server collects public posts and free-licensed videos from sources such as Wikipedia, Hacker News, Lobsters, DEV, Mastodon, Lemmy, Stack Exchange, news RSS feeds (BBC, NPR, DW, Al Jazeera, NASA and others), Wikimedia Commons, the Internet Archive, NASA and PeerTube servers (and Pexels / Pixabay if the operator added a key). Your browser then loads pictures and videos directly from those hosts, so they see your IP address.',
+ 'Feed: our server collects public posts from sources such as Wikipedia, Hacker News, Lobsters, DEV, Mastodon, Lemmy, Stack Exchange and news RSS feeds (BBC, NPR, DW, Al Jazeera, NASA and others). Your browser then loads pictures directly from those hosts, so they see your IP address.',
  'Weather: the weather chip at the top loads by itself for an approximate place (found from your network by Cloudflare) or for the city you chose. The coordinates go to Open-Meteo. When you press “My location” your browser asks you for permission first. If it cannot give a location, an approximate one may be looked up from your IP address with ipwho.is.',
  'Language and Translator: the texts to translate go from your browser to our server (the Cloudflare Worker that runs this site), which asks free open translation services in turn (LibreTranslate instances such as libretranslate.de, Apertium, MyMemory) and then AI models on Cloudflare Workers AI. If your browser has its own on-device translator (Chrome), it can be used too and stays on your device. The site does not use the unofficial Google Translate interface. After a language is chosen, the original texts and their translations are also sent to our server, which asks a second translation service for the same texts and lets an AI model on Workers AI approve one version. For Language these are the visible texts of the site, not your own input; the Translator sends what you type. The list of sources is shown in the Language panel. If you translate a website with the Translator, its address goes to the text reader r.jina.ai, which fetches the page text.',
  'Dictionary: the word goes to our server and then to Wiktionary.',
@@ -120,13 +120,13 @@ sec(b,'12. Security and changes',[
 /* ---------------- Terms ---------------- */
 doc('v9Terms','📜 Terms of Use',function(b){
 sec(b,'1. About the service',[
-'AI INFORMATION is a free information tool: it helps you look at where information comes from, scan links, translate text, watch free-licensed videos and read public posts. By using it you accept these terms. If you do not agree, please do not use the site.'
+'AI INFORMATION is a free information tool: it helps you look at where information comes from, scan links, translate text, read public posts. By using it you accept these terms. If you do not agree, please do not use the site.'
 ]);
 sec(b,'2. Information only – no guarantee',[
 'Results come from public third-party sources and from automatic tools (including AI and machine translation). They can be wrong, incomplete or out of date. Source checks, scores and scam warnings are indications, not proof, and are not legal, medical, financial or security advice. Always check important things yourself.'
 ]);
 sec(b,'3. Third-party content and licences',[
-'Videos, pictures and posts belong to their authors and are shown with their source and licence. The feed and the video lists show only items with a free licence (for example Creative Commons or public domain); paid, rented, “all rights reserved” or fair-use items are left out. Free licences still have conditions, such as naming the author or not using the work commercially. When you download or share an item, you must follow its licence. Links lead to other websites that we do not control.'
+'Pictures and posts belong to their authors and are shown with their source and licence. Free licences of other items still have conditions, such as naming the author or not using the work commercially. When you download or share an item, you must follow its licence. Links lead to other websites that we do not control.'
 ]);
 sec(b,'4. Acceptable use',[
 ['Do not use the site to break the law, harm others, attack or overload the site or the services it uses, or to collect data about private persons.',
@@ -137,7 +137,7 @@ sec(b,'5. Reporting illegal content',[
 'The site does not host user-generated content; items come from third parties. If you think something shown here is illegal or breaks your rights, write to the e-mail address in the Imprint with the link to the item, what is wrong and why, and your name and e-mail. We will look at it and, where justified, remove it from the lists.'
 ]);
 sec(b,'5a. Copyright notices (DMCA and EU)',[
-'The site does not store or host third-party videos, pictures or texts; it shows excerpts, titles and links from public sources with a free licence. If you are a rights holder and think something shown breaks your copyright, e-mail us with: what the work is, where it is shown here (the link), your name and contact details, a statement that you act in good faith and that your information is correct, and, for a US notice, a statement under penalty of perjury that you are the owner or authorised to act, and your signature (typed is fine). We will remove or hide the item quickly and tell the person who objects, if there is one.'
+'The site does not store or host third-party pictures or texts; it shows excerpts, titles and links from public sources with a free licence. If you are a rights holder and think something shown breaks your copyright, e-mail us with: what the work is, where it is shown here (the link), your name and contact details, a statement that you act in good faith and that your information is correct, and, for a US notice, a statement under penalty of perjury that you are the owner or authorised to act, and your signature (typed is fine). We will remove or hide the item quickly and tell the person who objects, if there is one.'
 ]);
 sec(b,'5b. Artificial intelligence',[
 'Most features use ordinary scripts and fixed answers. AI Chat, AI Tip, voice input and some translations can use an open AI model run by Cloudflare Workers AI; its answers are marked “🤖 AI model”. Answers can be wrong or incomplete and are not professional, legal, medical or financial advice. Do not rely on them alone.'
@@ -172,7 +172,7 @@ sec(b,'Source files',[
 'All the files this site works with are on GitHub: https://github.com/GeorgeMasterBG/AI-INFORMATION'
 ]);
 sec(b,'Content responsibility',[
-'The operator named above is responsible for the content of the site itself. Third-party items (posts, videos, pictures, news) belong to their sources, which are named next to each item.'
+'The operator named above is responsible for the content of the site itself. Third-party items (posts, pictures, news) belong to their sources, which are named next to each item.'
 ]);
 sec(b,'Hosting',[
 'Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, USA (Cloudflare Pages / Workers).'
@@ -191,13 +191,13 @@ sec(b,'What this site stores on your device',[
 '⚠️ Even if you reject everything here, your browser and the services that deliver this site may still keep their own cache files or set their own cookies. These are not set by the site itself: your browser’s normal HTTP cache keeps copies of site files, and the hosting provider (Cloudflare) can set technical cookies or logs for security and delivery. We do not control them. You can delete them in your browser settings. The Feed cache does not collect personal data: it only stores images so they can be shown faster. If you see a website setting third-party cookies, that comes from that website’s own policy, not from this site.',
 [
  'ai_consent (necessary): your choice, the time of your choice, and whether you have seen the welcome message. Kept until you change it.',
- 'Preferences (if allowed): settings such as language, accent colour, reminders you write, theme, video quality, chosen city, quiz progress, recent searches, activity list, your AI chat with the time of each question, the memory notes for the AI, and the last few files or pictures you gave the AI (videos only by name). localStorage, kept until you delete it.',
- 'Rude words (part of the Content filter): a built-in list of insults and swear words in English and Bulgarian is checked in your own browser against titles and texts of feed items and videos; nothing is sent anywhere. It is on and off together with the Content filter.',
- 'Favourite videos (the star under a video): the video title, link and picture link are kept only on your device, never sent to us, and removed when you remove the star or clear your data. They travel in the export file too.',
+ 'Preferences (if allowed): settings such as language, accent colour, reminders you write, theme, chosen city, quiz progress, recent searches, activity list, your AI chat with the time of each question, the memory notes for the AI, and the last few files or pictures you gave the AI. localStorage, kept until you delete it.',
+ 'Rude words (part of the Content filter): a built-in list of insults and swear words is checked in your own browser against titles and texts of feed items; nothing is sent anywhere. It is on and off together with the Content filter.',
+ 'AI Finder (Feed): the AI model on Cloudflare plans the search and picks the best articles from what your browser finds in Wikipedia and Hacker News (your browser asks them directly, so they see your IP address). The AI never receives pictures or videos and never makes any.',
  'Export file (only when you press EXPORT NEW INFORMATION): the site makes a file on your own device with the data above, so you can read it or load it back with LOAD. It is not sent anywhere. Anyone who gets the file can read it, so keep it private. LOAD reads a file only on your device.',
  'System information: the site reads your browser’s own information (system, and sometimes the phone brand) to adapt its look. It is not stored and not sent anywhere. Emojis are drawn by your own system.',
  'Notifications (only if you turn them on in Reminders): a small service worker without any cache, so your phone can show the notification.',
- 'Offline cache (if allowed): service worker, a cache of site files and recent answers, and downloaded videos (you set the maximum size, 150 MB to 9 GB). Kept until you clear it or the limit makes older files go.',
+ 'Offline cache (if allowed): service worker and a cache of site files and recent answers. Kept until you clear it.',
  'No advertising, analytics or social-media storage is used.']
 ]);
 var go=mkBtn('Change my choices','pri',function(){closePanel('v9Cookies');showConsent(true);});go.style.margin='10px 0';b.appendChild(go);
@@ -208,23 +208,22 @@ var go=mkBtn('Change my choices','pri',function(){closePanel('v9Cookies');showCo
 doc('v9Access','♿️ Accessibility statement',function(b){
 sec(b,'Our goal',['We want everyone to be able to use this site, including people who use screen readers, keyboards only, magnifiers, voice control or who need strong contrast or less motion. We aim to meet WCAG 2.2 level AA, which includes the web part of the European standard EN 301 549 (WCAG 2.1 AA) required by the European Accessibility Act, and WCAG 2.1 AA as used in the US (ADA Title II rule for public bodies, Section 508).']);
 sec(b,'What we did',[['Skip link, page landmarks and a logical heading order.','Colours checked for contrast in the dark and light theme (we ran an automatic checker on the home page and all panels in both themes with no failures).','Everything works with the keyboard; the focus is clearly visible; touch targets are large enough.','Text size, contrast and motion settings in the Accessibility panel. The site also follows your device’s “reduce motion”, “high contrast” and “reduce transparency” settings.','Labels for form fields and buttons; messages that appear are announced to screen readers.']]);
-sec(b,'Known limits',[['Third-party content (videos, pictures, news and web pages we link to) is made by others and may not be accessible.','Machine translation can be wrong.','Automatic checks do not find everything. We tested with an automatic checker, not with every screen reader and phone.']]);
+sec(b,'Known limits',[['Third-party content (pictures, news and web pages we link to) is made by others and may not be accessible.','Machine translation can be wrong.','Automatic checks do not find everything. We tested with an automatic checker, not with every screen reader and phone.']]);
 sec(b,'Tell us about a problem',['If you cannot use something, write to the e-mail address below and tell us the page, what you tried and which device or assistive technology you use. We aim to answer within 14 days. If you are not satisfied, you can contact the national body that enforces accessibility rules in your country.']);
 sec(b,'Status',['This statement was prepared by the site operator itself (self-assessment) and was last updated on '+UPDATED+'.']);
 });
 /* ---------------- Credits ---------------- */
 doc('v9Credits','© Credits and licences',function(b){
-sec(b,'Who owns what',['Everything shown from outside sources belongs to its authors. We show short excerpts, titles and links, with the source next to each item. Videos and pictures are shown only when their licence is free (Creative Commons or public domain); items marked as paid, non-commercial-restricted or all-rights-reserved are filtered out.']);
+sec(b,'Who owns what',['Everything shown from outside sources belongs to its authors. We show short excerpts, titles and links, with the source next to each item. Pictures are shown only when their licence is free (Creative Commons or public domain).']);
 sec(b,'Sources and licences',[
 ['Wikipedia, Wiktionary, Wikimedia Commons – text CC BY-SA 4.0; each Commons file has its own licence (shown with the item).',
  'Internet Archive – only items with a Creative Commons or public-domain licence.',
  'NASA – public domain, except third-party material marked as such.',
- 'PeerTube instances – licence set by each video’s author (free licences only).',
  'Open-Meteo.com – weather data, CC BY 4.0.',
  'Stack Exchange – posts CC BY-SA, shown with a link to the original and author.',
  'Hacker News, Lobsters, Lemmy, Mastodon, DEV and news RSS feeds – headline and link only; the article stays on its own site.',
  'GDELT, URLhaus, Google Safe Browsing, VirusTotal – used only to check links and find news; results belong to those services.',
- 'Translation – AI models on Cloudflare Workers AI first for the site language and video subtitles, then LibreTranslate instances, Apertium and MyMemory as a fallback; the page reader r.jina.ai. The unofficial Google Translate interface is not used. Machine translation can be wrong.',
+ 'Translation – AI models on Cloudflare Workers AI first for the site language, then LibreTranslate instances, Apertium and MyMemory as a fallback; the page reader r.jina.ai. The unofficial Google Translate interface is not used. Machine translation can be wrong.',
  'Location name lookup – ipwho.is and Open-Meteo geocoding, only after you allow location.']
 ]);
 sec(b,'Report a problem',['If something here infringes your rights, e-mail the address in the Imprint with the link and we will remove it.']);
@@ -250,7 +249,7 @@ var w=CONS&&CONS.w;
 CONS={v:1,prefs:!!c.prefs,cache:!!c.cache,w:w||0,ver:1};consSave();
 if(CONS.prefs)flushMem();else wipeStored(!!CONS.cache);
 if(CONS.cache){flushMem();try{if(navigator.serviceWorker&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(function(){});}catch(e){}try{vcApplySize(store.get('ai_vcsize')||1024);}catch(e){}}
-else{VC.q=[];purgeCaches();VC.idx={};try{localStorage.removeItem('ai_v9_vidx');}catch(e){}}
+else{purgeCaches();}
 if(!silent)toast('Your choice was saved','var(--accent)');
 }
 function closeBan(){if(ban){ban.remove();ban=null;}document.documentElement.classList.remove('cb-open');}
@@ -271,8 +270,8 @@ var lab=el('label','cb-o');var cb=el('input');cb.type='checkbox';cb.checked=on;i
 cb.onchange=function(){set(cb.checked);};lab.appendChild(cb);
 var d=el('span','cb-od');d.appendChild(el('b','',title));d.appendChild(el('span','',desc));lab.appendChild(d);box.appendChild(lab);};
 opt('Necessary','Remembers this choice. Always on.',true,function(){},true);
-opt('Preferences','Language, theme, video quality, chosen city, quiz progress and recent searches. Stays on your device.',prefs,function(v){prefs=v;});
-opt('Offline cache','Site files, recent answers and videos saved on your device so they open fast and offline. You choose the size (150 MB to 9 GB) in the Feed.',cache,function(v){cache=v;});
+opt('Preferences','Language, theme, chosen city, quiz progress and recent searches. Stays on your device.',prefs,function(v){prefs=v;});
+opt('Offline cache','Site files and recent answers saved on your device so they open fast and offline.',cache,function(v){cache=v;});
 }
 var r=el('div','cb-r');
 function bt(txt,fn,cls){var x=el('button','cb-b'+(cls||''),txt);x.type='button';x.onclick=fn;r.appendChild(x);return x;}

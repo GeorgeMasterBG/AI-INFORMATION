@@ -1,6 +1,6 @@
 /* AI INFORMATION - ai.js
    Everything that talks to an AI model or draws an AI answer: the shared AI helpers (aiAsk, aiBlock, aiRisk, model picker),
-   AI Chat, AI Tip, Weekly report, AI summary and the video finder block.
+   AI Chat, AI Tip, Weekly report and the AI summary.
    Loaded before app.js; it only declares functions and constants, they are called later by app.js. */
 function clsAiDraw(){
 var w=document.getElementById('clsAi');if(!w)return;
@@ -102,53 +102,6 @@ if(opts.auto)setTimeout(function(){box.run();},0);
 return box;
 }
 
-function aiVideoBlock(){
-var box=el('div','v9-card');box.style.cssText='margin:0 0 10px;padding:10px;line-height:1.5';
-box.appendChild(el('b','','🤖 AI video finder'));
-box.appendChild(el('div','v9-note','Tell the AI what you want to watch. Our script collects free videos only from Internet Archive and Wikimedia (Wikipedia\'s video library), the AI picks the best ones (using downloads, your wish and what you liked before), and the script then caches and plays them. The AI never invents links.'));
-var row=el('div','v9-row'),inp=el('input','v9-in');inp.placeholder='e.g. volcano eruptions, old science films…';inp.maxLength=80;inp.setAttribute('aria-label','What do you want to watch?');
-var go=mkBtn('Find','pri',function(){run();});row.appendChild(inp);row.appendChild(go);box.appendChild(row);
-var opt=el('label','v9-note');opt.style.cssText='display:flex;gap:8px;align-items:center;margin:4px 0';var pc=document.createElement('input');pc.type='checkbox';pc.checked=true;opt.appendChild(pc);opt.appendChild(document.createTextNode('Prefer the most downloaded videos'));box.appendChild(opt);
-var mr=mkModelRow();mr.style.margin='4px 0';box.appendChild(mr);
-var learn=el('div','v9-note');box.appendChild(learn);
-function liked(){var l=jget('ai_v9_vidlearn',{w:[],l:[]});if(!l||typeof l!=='object')l={w:[],l:[]};l.w=Array.isArray(l.w)?l.w:[];l.l=Array.isArray(l.l)?l.l:[];return l;}
-function drawLearn(){learn.textContent='';var l=liked();if(!l.w.length&&!l.l.length){learn.textContent='The AI learns from your wishes and 👍 clicks (kept only on this device).';return;}
-learn.appendChild(document.createTextNode('🧠 Learned so far: '+l.w.slice(-5).join(', ')+(l.l.length?' · '+l.l.length+' liked':'')+'  '));var c=el('button','std-b','Forget');c.type='button';c.style.cssText='padding:2px 8px;font-size:12px';c.onclick=function(){jset('ai_v9_vidlearn',{w:[],l:[]});drawLearn();};learn.appendChild(c);}
-drawLearn();
-var st=el('div','v9-note');st.setAttribute('aria-live','polite');box.appendChild(st);
-var out=el('div','vd-feed');box.appendChild(out);
-inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();run();}});
-var busy=false,planNote='';
-function run(){
-if(busy)return;var wish=inp.value.trim();if(wish.length<2){inp.focus();return;}
-busy=true;go.disabled=true;out.textContent='';st.textContent='Searching Internet Archive and Wikimedia…';
-var l=liked();l.w=l.w.filter(function(x){return x!==wish;});l.w.push(wish);l.w=l.w.slice(-12);jset('ai_v9_vidlearn',l);drawLearn();
-var queries=[wish];
-function fv(q){return findVideos(q,{popular:pc.checked}).catch(function(){return[];});}
-st.textContent='🤖 The AI is planning the search (translating and choosing the best search words)…';
-var planP=aiAsk('video_plan',{text:wish}).then(function(j){var q=(j&&j.queries||[]).filter(function(x){return typeof x==='string'&&x.length>1;});return{q:q,model:j&&j.model};}).catch(function(){return{q:[],model:''};});
-planP.then(function(pl){queries=pl.q.slice(0,3);if(!queries.length||/^[\x00-\x7F]+$/.test(wish))queries.push(wish);queries=queries.filter(function(x,i){return queries.indexOf(x)===i;});planNote=pl.q.length?'Search words made by the AI: '+pl.q.join(' · ')+'. ':'The AI could not plan the search, so your own words were used. ';st.textContent='Searching Internet Archive and Wikimedia for: '+queries.join(' · ')+'…';return Promise.all(queries.map(fv));}).then(function(rs){var n0=0;rs.forEach(function(a){n0+=a.length;});if(n0>=6||wish.indexOf(' ')<0)return rs;/* too few results for the whole phrase: also try its longest words one by one */var ws=wish.split(/[\s,.;]+/).filter(function(w){return w.length>3;}).sort(function(a,b){return b.length-a.length;}).slice(0,3);if(!ws.length)return rs;st.textContent='Few results for the whole phrase, trying single words…';return Promise.all(ws.map(fv)).then(function(r2){return rs.concat(r2);});}).then(function(rs){
-var seen={},cand=[];rs.forEach(function(a){a.forEach(function(it){if(!it||!it.src||seen[it.src])return;if(!VID_OK.test(String(it.source||'')+' '+String(it.page||'')+' '+String(it.src||'')))return;seen[it.src]=1;cand.push(it);});});
-cand=cand.slice(0,60);
-if(!cand.length){st.textContent=planNote+'No free video found. Try other words.';return;}
-function show(order,note,model){
-out.textContent='';var shown=0,LIM=12,rest=[];order.forEach(function(i){var it=cand[i-1];if(!it)return;if(shown>=LIM){rest.push(i);return;}shown++;var c=videoCard(it,{next:nextCard});
-var lk=mkBtn('👍 More like this','',function(){var q=liked();q.l.push(String(it.title||'').replace(/ · .*$/,'').slice(0,60));q.l=q.l.slice(-20);jset('ai_v9_vidlearn',q);drawLearn();lk.textContent='👍 Noted';lk.disabled=true;});lk.style.margin='4px';c.appendChild(lk);out.appendChild(c);});
-if(rest.length){var more=mkBtn('Show '+Math.min(12,rest.length)+' more ('+rest.length+' left)','',function(){var nx=rest.splice(0,12);nx.forEach(function(i){var it=cand[i-1];var c=videoCard(it,{next:nextCard});out.insertBefore(c,more);});if(rest.length)more.textContent='Show '+Math.min(12,rest.length)+' more ('+rest.length+' left)';else more.remove();});more.type='button';more.style.margin='8px 0';out.appendChild(more);}
-st.textContent=planNote+note+(model?' · 🤖 AI model ('+aiShort(model)+')':'');
-}
-var lines=cand.map(function(it,i){return(i+1)+'. '+String(it.title||'').replace(/\s+/g,' ').slice(0,110)+' | '+String(it.source||'').slice(0,30)+(it.popularity?' | downloads this week: '+it.popularity:'')+(it.duration?' | '+it.duration:'');}).join('\n');
-var prefs=l.l.length?'\nThe visitor liked before: '+l.l.slice(-6).join('; '):'';
-st.textContent='The AI is choosing the best videos…';
-return aiAsk('video_pick',{text:lines+prefs,question:'Wish: '+wish+(pc.checked?' (prefer most downloaded)':'')}).then(function(j){
-var ord=(j.order||[]).filter(function(n){return n>=1&&n<=cand.length;});
-if(!ord.length)throw new Error('empty');var inO={};ord.forEach(function(n){inO[n]=1;});var restO=cand.map(function(_,i){return i+1;}).filter(function(n){return!inO[n];}).sort(function(a,b){return(Number(cand[b-1].popularity)||0)-(Number(cand[a-1].popularity)||0);});var shownN=ord.length;ord=ord.concat(restO);show(ord,(j.why||'Chosen by the AI')+' · AI picked the first '+shownN+' of '+cand.length+' videos',j.model);
-}).catch(function(e){var o=cand.map(function(_,i){return i+1;});if(pc.checked)o.sort(function(a,b){return(Number(cand[b-1].popularity)||0)-(Number(cand[a-1].popularity)||0);});show(o,'The AI could not choose ('+aiErrText(e).slice(0,70)+'), so these are sorted by downloads');});
-}).catch(function(){st.textContent='The video search failed. Try again.';}).then(function(){busy=false;go.disabled=false;});
-}
-return box;
-}
-
 function modelPick(){var v=jget('ai_v9_model','');return typeof v==='string'?v:'';}
 
 function mkModelRow(){
@@ -167,7 +120,7 @@ var STYLE_PRE=[['🧭 Honest and direct (default)',STYLE_DEF],
 ['🛠️ Code helper','You are a senior developer. Ask nothing unless it is truly needed. Give complete working code in one block, then a short note on how it works and what could go wrong. Say plainly when something will not work.']];
 function getStyle(){var v=jget('ai_v9_style',null);return typeof v==='string'&&v!==STYLE_OLD_BG&&!/^\s*Ти си фактически/.test(v)?v:STYLE_DEF;}
 /* Chat commands: the visitor (or the AI, using only these keys) can open a function of the site and type plain text into its first box. No code is ever run: only keys from this fixed list are accepted. */
-function byText(re){var l=[].slice.call(document.querySelectorAll('button,a,[role=button],.lab-card,[onclick]'));for(var i=0;i<l.length;i++){var t=(l[i].textContent||'').replace(/\s+/g,' ').trim();if(t.length<40&&re.test(t))return l[i];}return null;}
+function byText(re){var l=[].slice.call(document.querySelectorAll('button,a,[role=button],.lab-card,[onclick]'));for(var i=0;i<l.length;i++){if(l[i].closest&&l[i].closest('.header h1'))continue;var t=(l[i].textContent||'').replace(/\s+/g,' ').trim();if(t.length<40&&re.test(t))return l[i];}return null;}
 function clickBy(re){var e=byText(re);if(e){e.click();return true;}return false;}
 var ACTIONS={
 translator:{n:'Translator',re:/преводач|превод|translator|translate/i,p:'v9Tr',run:/^Translate$/,custom:function(b,text,o){var ta=b.querySelector('textarea');if(!ta)return;var to=o&&o.lang;if(!to){to=/[\u0400-\u04ff]/.test(text)?'en':'';}
@@ -183,11 +136,9 @@ compare:{n:'Compare two sources',re:/сравни|сравнение|compare/i,f
 quote:{n:'Quote',re:/цитат|quote/i,p:'v9Quote',run:/Find source/},
 quiz:{n:'Quiz',re:/куиз|викторин|quiz/i,f:function(){clickBy(/^\W*Quiz$/i)||openPanel('v9Quiz');},p:'v9Quiz',nofill:1},
 tools:{n:'Tools',re:/инструмент|\btools?\b/i,f:function(){clickBy(/^\W*Tools$/i)||openPanel('v9Tools');},p:'v9Tools',nofill:1},
-videos:{n:'Videos',re:/видеа|видео|videos?\b/i,f:function(t){openVideos(t?'search':'fyp');},p:'v9Videos'},
 tip:{n:'AI Tip',re:/съвет|\btip\b/i,f:function(){clickBy(/AI Tip/i)||openPanel('v9Tip');},p:'v9Tip',nofill:1},
 weekly:{n:'Weekly',re:/седмичн|weekly/i,f:function(){clickBy(/Weekly/i)||openPanel('v9Weekly');},p:'v9Weekly',nofill:1},
 favorites:{n:'Favorites',re:/любими|favou?rites?/i,f:function(){clickBy(/Favou?rites?|Любими/i)||openPanel('v9Favs');},p:'v9Favs',nofill:1},
-cache:{n:'Cache and downloads',re:/кеш|cache|изтеглен/i,f:function(){try{AI_CACHE.open();}catch(e){openPanel('v9Cache');}},p:'v9Cache',nofill:1},
 reminders:{n:'Reminders',re:/напомн|remind/i,f:function(){clickBy(/Reminders/i)||openPanel('v9Remind');},p:'v9Remind',nofill:1},
 scamlab:{n:'Scam Lab',re:/scam\s*lab|скам|измам/i,f:function(){openScam();}},
 search:{n:'Standard search',re:/търси|търсене|search/i,f:function(t){openStd(t||'');}},
@@ -230,7 +181,7 @@ function getMem(){var v=jget('ai_v9_mem','');return typeof v==='string'?v:'';}
 function mkMemBox(){var d=document.createElement('details');d.style.cssText='margin:6px 0;padding:8px 10px;border:1px solid var(--border2);border-radius:10px';
 var sm=document.createElement('summary');sm.textContent='🧠 Memory: things the AI should remember';sm.style.cssText='cursor:pointer;font-weight:600';d.appendChild(sm);
 var w=el('div','v9-note','⚠️ The AI can only keep a limited amount in mind. A very long memory can be forgotten or cut off because of the memory limit and the abilities of the AI model. Keep it short: only what really matters (your name, language, what you are working on).');w.style.cssText='margin:8px 0;line-height:1.5;color:#ffaa00;opacity:1';d.appendChild(w);
-var ta=document.createElement('textarea');ta.maxLength=1500;ta.rows=5;ta.value=getMem();ta.setAttribute('aria-label','Memory for the AI');ta.placeholder='e.g. My name is Georgi. I live in Bulgaria. Answer in Bulgarian.';ta.style.cssText='width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font:inherit';
+var ta=document.createElement('textarea');ta.maxLength=1500;ta.rows=5;ta.value=getMem();ta.setAttribute('aria-label','Memory for the AI');ta.placeholder='My name is … . I live in … . Answer in … .';ta.style.cssText='width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font:inherit';
 var cnt=el('div','v9-note','');function cc(){cnt.textContent=ta.value.length+' / 1500 characters'+(ta.value.length>900?' (long: the AI may forget parts)':'');}cc();
 ta.oninput=function(){jset('ai_v9_mem',ta.value);cc();};d.appendChild(ta);d.appendChild(cnt);
 var cl=mkBtn('Clear memory','',function(){ta.value='';jset('ai_v9_mem','');cc();});cl.type='button';d.appendChild(cl);return d;}
@@ -341,7 +292,7 @@ var b=$('v9ChatBody');
 if(!b._built){
 b._built=true;b.style.display='flex';b.style.flexDirection='column';
 var log=el('div');log.style.flex='1';log.id='chatLog';var row=el('div','v9-row');row.style.cssText='position:sticky;bottom:0;background:var(--bg);padding:8px 0';
-var inp=el('input','v9-in');inp.placeholder='Ask anything… (e.g. "find me a video about volcanoes")';inp.setAttribute('aria-label','Message');inp.maxLength=1500;
+var inp=el('input','v9-in');inp.placeholder='Ask anything… (e.g. "explain how black holes form")';inp.setAttribute('aria-label','Message');inp.maxLength=1500;
 var send=mkBtn('Send','pri');
 var pend=null,pendBox=el('div','v9-note');pendBox.style.cssText='display:none;margin:4px 0;padding:6px 10px;border:1px dashed var(--border2);border-radius:10px';
 function pendDraw(){pendBox.textContent='';if(!pend){pendBox.style.display='none';return;}pendBox.style.display='block';pendBox.appendChild(document.createTextNode('📎 '+pend.name+' ('+pend.kind+') will be shown only to the AI model. It is never opened, run or used by the site. '));var x=el('button','std-b','✕ Remove');x.type='button';x.style.cssText='padding:2px 8px;font-size:12px';x.onclick=function(){pend=null;pendDraw();};pendBox.appendChild(x);}

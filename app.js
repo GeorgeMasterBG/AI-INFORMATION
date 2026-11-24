@@ -180,7 +180,7 @@ window.openScam=openScam;window.closeScam=closeScam;window.runScam=runScam;
 window.handleFakeFile=handleFakeFile;window.clearFake=clearFake;window.loadTrending=loadTrending;
 /* ===================== v9: core ===================== */
 var V9={bg:false,stack:[]};
-var XC={},XCT={define:3600000,videos:600000,feed:300000,digest:300000,article:900000,search:300000};
+var XC={},XCT={define:3600000,feed:300000,digest:300000,article:900000,search:300000};
 var DL_BUSY={};
 /* ---- activity log (feeds EXPORT NEW INFORMATION) ---- */
 var ACT=jget('ai_v9_act',[]);
@@ -282,8 +282,6 @@ tag:function(){FT.rules.forEach(function(r){[].forEach.call(document.querySelect
 window.FT=FT;
 var TEXTEXT=/\.(txt|md|csv|tsv|json|xml|html?|css|js|mjs|ts|py|sh|bat|cmd|ps1|vbs|php|rb|pl|java|c|cpp|h|cs|go|rs|sql|ini|cfg|conf|yml|yaml|toml|log|eml|reg|inf|lnk|url|desktop|svg)$/i;
 
-/* ===== AI video finder: the AI only CHOOSES among videos our own script found in Internet Archive / Wikimedia; the script then caches and plays them ===== */
-var VID_OK=/archive\.org|wikimedia|wikipedia|commons/i;
 
 
 
@@ -324,21 +322,10 @@ return d;};
 window.AI_AUTOTHEME_STOP=function(){if(atMode()==='off')return;try{store.set('ai_v9_autotheme','off');localStorage.setItem('ai_v9_autotheme','off');}catch(e){}toast('Automatic theme is off. You are in control.','var(--accent)',2500);if(window.AI_AUTOTHEME_REFRESH)AI_AUTOTHEME_REFRESH();};
 setInterval(function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}},300000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)try{AI_AUTOTHEME_APPLY();}catch(e){}});
-/* ===================== v9: video cache ===================== */
-var VC={name:'ai-v9-videos',max:1024*1024*1024,per:512*1024*1024,blobMax:6*1024*1024,lastScroll:0,busy:0,hold:0,q:[],state:{},pct:{},idx:jget('ai_v9_vidx',{}),par:2,ahead:2,wifi:true};
-var VC_SIZES=[150,1024,3072,5120,9216];
-vcApplySize(store.get('ai_vcsize')||1024);VC.wifi=store.get('ai_vcwifi')!=='0';
-/* ===================== v33: video quality (smallest → 8K) ===================== */
-var VQL=[144,240,360,480,720,1080,1440,2160,4320],VQN={144:'144p',240:'240p',360:'360p',480:'480p',720:'720p HD',1080:'1080p Full HD',1440:'1440p 2K',2160:'2160p 4K',4320:'4320p 8K'},VQBIG={};
-var vcObs=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target._on&&e.target._on();}else{e.target._off&&e.target._off();}});},{rootMargin:'700px 0px'}):null;
-document.addEventListener('visibilitychange',function(){if(document.hidden)[].forEach.call(document.querySelectorAll('.vd-card video'),function(v){v.pause();});});
-/* ===================== v9: video sources (server, with browser fallback) ===================== */
-var PAIDRE=/fair use|non-?free|all rights reserved|proprietary|\bpaid\b|premium|subscription|\brent(al)?\b|purchase|pay[- ]per/i;
+/* ===================== content filter word lists ===================== */
 var KIDRE=/(?<![\p{L}])(sex\w*|porn\w*|nude|nudes|nudity|naked|nsfw|xxx|erotic\w*|fetish\w*|strip\s?tease|striptease|escort\w*|onlyfans|hentai|bdsm|orgy|milf|boob\w*|topless|lingerie|bikini\s+model|adult\s+(only|content|video)|18\+|gore|beheading|murder\w*|massacre|torture|rape\w*|suicide|self[- ]harm|cocaine|heroin|meth\b|weed|cannabis|marijuana|drug\s+(deal|use)\w*|casino|gambl\w*|betting|slot\s+machine|секс\p{L}*|порн\p{L}*|еротик\p{L}*|еротичн\p{L}*|голи\s+(жени|мъже|момичета|тела)|гола|голо\s+тяло|проститут\p{L}*|насилие|убийств\p{L}*|самоубийств\p{L}*|изнасилван\p{L}*|наркотик\p{L}*|хазарт\p{L}*|казино|залагани\p{L}*)(?![\p{L}])/iu;
 var RUDERE=/(?<![\p{L}])(fuck\p{L}*|motherfuck\p{L}*|shit\p{L}*|bullshit|bitch\p{L}*|bastard\p{L}*|asshole\p{L}*|dickhead\p{L}*|cunt\p{L}*|whore\p{L}*|slut\p{L}*|twat\p{L}*|wanker\p{L}*|nigg\p{L}*|fagg?ot\p{L}*|retard\p{L}*|хуй\p{L}*|хуя\p{L}*|хуе\p{L}*|пизд\p{L}*|путк\p{L}*|путан\p{L}*|ебан\p{L}*|ебат\p{L}*|ебал\p{L}*|ебах\p{L}*|ебаси|курв\p{L}*|лайн\p{L}*|шибан\p{L}*|педал\p{L}*|педер\p{L}*|дебил\p{L}*|идиот\p{L}*|мръсник\p{L}*|мамка\s+ти|майка\s+ти)(?![\p{L}])/iu;
 var KIDSRC=/mastodon|lemmy|peertube|reddit|4chan|tumblr/i;
-/* ===================== v9: videos panel ===================== */
-var TOPICS=['documentary','nature','space','science','technology','history','music','art','travel','animals','ocean','city'];
 var quoteRunId=0;
 /* ===================== v9: assemble the UI ===================== */
 (function v9init(){
@@ -367,20 +354,15 @@ var tc=el('div');tc.id='tipCard';tc.onclick=openTip;bar.parentNode.insertBefore(
 var fb=el('div');fb.id='feedBar';fb.style.cssText='margin:12px 15px;background:var(--bg2);border:1.5px solid var(--accent2);border-radius:12px;padding:12px';
 var fh=el('div');fh.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px';fh.appendChild(el('b','','📰 Feed'));fh.appendChild(mkBtn('↻','',function(){loadFeed(true);}));fb.appendChild(fh);var fbody=el('div');fb.appendChild(fbody);
 var scam=$('scamLabBar');scam.parentNode.insertBefore(fb,scam);
-/* ---- Feed: Videos / Posts choices + AI video finder ---- */
-var FM=jget('ai_v9_feedmode',null);if(!FM||typeof FM!=='object')FM={v:true,p:true};FM={v:FM.v!==false,p:FM.p!==false};if(!FM.v&&!FM.p)FM.p=true;window.AI_FEED_MODE=FM;
-var fmRow=el('div','v9-row');fmRow.setAttribute('role','group');fmRow.setAttribute('aria-label','What to show in the Feed');fmRow.style.margin='0 0 8px';
-var fmV=el('button','std-b','🎬 Videos'),fmP=el('button','std-b','📝 Posts');fmV.type='button';fmP.type='button';
-fmRow.appendChild(fmV);fmRow.appendChild(fmP);var fmHint=el('span','v9-note','');fmRow.appendChild(fmHint);fb.insertBefore(fmRow,fbody);
-var fvid=el('div');fvid.style.display='none';fb.insertBefore(fvid,fbody);
-var vaiWrap=el('div');vaiWrap.style.display='none';fb.insertBefore(vaiWrap,fvid);
+/* ---- Feed: AI Finder (the AI looks for articles) ---- */
+var vaiWrap=el('div');fb.insertBefore(vaiWrap,fbody);vaiWrap.appendChild(aiFinderBlock());
 var fsumBox=el('div');fsumBox.setAttribute('data-ft','aifeed');fsumBox.style.cssText='margin:0 0 10px';fb.insertBefore(fsumBox,vaiWrap);
 var fsum={busy:false,done:false};
 function dayKey(){return new Date().toISOString().slice(0,10);}
 function fsumDraw(rec,err){
 fsumBox.textContent='';if(!rec&&!err&&!fsum.busy)return;
 var c=el('div','v9-card');c.style.cssText='padding:12px;line-height:1.55';c.appendChild(el('b','','📰 AI summary of the day'));
-var bd=el('div','');bd.style.cssText='margin:8px 0;white-space:pre-wrap';bd.setAttribute('translate','no');bd.className='notranslate';bd.textContent=fsum.busy?'The AI is reading today\'s headlines…':(rec?rec.text:'⚠️ '+err);c.appendChild(bd);
+var bd=el('div','');bd.style.cssText='margin:8px 0;white-space:pre-wrap';bd.setAttribute('translate','no');bd.className='notranslate';if(!fsum.busy&&rec&&rec.text)bd.appendChild(longBody(rec.text,true));else bd.textContent=fsum.busy?'The AI is reading today\'s headlines…':'⚠️ '+err;c.appendChild(bd);
 if(rec&&!fsum.busy)c.appendChild(el('div','v9-note','🤖 AI model ('+aiShort(rec.model)+'), run by Cloudflare. Made from the headlines in the feed on '+rec.d+'. It can be wrong: open the posts to check.'));
 try{var fmr=mkModelRow();var fms=fmr.msel;fmr.removeChild(fmr.lastChild);fms.disabled=fsum.busy;fms.addEventListener('change',function(){fsumRun(true,fms.value);});fmr.style.margin='6px 0';c.appendChild(fmr);}catch(e){}
 var nb=mkBtn('↻ New summary','',function(){fsumRun(true);});nb.disabled=fsum.busy;nb.style.marginTop='6px';c.appendChild(nb);
@@ -398,24 +380,10 @@ var txt=items.map(function(it,i){return(i+1)+'. '+String(it.title).replace(/\s+/
 var used=cached&&cached.model?cached.model:'';var nx=pick||'';if(force&&!pick){var al=AI_ALL.filter(function(m){return m!==used;});nx=al[Math.floor(Math.random()*al.length)]||'';}
 aiAsk('feed_day',{text:txt,model:nx||modelPick()}).then(function(j){fsum.busy=false;var rec={d:dayKey(),text:String(j.answer||'').slice(0,1500),model:j.model||nx||''};if(!rec.text)throw new Error('empty');jset('ai_v9_feedsum',rec);fsumDraw(rec);}).catch(function(e){fsum.busy=false;if(cached&&cached.text&&cached.d===dayKey())fsumDraw(cached);else fsumDraw(null,aiErrText(e));});
 }
-function fmApply(){
-if(!FM.v&&!FM.p)FM.p=true;jset('ai_v9_feedmode',FM);
-[[fmV,FM.v],[fmP,FM.p]].forEach(function(x){x[0].setAttribute('aria-pressed',x[1]?'true':'false');x[0].style.outline=x[1]?'2px solid var(--accent)':'none';});
-fmHint.textContent=FM.v&&FM.p?'Both: videos and posts together, with the AI video finder.':FM.v?'Videos only: For you, Search and My player, with the AI video finder.':'Posts only: no videos.';
-var vOnly=FM.v&&!FM.p;
-fvid.style.display=vOnly?'':'none';fsumBox.style.display=vOnly?'none':'';fbody.style.display=vOnly?'none':'';vaiWrap.style.display=FM.v?'':'none';
-if(FM.v&&!vaiWrap._built){vaiWrap._built=1;vaiWrap.appendChild(aiVideoBlock());}
-if(vOnly){var vb=$('v9VideosBody');if(vb&&vb.parentNode!==fvid)fvid.appendChild(vb);var vb2=$('v9VideosBody');if(vb2&&!vb2._built)openVideos(window.__vtab||'fyp',true);}
-if(!vOnly&&window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();
-}
-fmV.onclick=function(){FM.v=!FM.v;fmApply();};fmP.onclick=function(){FM.p=!FM.p;fmApply();};
-fmApply();
-window.AI_FEED_VIDEOS=function(tab){FM.v=true;FM.p=false;window.__vtab=tab||'fyp';fmApply();var vb=$('v9VideosBody');if(vb&&vb._show&&tab)vb._show(tab);try{fb.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}};
 
 var feedKnown=null,feedList=[],feedBusy=false,feedLast=0,feedPage=0,feedEnd=false,feedMoreBusy=false;
 fbody._manual=true;var fst=el('span','v9-note','');fst.id='feedStatus';window.AI_FEED_REFRESH=function(){if(feedList.length)renderFeed(fbody,feedList,Math.max(12,fbody._shown||12),feedEnd?null:feedMore);};fh.insertBefore(fst,fh.lastChild);
 function itemKey(it){return it.src||it.link||it.title;}
-function feedPlaying(){return [].some.call(fbody.querySelectorAll('video'),function(v){return !v.paused&&!v.ended;});}
 function feedMore(){
 if(feedMoreBusy||feedEnd){return;}feedMoreBusy=true;var np=feedPage+1;
 feedItems(np).then(function(items){
@@ -426,7 +394,7 @@ renderFeed(fbody,feedList,Math.min(feedList.length,Math.max(12,(fbody._shown||12
 }).catch(function(){feedEnd=true;renderFeed(fbody,feedList,Math.max(12,fbody._shown||12),null);}).then(function(){feedMoreBusy=false;});
 }
 function loadFeed(force){
-if(!FT.on('feed'))return;if(feedBusy)return;if(!force&&feedPlaying()){return;}
+if(!FT.on('feed'))return;if(feedBusy)return;
 feedBusy=true;var cached=jget('ai_v9_feed2_'+country(),null);
 if(!feedList.length){if(cached)renderFeed(fbody,cached.items,8);else{fbody.textContent='';fbody.appendChild(el('div','v9-spin'));}}
 feedItems().then(function(items){
@@ -444,7 +412,7 @@ if(!fsum.done)fsumRun(false);
 setInterval(function(){if(!document.hidden&&feedKnown)loadFeed(false);},90000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&feedKnown&&Date.now()-feedLast>60000)loadFeed(false);});
 if(window.IntersectionObserver){var fio=new IntersectionObserver(function(es){if(es[0].isIntersecting){fio.disconnect();loadFeed(false);}},{rootMargin:'600px'});fio.observe(fb);}else loadFeed(false);
-mkPanel('v9Share','Share');mkPanel('v9Tip','💡 AI Tip');mkPanel('v9Weather','🌤️ Weather');mkPanel('v9Chat','🤖 AI Chat');mkPanel('v9Videos','🎬 Videos');mkPanel('v9Weekly','🛡️ Weekly security report');mkPanel('v9Cmp','⚖️ Compare two sources');
+mkPanel('v9Share','Share');mkPanel('v9Tip','💡 AI Tip');mkPanel('v9Weather','🌤️ Weather');mkPanel('v9Chat','🤖 AI Chat');mkPanel('v9Weekly','🛡️ Weekly security report');mkPanel('v9Cmp','⚖️ Compare two sources');
 wx.onclick=function(){wxPanelBody=$('v9WeatherBody');wxRender();openPanel('v9Weather');};
 var eb=$('exportBtn');if(eb)eb.textContent='📄 EXPORT NEW INFORMATION';
 initVoice();
@@ -457,7 +425,6 @@ initStd();
 initQuoteContext();
 initDict();
 initLang();
-initCache();
 initLegal();
 initCalc();
 initRemind();
@@ -546,8 +513,6 @@ window.AI_SB_APPLY=function(){std=sbMode()==='standard';enable();th.classList.to
 window.AI_SB_APPLY();
 })();
 
-/* video cache: remember when the page was last scrolled, so downloads wait for a quiet moment (no jank while scrolling the Feed) */
-window.addEventListener('scroll',function(){VC.lastScroll=Date.now();},{passive:true});
 
 /* start-up of the extras: rotating label, Favorites button, favourite-functions bar, scroll choice */
 setTimeout(function(){try{hdrRotate();}catch(e){}try{favAddSearch();}catch(e){}try{fnRender();}catch(e){}},1800);

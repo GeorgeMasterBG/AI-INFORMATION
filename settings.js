@@ -91,7 +91,7 @@ var bar=$('v9Bar');if(bar)bar.appendChild(btn);
 
 function initFeatures(){
 var body=mkPanel('v9Feat','🎛️ Features');body.parentNode.id='v9Feat';
-var G=[['Main tools',[['feed','📰 Feed','Posts and videos'],['news','🚨 Breaking news bar',''],['trending','🔥 Trending bar',''],['chat','🤖 AI Chat','Chat button'],['weather','🌤️ Weather','Button and the chip at the top'],['translator','🌍 Translator',''],['dict','📖 Dictionary',''],['calc','🧮 Calculator',''],['compare','⚖️ Compare',''],['quote','🔎 Quote context',''],['reminders','⏰ Reminders',''],['install','📲 Install','']]],
+var G=[['Main tools',[['feed','📰 Feed','Articles and the AI Finder'],['news','🚨 Breaking news bar',''],['trending','🔥 Trending bar',''],['chat','🤖 AI Chat','Chat button'],['weather','🌤️ Weather','Button and the chip at the top'],['translator','🌍 Translator',''],['dict','📖 Dictionary',''],['calc','🧮 Calculator',''],['compare','⚖️ Compare',''],['quote','🔎 Quote context',''],['reminders','⏰ Reminders',''],['install','📲 Install','']]],
 ['Scam Lab',[['urlscan','🔗 URL Scanner',''],['textan','📝 Text Analyzer',''],['fakeimg','🖼️ Fake image checker',''],['weekly','🛡️ Weekly report',''],['tip','💡 AI Tip',''],['tools','🧰 Tools',''],['quiz','🎮 Quiz','']]],
 ['AI helpers',[['aisum','✨ AI Summary of search results','Also stops the automatic request'],['aifeed','📰 AI summary of the day in the Feed','Also stops the automatic request'],['aibtn','🤖 AI buttons inside tools','Explain, translate, check and the two-day comparison'],['foryou','✨ "For you" in Standard Search',''],['aibg','🖼️ AI picture background','Hides the picture; it stays saved']]],
 ['Look',[['splash','✨ Start animation','']]]];
@@ -142,74 +142,6 @@ b.appendChild(el('p','lg-p','The site would like to know where you are for one r
 var ul=el('ul','lg-ul');['Your device sends its coordinates to Open-Meteo (a free weather service) to get the forecast.','The coordinates are not sent to this site’s server, not used for ads, and not shared with anyone else.','The place is saved on your device only if you allowed “Preferences” in the cookie choices.','Next your browser will ask you for permission. You can say “No”: you can always type a city name instead.'].forEach(function(t){ul.appendChild(el('li','',t));});b.appendChild(ul);
 var r=el('div','v9-row');r.appendChild(mkBtn('Continue','pri',function(){closePanel(id);setTimeout(go,150);}));r.appendChild(mkBtn('Not now','',function(){closePanel(id);}));b.appendChild(r);
 openPanel(id);
-}
-/* ---- Feed cache: choose 150 MB / 1 / 3 / 5 / 9 GB with honest hardware notes ---- */
-function initCache(){
-var SZ=[
-{mb:150,name:'150 MB',tag:'Light',vids:'about 6 videos',free:'1 GB',ram:2,store:'any storage (eMMC is fine)',total:'Any phone or computer',ff:'Firefox needs at least 1.5 GB of total storage',net:'under a minute on Wi-Fi'},
-{mb:1024,name:'1 GB',tag:'Balanced',vids:'about 40 videos',free:'3 GB',ram:3,store:'any storage (eMMC is fine)',total:'At least 4 GB of total storage',ff:'Firefox needs at least 10 GB of total storage',net:'about 3 minutes at 50 Mbit/s'},
-{mb:3072,name:'3 GB',tag:'Large',vids:'about 120 videos',free:'8 GB',ram:4,store:'UFS 2.1 or better, or an SSD (eMMC ≈ 125 MB/s writes: slow to fill)',total:'At least 32 GB of total storage',ff:'Firefox needs at least 30 GB of total storage',net:'about 8 minutes at 50 Mbit/s'},
-{mb:5120,name:'5 GB',tag:'Heavy',vids:'about 200 videos',free:'12 GB',ram:6,store:'UFS 3.x or an SSD',total:'At least 64 GB of total storage',ff:'Firefox needs at least 50 GB of total storage',net:'about 14 minutes at 50 Mbit/s'},
-{mb:9216,name:'9 GB',tag:'Maximum',vids:'about 360 videos',free:'20 GB',ram:8,store:'UFS 3.1 / 4.0 or an NVMe SSD',total:'At least 128 GB of total storage',ff:'Firefox needs about 90 GB of total storage (and caps one site at 10 GiB)',net:'about 25 minutes at 50 Mbit/s; use Wi-Fi'}
-];
-var b=mkPanel('v9Cache','💾 Feed cache');b.parentNode.id='v9Cache';
-var note=el('p','lg-p','The feed saves videos on this device so they start at once and keep working offline. Pick the most it may use. When the limit is reached, the oldest videos are removed first. The limit is checked against the real size of the saved files.');
-b.appendChild(note);
-var dev=el('div','v9-note');dev.id='cDev';b.appendChild(dev);
-var st=el('div','cc-use');b.appendChild(st);
-var offBox=el('div','v9-card');b.appendChild(offBox);
-var list=el('div');b.appendChild(list);
-var wl=el('label','cb-o');var wc=el('input');wc.type='checkbox';wc.checked=VC.wifi;wc.onchange=function(){VC.wifi=wc.checked;store.set('ai_vcwifi',wc.checked?'1':'0');};wl.appendChild(wc);var wd=el('span','cb-od');wd.appendChild(el('b','','Save videos only on Wi-Fi'));wd.appendChild(el('span','','Does not use mobile data for background saving (works where the browser tells the site the connection type; other browsers cannot tell).'));wl.appendChild(wd);b.appendChild(wl);
-var clr=mkBtn('🗑️ Clear saved videos','',function(){
-if(!window.caches){return;}caches.delete(VC.name).then(function(){VC.idx={};VC.state={};VC.q=[];vcSave();toast('Saved videos cleared','var(--accent)');refresh();});
-});clr.style.marginTop='10px';b.appendChild(clr);
-b.appendChild(el('p','v9-note','How the hardware advice was worked out: browsers allow one site up to about 60% of the device’s total storage in Chrome, Edge and Safari, but only 10% (maximum 10 GiB) in Firefox (MDN, “Storage quotas and eviction criteria”). Typical sequential write speeds are about 125 MB/s for eMMC 5.1, 410 to 1,200 MB/s for UFS 3.0 / 3.1 and about 2,800 MB/s for UFS 4.0. RAM and free-space numbers are recommendations so the device stays smooth, not hard limits.'));
-var quota=0,usage=0,sel=+store.get('ai_vcsize')||1024;
-function used(){var t=0,k;for(k in VC.idx)t+=VC.idx[k].s||0;return t;}
-function gb(n){return (n/1073741824).toFixed(n<1073741824*10?2:1)+' GB';}
-function refresh(){
-var u=used();
-dev.textContent='';
-var mem=navigator.deviceMemory;
-dev.appendChild(document.createTextNode('This browser allows this site up to '+(quota?gb(quota):'an unknown amount')+' of storage. '+(mem?'The device reports about '+(mem>=8?'8 GB or more':mem+' GB')+' of RAM'+(navigator.hardwareConcurrency?' and '+navigator.hardwareConcurrency+' CPU cores':'')+'. ':'')));
-st.textContent='Saved now: '+gb(u)+' of '+SZ.filter(function(x){return x.mb===sel;})[0].name+(cacheOK()?'':' (offline cache is off)');
-var bar=el('div','cc-bar');var fill=el('i');fill.style.width=Math.min(100,u/(sel*1048576)*100)+'%';bar.appendChild(fill);st.appendChild(bar);
-offBox.textContent='';
-if(!cacheOK()){offBox.appendChild(el('b','','Offline cache is off. '));offBox.appendChild(document.createTextNode('Videos are not saved until you allow it.'));var on=mkBtn('Allow the offline cache','pri',function(){applyConsent({prefs:CONS?CONS.prefs:0,cache:1});refresh();});on.style.cssText='display:block;margin-top:8px';offBox.appendChild(on);offBox.style.display='block';}else offBox.style.display='none';
-list.textContent='';
-SZ.forEach(function(o){
-var need=o.mb*1048576,tooBig=quota&&need>quota*0.9;
-var ramWarn=navigator.deviceMemory&&navigator.deviceMemory<o.ram;
-var card=el('button','cc-o'+(o.mb===sel?' on':'')+(tooBig?' off':''));card.type='button';card.disabled=!!tooBig;card.setAttribute('role','radio');card.setAttribute('aria-checked',o.mb===sel?'true':'false');
-var h=el('div','cc-h');h.appendChild(el('b','',o.name));h.appendChild(el('span','cc-tag',o.tag));
-h.appendChild(el('span','cc-st',tooBig?'⛔ too large for this browser':ramWarn?'⚠️ low RAM':quota&&need>quota*0.5?'⚠️ may not fit':'✅ fits'));card.appendChild(h);
-var ul=el('ul','cc-ul');
-['Holds '+o.vids+' (about 25 MB each at 480p; HD and 4K files are larger).','Free space on the device: at least '+o.free+'. '+o.total+'.','RAM: at least '+o.ram+' GB. Storage: '+o.store+'.',o.ff+'.','First fill: '+o.net+'. Uses mobile data if Wi-Fi-only is off.'].forEach(function(t){ul.appendChild(el('li','',t));});
-card.appendChild(ul);
-card.onclick=function(){
-if(!cacheOK()){toast('Allow the offline cache first','#ffaa00');return;}
-sel=o.mb;store.set('ai_vcsize',String(o.mb));vcApplySize(o.mb);vcEvict();
-try{if(o.mb>=1024&&navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
-toast('Feed cache limit: '+o.name,'var(--accent)');logAct('cache','limit '+o.name);refresh();
-};
-list.appendChild(card);
-});
-}
-function fit(){
-if(!quota)return;
-var fits=SZ.filter(function(o){return o.mb*1048576<=quota*0.9;});
-if(!store.get('ai_vcsize')||SZ.filter(function(o){return o.mb===sel;})[0].mb*1048576>quota*0.9){sel=(fits.length?fits[fits.length-1]:SZ[0]).mb;vcApplySize(sel);}
-VC.max=Math.min(VC.max,Math.floor(quota*0.8));VC.per=Math.min(VC.per,Math.floor(VC.max/2));
-}
-function load(){
-try{if(navigator.storage&&navigator.storage.estimate)return navigator.storage.estimate().then(function(e){quota=e&&e.quota||0;usage=e&&e.usage||0;fit();}).catch(function(){});}catch(e){}
-return Promise.resolve();
-}
-load();
-window.AI_CACHE={open:function(){load().then(function(){if(store.get('ai_vcsize'))sel=+store.get('ai_vcsize');refresh();openPanel('v9Cache');});}};
-var fbar=$('feedBar');
-if(fbar){var fh=fbar.firstChild;if(fh){var cb=mkBtn('💾 Cache','',function(){window.AI_CACHE.open();});cb.setAttribute('aria-label','Feed cache size');fh.insertBefore(cb,fh.lastChild);
-}}
 }
 
 /* ===================== v39: Beta link + Standard Mode (search-engine style results) ===================== */
@@ -476,7 +408,7 @@ var al=el('label','v9-note');al.style.cssText='display:flex;gap:8px;align-items:
 var body=el('div','');body.style.cssText='margin:8px 0;white-space:pre-wrap';
 if(sumSt.busy){body.textContent='Asking the AI model… (it reads only the titles and snippets of the results)';}
 else if(sumSt.err&&sumSt.cur<0){body.textContent='⚠️ '+sumSt.err;}
-else if(sumSt.cur>=0){body.textContent=sumSt.versions[sumSt.cur].text;}
+else if(sumSt.cur>=0){body.textContent='';body.appendChild(longBody(sumSt.versions[sumSt.cur].text,true));}
 box.appendChild(body);
 if(sumSt.versions.length>1||sumSt.cur>=0){
 var vr=el('div','');vr.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;max-width:100%;min-width:0';

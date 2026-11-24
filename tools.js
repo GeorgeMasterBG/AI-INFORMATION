@@ -43,7 +43,7 @@ p.appendChild(out);p.appendChild(meta);p.appendChild(lr);p.appendChild(row);p.ap
 var pwBox=el('div','v9-card');pwBox.style.cssText='margin:10px 0;padding:10px';p.appendChild(pwBox);
 pwBox.appendChild(el('b','','🔎 Rate my password with AI'));
 pwBox.appendChild(el('div','v9-note','Type a password to rate. The password itself is never sent: only its length and shape (how many lowercase, uppercase, digits, symbols, repeats and simple sequences) go to the AI. A stronger one is then made in your browser.'));
-var pwi=document.createElement('input');pwi.type='password';pwi.autocomplete='off';pwi.setAttribute('aria-label','Password to rate');pwi.style.cssText='width:100%;margin-top:8px;padding:8px';pwBox.appendChild(pwi);
+var pwi=document.createElement('input');pwi.type='password';pwi.autocomplete='off';pwi.setAttribute('aria-label','Password to rate');pwi.style.cssText='flex:1;min-width:0;padding:8px';var pwRow=el('div','');pwRow.style.cssText='display:flex;gap:6px;align-items:center;margin-top:8px';pwRow.appendChild(pwi);var eye=el('button','v9-btn','👁');eye.type='button';eye.setAttribute('aria-label','Show the password');eye.setAttribute('aria-pressed','false');eye.title='Show / hide what you typed';eye.onclick=function(){var s=pwi.type==='password';pwi.type=s?'text':'password';eye.textContent=s?'🙈':'👁';eye.setAttribute('aria-label',s?'Hide the password':'Show the password');eye.setAttribute('aria-pressed',s?'true':'false');};pwRow.appendChild(eye);pwBox.appendChild(pwRow);
 function pwShape(w){var c={lower:0,upper:0,digit:0,symbol:0};for(var i=0;i<w.length;i++){var ch=w[i];if(/[a-z]/.test(ch))c.lower++;else if(/[A-Z]/.test(ch))c.upper++;else if(/[0-9]/.test(ch))c.digit++;else c.symbol++;}
 var rp=0,seq=0;for(var j=1;j<w.length;j++){if(w[j]===w[j-1])rp++;if(Math.abs(w.charCodeAt(j)-w.charCodeAt(j-1))===1)seq++;}
 var uniq=new Set(w.split('')).size;var m=w.slice(0,64).replace(/[a-z]/g,'l').replace(/[A-Z]/g,'U').replace(/[0-9]/g,'d').replace(/[^lUd]/g,'s');
@@ -331,7 +331,7 @@ labCard('🧰','Tools',function(){if(!cur)t1.click();openPanel('v9Tools');},'rgb
 function initClear(){
 var body=mkPanel('v9Clear','🧹 Quick clear');
 var SEARCH=/^(ai_v9_(recent|snaps|feedsum|saved|live|act|chat|tips|weekly|fyp_.*)|ai_tip_(cur|last)|ai_favorites|ai_fav_sources|ai_fav_links)$/;
-var VIDEO=/^ai_v9_vidx$/;
+var VIDEO=/^ai_v9_nevermatch$/;
 function keys(){var o=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0)o.push(k);}}catch(e){}return o;}
 function groups(){var g={search:[],video:[],settings:[]};keys().forEach(function(k){if(VIDEO.test(k))g.video.push(k);else if(SEARCH.test(k))g.search.push(k);else g.settings.push(k);});return g;}
 function cacheFiles(){if(!window.caches)return Promise.resolve({names:[],n:0});return caches.keys().then(function(ns){ns=ns.filter(function(n){return n.indexOf('aiinfo-')!==0;});return Promise.all(ns.map(function(n){return caches.open(n).then(function(c){return c.keys();}).then(function(k){return k.length;}).catch(function(){return 0;});})).then(function(a){return{names:ns,n:a.reduce(function(x,y){return x+y;},0)};});}).catch(function(){return{names:[],n:0};});}
@@ -343,7 +343,7 @@ var g=groups();
 cacheFiles().then(function(cf){
 var rows=[
 ['search','Searches and saved items','Recent searches, saved results, AI chat history, tips, favourites and the activity log.',g.search.length+' saved item'+(g.search.length===1?'':'s')],
-['video','Videos and feed cache','Downloaded videos and cached pictures. They download again when you watch.',cf.n+' cached file'+(cf.n===1?'':'s')],
+['video','Feed cache','Cached feed items and pictures. They load again when you need them.',cf.n+' cached file'+(cf.n===1?'':'s')],
 ['settings','Settings and preferences','Theme, text size, low data mode, weather place, tip timing and the welcome screen. They go back to the defaults.',g.settings.length+' setting'+(g.settings.length===1?'':'s')]
 ];
 rows.forEach(function(r){
@@ -484,7 +484,7 @@ function build(){
 body.textContent='';
 body.appendChild(el('p','lg-p','Content filter. The site does not ask for your age.'));
 var fcb=document.createElement('input');fcb.type='checkbox';fcb.checked=kidsOn();fcb.id='ageFilterCb';
-var fl=el('label','lg-p','');fl.style.cssText='display:block;margin:14px 0';fl.appendChild(fcb);fl.appendChild(document.createTextNode(' Content filter: hide adult, violent, drug and gambling content and insults or swear words (English and Bulgarian) (recommended)'));
+var fl=el('label','lg-p','');fl.style.cssText='display:block;margin:14px 0';fl.appendChild(fcb);fl.appendChild(document.createTextNode(' Content filter: hide adult, violent, drug and gambling content and insults or swear words (recommended)'));
 var fn=el('span','v9-note','');fn.style.display='block';fn.textContent='It is on by default. The site cannot check anyone\'s age, so you decide here. If a child uses this device, keep it on.';fl.appendChild(fn);
 fcb.onchange=function(){store.set('ai_kids',fcb.checked?'1':'0');if(window.AI_FEED_REFRESH)window.AI_FEED_REFRESH();};
 body.appendChild(fl);

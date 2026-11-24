@@ -687,3 +687,10 @@ html[data-os="macos"] body,html[data-os="ios"] body{-webkit-font-smoothing:antia
 html[data-os="windows"] body{text-rendering:optimizeLegibility}
 
 .chat-msg.a{max-width:100%}
+.yt-holder{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.yt-holder iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+#aiFinder[data-show="videos"] [data-kind="article"],#aiFinder[data-show="articles"] [data-kind="video"]{display:none}
+
+.clampBody{max-height:260px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.clampBody.open{max-height:none;-webkit-mask-image:none;mask-image:none}
+.clampBtn{display:block;margin:4px auto 0;font-size:12px;padding:4px 12px}

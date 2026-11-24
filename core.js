@@ -14,7 +14,7 @@ function fmtBytes(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n
 function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 function addPassive(t,fn){document.addEventListener(t,fn,{passive:true});}
 function consSave(){try{CONS.t=new Date().toISOString();localStorage.setItem('ai_consent',JSON.stringify(CONS));}catch(e){}}
-function storeAllowed(k){return k==='ai_consent'||!!(CONS&&(CONS.prefs||(CONS.cache&&/^ai_(vc|v9_vidx|v9_fyp|v9_feed2)/.test(k))));}
+function storeAllowed(k){return k==='ai_consent'||!!(CONS&&(CONS.prefs||(CONS.cache&&/^ai_(v9_fyp|v9_feed2)/.test(k))));}
 function cacheOK(){return !!(CONS&&CONS.cache);}
 function flushMem(){Object.keys(MEM).forEach(function(k){if(storeAllowed(k)){try{localStorage.setItem(k,MEM[k]);}catch(e){}delete MEM[k];}});}
 function wipeStored(onlyPrefs){try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('ai_')===0&&k!=='ai_consent'&&k!=='ai_age'&&(!onlyPrefs||!/^ai_(vc|v9_vidx|v9_fyp|v9_feed2)/.test(k)))ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
@@ -50,7 +50,7 @@ function country(){
 if(API.country)return API.country;
 var m=/-([A-Za-z]{2})\b/.exec(navigator.language||'');return m?m[1].toUpperCase():'US';
 }
-function xurl(route,q){var p=new URLSearchParams(q||{});p.set('country',country());if(route==='videos'||route==='feed')p.set('qv','2');return '/api/x/'+route+'?'+p.toString();}
+function xurl(route,q){var p=new URLSearchParams(q||{});p.set('country',country());if(route==='feed')p.set('qv','2');return '/api/x/'+route+'?'+p.toString();}
 function waitApi(){return new Promise(function(res){var t0=Date.now();(function chk(){if(API.ok||API.done||Date.now()-t0>4000||!/^https?:$/.test(location.protocol))res();else setTimeout(chk,100);})();});}
 function waitApiOk(){return waitApi().then(function(){if(!API.ok&&window.apiRetry)return window.apiRetry();});}
 function xget(route,q,timeout){
@@ -212,3 +212,7 @@ box.appendChild(d);});
 logAct('search','live: '+q);
 }).catch(function(){box.textContent='Live search failed. Use the source buttons below.';});
 }
+
+/* the site has no videos any more: remove the video cache that older versions saved on this device */
+try{if(window.caches)caches.delete('ai-v9-videos');}catch(e){}
+try{localStorage.removeItem('ai_v9_vidx');localStorage.removeItem('ai_vcsize');localStorage.removeItem('ai_vcwifi');localStorage.removeItem('ai_v9_favyt');localStorage.removeItem('ai_v9_favvid');}catch(e){}

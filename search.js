@@ -176,7 +176,7 @@ ARR.forEach(function(k){if(Array.isArray(keys[k])){jset(k,keys[k].slice(0,2000))
 STR.forEach(function(k){if(typeof keys[k]==='string'){jset(k,keys[k].slice(0,6000));n++;}});
 if(keys.ai_v9_vidlearn&&typeof keys.ai_v9_vidlearn==='object'&&!Array.isArray(keys.ai_v9_vidlearn)){jset('ai_v9_vidlearn',keys.ai_v9_vidlearn);n++;}
 if(snapRaw&&typeof snapRaw==='object'){var RX2=/^ai_[A-Za-z0-9_]{1,80}$/,NO2=/^(ai_consent|ai_v9_vidx|ai_installed|ai_voice_native_fail|ai_.*seen.*|ai_.*hint.*)$/;Object.keys(snapRaw).forEach(function(k){if(RX2.test(k)&&!NO2.test(k)&&typeof snapRaw[k]==='string'&&snapRaw[k].length<=400000){store.set(k,snapRaw[k]);n++;}});}
-var nv=0;try{snapVid.slice(0,20).forEach(function(v){if(v&&typeof v.src==='string'&&/^https:\/\/[^\s"<>]{4,500}$/.test(v.src)){vcWarm(v.src,null,false,'video/mp4');nv++;}});}catch(x){}
+var nv=0;
 try{favLoad();}catch(x){}
 try{ACT=jget('ai_v9_act',[]);}catch(x){}
 try{var cb=document.getElementById('v9ChatBody');if(cb){cb._built=false;cb.textContent='';}}catch(x){}
